@@ -1,6 +1,7 @@
 Elevator Project
 ================
 
+[![Build Status](https://travis-ci.org/andersliland/ttk4145-project.svg?branch=master)](https://travis-ci.org/andersliland/ttk4145-project)
 
 Summary
 -------
