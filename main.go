@@ -2,8 +2,9 @@ package main
 
 
 import(
-   ."fmt"
-   "time"
-
-
+   "fmt"
 )
+
+func main(){
+   fmt.Println("Hello World")
+}
