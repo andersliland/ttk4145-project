@@ -3,6 +3,7 @@ Elevator Project
 
 [![Build Status](https://travis-ci.org/andersliland/ttk4145-project.svg?branch=master)](https://travis-ci.org/andersliland/ttk4145-project)
 
+[![Coverage Status](https://coveralls.io/repos/github/andersliland/ttk4145-project/badge.svg?branch=master)](https://coveralls.io/github/andersliland/ttk4145-project?branch=master)
 Summary
 -------
 Create software for controlling `n` elevators working in parallel across `m` floors.
