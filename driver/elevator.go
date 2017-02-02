@@ -1,10 +1,9 @@
 package driver
 
 import (
+	. "../config"
 	"log"
 	"time"
-
-	. "../config"
 )
 
 var lampMatrix = [NumFloors][NumButtons]int{
@@ -37,10 +36,13 @@ chan<- : accepts a channel for RECEIVING values
 chan : bidirectional
 */
 func Init(buttonChannel chan<- ElevButton, lightChannel <-chan ElevLight, motorChannel chan int, floorChannel chan<- int, pollDelay time.Duration) error {
-	if err := IOInit(); err != nil {
-		log.Println(err)
+	if err := ioInit(); err != nil {
+		log.Println("Failed: ioInit()")
 		return err
 	}
-
 	return nil
+}
+
+func resetAllLights() {
+	// Up next
 }

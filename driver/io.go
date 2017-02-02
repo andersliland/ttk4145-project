@@ -10,7 +10,7 @@ import "errors"
 
 func ioInit() error {
 	if err := int(C.io_init()); err == 0 {
-		return errors.New("Elevator initialization unsuccessful!")
+		return errors.New("Failed: IO initialization")
 	}
 	return nil
 }
