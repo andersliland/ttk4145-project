@@ -16,6 +16,6 @@ func main() {
 	cost.Cost()
 	network.Udp()
 
-	InitUDP()
+	network.InitUDP()
 
 }
