@@ -5,11 +5,8 @@ package driver
 #cgo LDFLAGS: -lcomedi -lm
 #include "io.h"
 */
-
-import (
-	"C"
-	"errors"
-)
+import "C"
+import "errors"
 
 func ioInit() error {
 	if err := int(C.io_init()); err == 0 {
