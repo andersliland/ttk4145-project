@@ -21,13 +21,13 @@ var buttonMatrix = [NumFloors][NumButtons]int{
 }
 
 type ElevButton struct {
-	Type  int
 	Floor int
+	Kind  int
 }
 
 type ElevLight struct {
-	Type   int
 	Floor  int
+	Kind   int
 	Active bool
 }
 
@@ -40,9 +40,64 @@ func Init(buttonChannel chan<- ElevButton, lightChannel <-chan ElevLight, motorC
 		log.Println("Failed: ioInit()")
 		return err
 	}
+	resetAllLights()
+
+	go lightController(lightChannel)
+
+	go readInputs(buttonChannel, pollDelay)
+
+	log.Println("Success: Driver initialization")
 	return nil
 }
 
 func resetAllLights() {
-	// Up next
+	for floor := 0; floor < NumFloors; floor++ {
+		for kind := ButtonCallUp; kind <= ButtonCommand; kind++ {
+			ioClearBit(lampMatrix[floor][kind])
+		}
+	}
+	ioClearBit(LIGHT_DOOR_OPEN)
+	ioClearBit(LIGHT_STOP)
+}
+
+func lightController(lightChannel <-chan ElevLight) {
+	var command ElevLight
+	for {
+		select {
+		case command = <-lightChannel:
+			switch command.Kind {
+			case ButtonCallUp, ButtonCallDown, ButtonCommand:
+				if command.Active {
+					ioSetBit(lampMatrix[command.Floor][command.Kind])
+				} else {
+					ioClearBit(lampMatrix[command.Floor][command.Kind])
+				}
+			}
+		}
+	}
+}
+
+func readInputs(buttonChannel chan<- ElevButton, pollDelay time.Duration) {
+	inputMatrix := [NumFloors][NumButtons]bool{}
+	//stopButton := false
+	for {
+		for floor := 0; floor < NumFloors; floor++ {
+			for kind := ButtonCallUp; kind <= ButtonCommand; kind++ {
+				input := ioReadBit(buttonMatrix[floor][kind])
+				if input && !inputMatrix[floor][kind] { // First occurence of this specific input
+					inputMatrix[floor][kind] = true
+					buttonChannel <- ElevButton{floor, kind}
+				} else {
+					inputMatrix[floor][kind] = false
+				}
+			}
+		}
+		time.Sleep(pollDelay)
+	}
+}
+
+//--- HELP FUNCTIONS - TO BE DELETED ---//
+
+func SetLight(floor int, kind int) {
+	ioSetBit(lampMatrix[floor][kind])
 }

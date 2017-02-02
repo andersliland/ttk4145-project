@@ -4,14 +4,12 @@ import (
 	//"./cost"
 	"./driver"
 	//"./network"
-	"fmt"
 	"log"
 	"time"
 )
 
 func main() {
-	fmt.Println("Hello World from main")
-
+	log.Println("Activate: Elevator")
 	/*
 		driver.Elevator()
 		driver.Io()
@@ -31,7 +29,7 @@ func main() {
 
 	if err := driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay); err != nil {
 		log.Fatal(err)
-	} else {
-		log.Println("Success: Driver initialization")
 	}
+
+	driver.SetLight(1, 2)
 }
