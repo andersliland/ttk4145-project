@@ -5,6 +5,17 @@ import (
 	"os"
 )
 
+//TODO:make channel structs
+// Channels vs Channel?
+type HardwareChannels struct {
+}
+
+type NetworkChannels struct {
+}
+
+type EventChannels struct {
+}
+
 const NumButtons = 3
 const NumFloors = 4
 
@@ -47,3 +58,9 @@ func CheckError(errMsg string, err error) {
 	}
 
 }
+
+// Console colors
+const (
+	ColorWhite   = "\x1b[37;1m"
+	ColorNeutral = "\x1b[0m"
+)

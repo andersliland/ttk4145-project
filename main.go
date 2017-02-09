@@ -3,10 +3,13 @@ package main
 import (
 	//"./cost"
 	"log"
+	"os"
+	"os/signal"
 	"time"
 
 	. "./config"
 	"./driver"
+	"./fsm"
 	"./network"
 )
 
@@ -28,6 +31,14 @@ func sendMessageChannelFunc(sendMessageChannel chan ElevatorOrderMessage) {
 	}
 }
 
+func safeKill(safeKillChannel chan os.Signal, motorChannel chan int) {
+	signal.Notify(safeKillChannel, os.Interrupt)
+	<-safeKillChannel
+	motorChannel <- MotorStop
+	log.Fatal(ColorWhite, "User terminated program", ColorNeutral)
+
+}
+
 func main() {
 	log.Println("ACTIVATE: Elevator")
 	/*
@@ -39,24 +50,24 @@ func main() {
 
 		network.InitUDP()
 	*/
+	const elevatorPollDelay = 5 * time.Millisecond
+
 	sendMessageChannel := make(chan ElevatorOrderMessage, 5)
 	sendBackupChannel := make(chan ElevatorOrderMessage, 5)
 	receiveMessageChannel := make(chan ElevatorOrderMessage, 5)
-
-	go sendMessageChannelFunc(sendMessageChannel)
-
-	go network.InitNetwork(sendMessageChannel, receiveMessageChannel, sendBackupChannel)
-
-	const elevatorPollDelay = 5 * time.Millisecond
-
 	buttonChannel := make(chan driver.ElevButton, 10)
 	lightChannel := make(chan driver.ElevLight, 10)
 	motorChannel := make(chan int, 10)
 	floorChannel := make(chan int, 10)
+	safeKillChannel := make(chan os.Signal)
+
+	go safeKill(safeKillChannel, motorChannel)
+	go sendMessageChannelFunc(sendMessageChannel)
+	go network.InitNetwork(sendMessageChannel, receiveMessageChannel, sendBackupChannel)
+	go fsm.FSM()
 
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay)
 	//driver.SetLight(1, 2)
-
 	for {
 		select {
 		case a := <-buttonChannel:
@@ -65,8 +76,8 @@ func main() {
 			log.Println(a)
 		case a := <-receiveMessageChannel:
 			log.Println("Main receive: ", a)
-			log.Println("Floor:", a.Floor)
-			log.Println("OriginIP:", a.OriginIP)
+			//log.Println("Floor:", a.Floor)
+			//log.Println("OriginIP:", a.OriginIP)
 
 		}
 	}
