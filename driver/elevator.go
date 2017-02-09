@@ -46,9 +46,19 @@ func Init(buttonChannel chan<- ElevButton, lightChannel <-chan ElevLight, motorC
 
 	goToFloorBelow(motorChannel, pollDelay) // move to fsm, before for-select (include shouldStop() )
 	go floorSensorPoller(floorChannel, pollDelay)
-	go readInputs(buttonChannel, pollDelay)
+	go buttonPoller(buttonChannel, pollDelay)
 
 	log.Println("SUCCESS: Driver initialization")
+}
+
+func resetAllLights() {
+	for f := 0; f < NumFloors; f++ {
+		for b := ButtonCallUp; b <= ButtonCommand; b++ {
+			ioClearBit(lampMatrix[f][k])
+		}
+	}
+	ioClearBit(LIGHT_DOOR_OPEN)
+	ioClearBit(LIGHT_STOP)
 }
 
 func lightController(lightChannel <-chan ElevLight) {
@@ -102,7 +112,7 @@ func floorSensorPoller(floorChannel chan<- int, pollDelay time.Duration) {
 	for {
 		f := readFloorSensor()
 		if f != prevFloor && f != -1 {
-			setFloorIndicator(f) // Move to fsm
+			SetFloorIndicator(f) // Move to fsm
 			floorChannel <- f
 		}
 		prevFloor = f
@@ -110,16 +120,16 @@ func floorSensorPoller(floorChannel chan<- int, pollDelay time.Duration) {
 	}
 }
 
-func readInputs(buttonChannel chan<- ElevButton, pollDelay time.Duration) { // rename: buttonPoller
+func buttonPoller(buttonChannel chan<- ElevButton, pollDelay time.Duration) {
 	inputMatrix := [NumFloors][NumButtons]bool{}
 	for {
-		for floor := 0; floor < NumFloors; floor++ {
-			for kind := ButtonCallUp; kind <= ButtonCommand; kind++ {
-				input := ioReadBit(buttonMatrix[floor][kind])
-				if input && inputMatrix[floor][kind] != input { // First occurrence of this specific input
-					buttonChannel <- ElevButton{floor, kind}
+		for f := 0; f < NumFloors; f++ {
+			for k := ButtonCallUp; k <= ButtonCommand; k++ {
+				b := ioReadBit(buttonMatrix[f][k])
+				if b && inputMatrix[f][k] != b {
+					buttonChannel <- ElevButton{f, b}
 				}
-				inputMatrix[floor][kind] = input
+				inputMatrix[f][k] = b
 			}
 		}
 		time.Sleep(pollDelay)
@@ -128,19 +138,19 @@ func readInputs(buttonChannel chan<- ElevButton, pollDelay time.Duration) { // r
 
 func readFloorSensor() int {
 	if ioReadBit(SENSOR_FLOOR1) {
-		return Floor1
+		return Floor0
 	} else if ioReadBit(SENSOR_FLOOR2) {
-		return Floor2
+		return Floor1
 	} else if ioReadBit(SENSOR_FLOOR3) {
-		return Floor3
+		return Floor2
 	} else if ioReadBit(SENSOR_FLOOR4) {
-		return Floor4
+		return Floor3
 	} else {
 		return FloorInvalid
 	}
 }
 
-func setFloorIndicator(floor int) {
+func SetFloorIndicator(floor int) {
 	if floor < 0 || floor >= NumFloors {
 		log.Printf("ERROR [driver]: Floor %d out of range!\n", floor)
 		return
@@ -158,16 +168,6 @@ func setFloorIndicator(floor int) {
 	}
 }
 
-func resetAllLights() {
-	for floor := 0; floor < NumFloors; floor++ {
-		for kind := ButtonCallUp; kind <= ButtonCommand; kind++ {
-			ioClearBit(lampMatrix[floor][kind])
-		}
-	}
-	ioClearBit(LIGHT_DOOR_OPEN)
-	ioClearBit(LIGHT_STOP)
-}
-
 func goToFloorBelow(motorChannel chan int, pollDelay time.Duration) {
 	if readFloorSensor() == FloorInvalid {
 		motorChannel <- MotorUp
@@ -180,10 +180,4 @@ func goToFloorBelow(motorChannel chan int, pollDelay time.Duration) {
 			}
 		}
 	}
-}
-
-//--- HELP FUNCTIONS - TO BE DELETED ---//
-
-func SetLight(floor int, kind int) {
-	ioSetBit(lampMatrix[floor][kind])
 }
