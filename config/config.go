@@ -7,4 +7,21 @@ const (
 	ButtonCallUp = iota
 	ButtonCallDown
 	ButtonCommand
+	DoorIndicator
+	FloorSensor
+	FloorIndicator
+)
+
+const (
+	FloorInvalid = iota
+	Floor1
+	Floor2
+	Floor3
+	Floor4
+)
+
+const (
+	MotorStop = iota
+	MotorUp
+	MotorDown
 )

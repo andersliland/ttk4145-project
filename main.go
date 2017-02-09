@@ -26,8 +26,8 @@ func main() {
 	lightChannel := make(chan driver.ElevLight)
 	motorChannel := make(chan int)
 	floorChannel := make(chan int)
-
-	if err := driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay); err != nil {
+	err := driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay)
+	if err != nil {
 		log.Fatal(err)
 	}
 

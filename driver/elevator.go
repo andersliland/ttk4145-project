@@ -1,9 +1,10 @@
 package driver
 
 import (
-	. "../config"
 	"log"
 	"time"
+
+	. "../config"
 )
 
 var lampMatrix = [NumFloors][NumButtons]int{
@@ -31,33 +32,27 @@ type ElevLight struct {
 	Active bool
 }
 
+const motorSpeed = 2800
+
 /* 	<-chan : accepts a channel for SENDING values
 chan<- : accepts a channel for RECEIVING values
 chan : bidirectional
 */
 func Init(buttonChannel chan<- ElevButton, lightChannel <-chan ElevLight, motorChannel chan int, floorChannel chan<- int, pollDelay time.Duration) error {
 	if err := ioInit(); err != nil {
-		log.Println("Failed: ioInit()")
+		log.Println("FAILED: ioInit()")
 		return err
 	}
-	resetAllLights()
-
 	go lightController(lightChannel)
-
+	go motorController(motorChannel)
+	go floorController(floorChannel)
 	go readInputs(buttonChannel, pollDelay)
 
-	log.Println("Success: Driver initialization")
-	return nil
-}
+	resetAllLights()
+	goToFloorBelow()
 
-func resetAllLights() {
-	for floor := 0; floor < NumFloors; floor++ {
-		for kind := ButtonCallUp; kind <= ButtonCommand; kind++ {
-			ioClearBit(lampMatrix[floor][kind])
-		}
-	}
-	ioClearBit(LIGHT_DOOR_OPEN)
-	ioClearBit(LIGHT_STOP)
+	log.Println("SUCCESS: Driver initialization")
+	return nil
 }
 
 func lightController(lightChannel <-chan ElevLight) {
@@ -72,19 +67,60 @@ func lightController(lightChannel <-chan ElevLight) {
 				} else {
 					ioClearBit(lampMatrix[command.Floor][command.Kind])
 				}
+			case DoorIndicator:
+				if command.Active {
+					ioSetBit(LIGHT_DOOR_OPEN)
+				} else {
+					ioClearBit(LIGHT_DOOR_OPEN)
+				}
+			default:
+				log.Println("ERROR [driver]: Invalid light command")
 			}
 		}
 	}
 }
 
+func motorController(motorChannel chan int) {
+	for {
+		select {
+		case command <- motorChannel:
+			switch command.Kind {
+			case MotorStop:
+				ioWriteAnalog(MOTOR, 0)
+			case MotorUp:
+				ioClearBit(MOTORDIR)
+				ioWriteAnalog(MOTOR, motorSpeed)
+			case MotorDown:
+				ioSetBit(MOTORDIR)
+				ioWriteAnalog(MOTOR, motorSpeed)
+			default:
+				log.Println("ERROR [driver]: Invalid motor command")
+			}
+		}
+	}
+}
+
+func floorController(floorChannel chan<- int, pollDelay time.Duration) {
+	prevFloor := FloorInvalid
+	var tempFloor int // TODO: declare on one line
+	for {
+		tempFloor = readFloorSensor()
+		if tempFloor != prevFloor {
+			prevFloor = tempFloor
+			setFloorIndicator(tempFloor)
+			floorChannel <- tempFloor
+		}
+		time.Sleep(pollDelay)
+	}
+}
+
 func readInputs(buttonChannel chan<- ElevButton, pollDelay time.Duration) {
 	inputMatrix := [NumFloors][NumButtons]bool{}
-	//stopButton := false
 	for {
 		for floor := 0; floor < NumFloors; floor++ {
 			for kind := ButtonCallUp; kind <= ButtonCommand; kind++ {
 				input := ioReadBit(buttonMatrix[floor][kind])
-				if input && !inputMatrix[floor][kind] { // First occurence of this specific input
+				if input && !inputMatrix[floor][kind] { // First occurrence of this specific input
 					inputMatrix[floor][kind] = true
 					buttonChannel <- ElevButton{floor, kind}
 				} else {
@@ -93,6 +129,62 @@ func readInputs(buttonChannel chan<- ElevButton, pollDelay time.Duration) {
 			}
 		}
 		time.Sleep(pollDelay)
+	}
+}
+
+func readFloorSensor() {
+	if ioReadBit(SENSOR_FLOOR1) {
+		return Floor1
+	} else if ioReadBit(SENSOR_FLOOR2) {
+		return Floor2
+	} else if ioReadBit(SENSOR_FLOOR3) {
+		return Floor3
+	} else if ioReadBit(SENSOR_FLOOR4) {
+		return Floor4
+	} else {
+		return FloorInvalid
+	}
+}
+
+func setFloorIndicator(floor int) {
+	if floor < 0 || floor >= NumFloors {
+		log.Printf("ERROR [driver]: Floor %d out of range!\n", floor)
+		return
+	}
+
+	if floor&0x02 > 0 {
+		ioSetBit(LIGHT_FLOOR_IND1)
+	} else {
+		ioClearBit(LIGHT_FLOOR_IND1)
+	}
+	if floor&0x01 > 0 {
+		ioSetBit(LIGHT_FLOOR_IND2)
+	} else {
+		ioClearBit(LIGHT_FLOOR_IND2)
+	}
+}
+
+func resetAllLights() {
+	for floor := 0; floor < NumFloors; floor++ {
+		for kind := ButtonCallUp; kind <= ButtonCommand; kind++ {
+			ioClearBit(lampMatrix[floor][kind])
+		}
+	}
+	ioClearBit(LIGHT_DOOR_OPEN)
+	ioClearBit(LIGHT_STOP)
+}
+
+func goToFloorBelow(pollDelay time.Duration) {
+	if readFloorSensor() == FloorInvalid {
+		motorChannel <- MotorDown
+		for {
+			if readFloorSensor() != FloorInvalid {
+				floorChannel <- MotorStop
+				break
+			} else {
+				time.Sleep(pollDelay)
+			}
+		}
 	}
 }
 
