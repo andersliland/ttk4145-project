@@ -31,7 +31,6 @@ const (
 	MotorDown
 )
 
-
 type ElevatorOrderMessage struct {
 	Floor      int
 	ButtonType int
@@ -46,3 +45,5 @@ func CheckError(errMsg string, err error) {
 		log.Println(errMsg, " ", err.Error())
 		os.Exit(1)
 	}
+
+}

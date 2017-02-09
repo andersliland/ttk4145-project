@@ -53,7 +53,7 @@ func Init(buttonChannel chan<- ElevButton, lightChannel <-chan ElevLight, motorC
 
 func resetAllLights() {
 	for f := 0; f < NumFloors; f++ {
-		for b := ButtonCallUp; b <= ButtonCommand; b++ {
+		for k := ButtonCallUp; k <= ButtonCommand; k++ {
 			ioClearBit(lampMatrix[f][k])
 		}
 	}
@@ -127,7 +127,7 @@ func buttonPoller(buttonChannel chan<- ElevButton, pollDelay time.Duration) {
 			for k := ButtonCallUp; k <= ButtonCommand; k++ {
 				b := ioReadBit(buttonMatrix[f][k])
 				if b && inputMatrix[f][k] != b {
-					buttonChannel <- ElevButton{f, b}
+					buttonChannel <- ElevButton{f, k}
 				}
 				inputMatrix[f][k] = b
 			}
