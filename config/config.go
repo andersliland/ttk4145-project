@@ -19,6 +19,7 @@ type EventChannels struct {
 const NumButtons = 3
 const NumFloors = 4
 
+// TODO: handle inside buttons
 const (
 	ButtonCallUp = iota
 	ButtonCallDown

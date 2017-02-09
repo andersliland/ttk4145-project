@@ -21,12 +21,12 @@ var buttonMatrix = [NumFloors][NumButtons]int{
 	{BUTTON_UP4, BUTTON_DOWN4, BUTTON_COMMAND4},
 }
 
-type ElevButton struct {
+type ElevatorButton struct {
 	Floor int
 	Kind  int
 }
 
-type ElevLight struct {
+type ElevatorLight struct {
 	Floor  int
 	Kind   int
 	Active bool
@@ -38,7 +38,7 @@ const motorSpeed = 2800
 chan<- : accepts a channel for RECEIVING values
 chan : bidirectional
 */
-func Init(buttonChannel chan<- ElevButton, lightChannel <-chan ElevLight, motorChannel chan int, floorChannel chan<- int, pollDelay time.Duration) {
+func Init(buttonChannel chan<- ElevatorButton, lightChannel <-chan ElevatorLight, motorChannel chan int, floorChannel chan<- int, pollDelay time.Duration) {
 	ioInit()
 	resetAllLights()
 	go lightController(lightChannel)
@@ -61,8 +61,8 @@ func resetAllLights() {
 	ioClearBit(LIGHT_STOP)
 }
 
-func lightController(lightChannel <-chan ElevLight) {
-	var command ElevLight
+func lightController(lightChannel <-chan ElevatorLight) {
+	var command ElevatorLight
 	for {
 		select {
 		case command = <-lightChannel:
@@ -120,14 +120,14 @@ func floorSensorPoller(floorChannel chan<- int, pollDelay time.Duration) {
 	}
 }
 
-func buttonPoller(buttonChannel chan<- ElevButton, pollDelay time.Duration) {
+func buttonPoller(buttonChannel chan<- ElevatorButton, pollDelay time.Duration) {
 	inputMatrix := [NumFloors][NumButtons]bool{}
 	for {
 		for f := 0; f < NumFloors; f++ {
 			for k := ButtonCallUp; k <= ButtonCommand; k++ {
 				b := ioReadBit(buttonMatrix[f][k])
 				if b && inputMatrix[f][k] != b {
-					buttonChannel <- ElevButton{f, k}
+					buttonChannel <- ElevatorButton{f, k}
 				}
 				inputMatrix[f][k] = b
 			}

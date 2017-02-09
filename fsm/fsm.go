@@ -1,17 +1,19 @@
 package fsm
 
+import (
+//. "../config"
+//. "../driver"
+//"../network"
+)
+
 const (
 	idle = iota
 	moving
 	doorOpen
 )
 
-func shoulStop() {
-
-}
-
-func Init() {
-
+func InitFSM() {
+	go shouldStop()
 }
 
 func FSM() {
@@ -21,6 +23,29 @@ func FSM() {
 
 		case moving:
 
+		motorChannel <- MotorDown
+
 		case doorOpen:
 	*/
 }
+
+func shouldStop() {
+
+}
+
+/*
+func buttonHandler(buttonChannel chan ElevatorButton, lightChannel <-chan ElevatorLight) {
+
+	for {
+		select {
+		case b := <-buttonChannel:
+			//lightChannel <- driver.ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
+
+		}
+
+
+	}
+
+}
+
+*/

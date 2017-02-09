@@ -79,14 +79,14 @@ func udpReceive(udpReceiveCh chan UDPMessage,
 func listenUDPStream(listen *net.UDPConn,
 	udpReceiveCh chan UDPMessage) {
 
-	receiveBuffer := make([]byte, messageSize)
+	buf := make([]byte, messageSize)
 	for {
 
-		n, raddr, err := listen.ReadFromUDP(receiveBuffer)
+		n, raddr, err := listen.ReadFromUDP(buf)
 		if err != nil {
 			return
 		}
-		udpReceiveCh <- UDPMessage{Raddr: raddr.String(), Data: receiveBuffer[:n], Length: n}
+		udpReceiveCh <- UDPMessage{Raddr: raddr.String(), Data: buf[:n], Length: n}
 
 	}
 
