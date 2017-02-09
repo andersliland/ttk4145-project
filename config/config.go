@@ -1,5 +1,10 @@
 package config
 
+import (
+	"log"
+	"os"
+)
+
 const NumButtons = 3
 const NumFloors = 4
 
@@ -25,3 +30,19 @@ const (
 	MotorUp
 	MotorDown
 )
+
+
+type ElevatorOrderMessage struct {
+	Floor      int
+	ButtonType int
+	AssignedTo string
+	OriginIP   string
+	SenderIP   string
+	Event      int
+}
+
+func CheckError(errMsg string, err error) {
+	if err != nil {
+		log.Println(errMsg, " ", err.Error())
+		os.Exit(1)
+	}

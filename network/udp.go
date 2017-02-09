@@ -1,105 +1,93 @@
 package network
 
 import (
-	"fmt"
+	"log"
 	"net"
-	"os"
 	"strconv"
-	"sync"
-	"time"
+
+	. "../config"
 )
 
-func Udp() {
-	fmt.Println("Hello from Udp.go")
+// Maximum allowed UDP datagram size in bytes: 65,507 (imposed by the IPv4 protocol)
+const messageSize = 1024
+const broadcastListenPort = 6666
+
+type UDPMessage struct {
+	Raddr  string
+	Data   []byte
+	Length int
 }
 
-type ClientJob struct {
-	name string
-	conn net.Conn
-}
+var broadcastAddr net.UDPAddr
+var laddr net.UDPAddr
+var listenAddr net.UDPAddr
 
-func InitUDP() {
+func InitUDP(
+	udpSendChannel chan UDPMessage,
+	udpReceiveChannel chan UDPMessage) {
 
-	broadcastListenPort := 6666
+	broadcastAddr, err := net.ResolveUDPAddr("udp4", "255.255.255.255"+":"+strconv.Itoa(broadcastListenPort)) // increment port by 1 for each new connection
+	CheckError("Failed to resolve remote addr", err)
 
-	// Resolve broadcast addr
-	var raddr = "255.255.255.255"
-	broadcastAddr, err := net.ResolveUDPAddr("udp4", raddr+":"+strconv.Itoa(broadcastListenPort))
-	checkError(err)
-
-	// Resolve local addr
-	//laddr, err := net.ResolveUDPAddr("udp4", "129.241.187.142:20014")
-
-	// Dial
-	conn, err := net.DialUDP("udp4", nil, broadcastAddr)
-	checkError(err)
-	defer conn.Close()
+	//laddr, err := net.ResolveUDPAddr("udp4", "129.241.187.50:20014")
+	CheckError("Failed to resolve local addr", err)
 
 	listenAddr, err := net.ResolveUDPAddr("udp4", ":6666")
-	checkError(err)
+	CheckError("Failed to resolve listen port", err)
+
+	conn, err := net.DialUDP("udp4", nil, broadcastAddr) //TODO: add laddr to DialUp
+	CheckError("DialUDP failed", err)
+	//defer conn.Close() // Close connection when function collapses, shoud be moved to other function
 
 	listen, err := net.ListenUDP("udp4", listenAddr)
-	checkError(err)
+	CheckError("ListenUDP failed", err)
 
-	clientJobs := make(chan ClientJob)
+	udpReceiveCh := make(chan UDPMessage)
 
-	var wg sync.WaitGroup
-	wg.Add(3)
-
-	go udpTransmit(conn, wg)
-	go udpRecieve(listen, wg, clientJobs)
-	go generateResponse(clientJobs, wg)
-
-	wg.Wait()
-
+	go udpTransmit(conn, udpSendChannel)
+	go udpReceive(udpReceiveCh, udpReceiveChannel)
+	go listenUDPStream(listen, udpReceiveCh)
 }
 
-func generateResponse(clientJobs chan ClientJob, wg sync.WaitGroup) {
-	defer wg.Done()
+func udpTransmit(conn *net.UDPConn,
+	udpSendChannel chan UDPMessage) {
 
 	for {
-
-		clientJob := <-clientJobs
-
-		clientJob.conn.Write([]byte("Hello, " + clientJob.name))
-	}
-}
-
-func udpTransmit(conn *net.UDPConn, wg sync.WaitGroup) {
-	defer wg.Done()
-
-	for {
-
-		daytime := time.Now().String()
-		_, err := conn.Write([]byte(daytime))
-		checkError(err)
-		time.Sleep(time.Second * 1)
-		fmt.Println("Transmitted message to", conn.RemoteAddr())
+		select {
+		case message := <-udpSendChannel:
+			_, err := conn.Write(message.Data)
+			if err != nil {
+				log.Println("udpTransmit: write UDP datagram error: ", err)
+			}
+		}
 	}
 
 }
 
-func udpRecieve(listen *net.UDPConn, wg sync.WaitGroup, clientJobs chan ClientJob) {
-	defer wg.Done()
+func udpReceive(udpReceiveCh chan UDPMessage,
+	udpReceiveChannel chan UDPMessage) {
 
 	for {
+		select {
+		case message := <-udpReceiveCh:
+			udpReceiveChannel <- message
+		}
+	}
 
-		var recieveBuffer [1024]byte
-		_, addr, err := listen.ReadFromUDP(recieveBuffer[0:])
+}
+
+func listenUDPStream(listen *net.UDPConn,
+	udpReceiveCh chan UDPMessage) {
+
+	receiveBuffer := make([]byte, messageSize)
+	for {
+
+		n, raddr, err := listen.ReadFromUDP(receiveBuffer)
 		if err != nil {
 			return
 		}
-		fmt.Printf("Recieved from:", addr, "\n")
-
-		clientJobs <- ClientJob{"Anders", listen}
+		udpReceiveCh <- UDPMessage{Raddr: raddr.String(), Data: receiveBuffer[:n], Length: n}
 
 	}
 
-}
-
-func checkError(err error) {
-	if err != nil {
-		fmt.Fprint(os.Stderr, "Fatal error ", err.Error())
-		os.Exit(1)
-	}
 }
