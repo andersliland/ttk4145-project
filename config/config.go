@@ -13,7 +13,7 @@ const (
 )
 
 const (
-	FloorInvalid = iota
+	FloorInvalid = iota - 1
 	Floor1
 	Floor2
 	Floor3

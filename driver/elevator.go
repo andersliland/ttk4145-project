@@ -38,21 +38,17 @@ const motorSpeed = 2800
 chan<- : accepts a channel for RECEIVING values
 chan : bidirectional
 */
-func Init(buttonChannel chan<- ElevButton, lightChannel <-chan ElevLight, motorChannel chan int, floorChannel chan<- int, pollDelay time.Duration) error {
-	if err := ioInit(); err != nil {
-		log.Println("FAILED: ioInit()")
-		return err
-	}
+func Init(buttonChannel chan<- ElevButton, lightChannel <-chan ElevLight, motorChannel chan int, floorChannel chan<- int, pollDelay time.Duration) {
+	ioInit()
+	resetAllLights()
 	go lightController(lightChannel)
 	go motorController(motorChannel)
-	go floorController(floorChannel)
+
+	goToFloorBelow(motorChannel, pollDelay) // move to fsm, before for-select (include shouldStop() )
+	go floorSensorPoller(floorChannel, pollDelay)
 	go readInputs(buttonChannel, pollDelay)
 
-	resetAllLights()
-	goToFloorBelow()
-
 	log.Println("SUCCESS: Driver initialization")
-	return nil
 }
 
 func lightController(lightChannel <-chan ElevLight) {
@@ -81,10 +77,11 @@ func lightController(lightChannel <-chan ElevLight) {
 }
 
 func motorController(motorChannel chan int) {
+	var command int
 	for {
 		select {
-		case command <- motorChannel:
-			switch command.Kind {
+		case command = <-motorChannel:
+			switch command {
 			case MotorStop:
 				ioWriteAnalog(MOTOR, 0)
 			case MotorUp:
@@ -100,39 +97,36 @@ func motorController(motorChannel chan int) {
 	}
 }
 
-func floorController(floorChannel chan<- int, pollDelay time.Duration) {
+func floorSensorPoller(floorChannel chan<- int, pollDelay time.Duration) {
 	prevFloor := FloorInvalid
-	var tempFloor int // TODO: declare on one line
 	for {
-		tempFloor = readFloorSensor()
-		if tempFloor != prevFloor {
-			prevFloor = tempFloor
-			setFloorIndicator(tempFloor)
-			floorChannel <- tempFloor
+		f := readFloorSensor()
+		if f != prevFloor && f != -1 {
+			setFloorIndicator(f) // Move to fsm
+			floorChannel <- f
 		}
+		prevFloor = f
 		time.Sleep(pollDelay)
 	}
 }
 
-func readInputs(buttonChannel chan<- ElevButton, pollDelay time.Duration) {
+func readInputs(buttonChannel chan<- ElevButton, pollDelay time.Duration) { // rename: buttonPoller
 	inputMatrix := [NumFloors][NumButtons]bool{}
 	for {
 		for floor := 0; floor < NumFloors; floor++ {
 			for kind := ButtonCallUp; kind <= ButtonCommand; kind++ {
 				input := ioReadBit(buttonMatrix[floor][kind])
-				if input && !inputMatrix[floor][kind] { // First occurrence of this specific input
-					inputMatrix[floor][kind] = true
+				if input && inputMatrix[floor][kind] != input { // First occurrence of this specific input
 					buttonChannel <- ElevButton{floor, kind}
-				} else {
-					inputMatrix[floor][kind] = false
 				}
+				inputMatrix[floor][kind] = input
 			}
 		}
 		time.Sleep(pollDelay)
 	}
 }
 
-func readFloorSensor() {
+func readFloorSensor() int {
 	if ioReadBit(SENSOR_FLOOR1) {
 		return Floor1
 	} else if ioReadBit(SENSOR_FLOOR2) {
@@ -174,12 +168,12 @@ func resetAllLights() {
 	ioClearBit(LIGHT_STOP)
 }
 
-func goToFloorBelow(pollDelay time.Duration) {
+func goToFloorBelow(motorChannel chan int, pollDelay time.Duration) {
 	if readFloorSensor() == FloorInvalid {
-		motorChannel <- MotorDown
+		motorChannel <- MotorUp
 		for {
 			if readFloorSensor() != FloorInvalid {
-				floorChannel <- MotorStop
+				motorChannel <- MotorStop
 				break
 			} else {
 				time.Sleep(pollDelay)

@@ -1,18 +1,19 @@
 package driver
 
 /*
-#cgo CFLAGS: -std=c11
+#cgo CFLAGS: -std=gnu11
 #cgo LDFLAGS: -lcomedi -lm
 #include "io.h"
 */
 import "C"
-import "errors"
+import "log"
+import "os"
 
-func ioInit() error {
+func ioInit() {
 	if err := int(C.io_init()); err == 0 {
-		return errors.New("Failed: IO initialization")
+		log.Println("FAILED [io]: IO initialization")
+		os.Exit(-1)
 	}
-	return nil
 }
 
 func ioSetBit(channel int) {
