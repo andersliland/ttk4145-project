@@ -2,16 +2,16 @@ package main
 
 import (
 	//"./cost"
-	"log"
-	"os"
-	"os/signal"
-	"time"
-
 	. "./config"
 	"./driver"
 	"./fsm"
 	"./network"
+	"log"
+	"os"
+	"os/signal"
+	"time"
 )
+
 
 func sendMessageChannelFunc(sendMessageChannel chan ElevatorOrderMessage) {
 
@@ -26,8 +26,7 @@ func sendMessageChannelFunc(sendMessageChannel chan ElevatorOrderMessage) {
 			Event:      23,
 		}
 
-		time.Sleep(time.Second * 1)
-		log.Println("Main send = ")
+		time.Sleep(time.Second * 5)
 	}
 }
 
@@ -37,6 +36,7 @@ func safeKill(safeKillChannel chan os.Signal, motorChannel chan int) {
 	motorChannel <- MotorStop
 	log.Fatal(ColorWhite, "User terminated program\n", ColorNeutral)
 }
+
 
 func main() {
 	log.Println("ACTIVATE: Elevator")
@@ -65,18 +65,13 @@ func main() {
 	go network.InitNetwork(sendMessageChannel, receiveMessageChannel, sendBackupChannel)
 	go fsm.InitFSM()
 	go fsm.FSM()
-	//go fsm.buttonHandler(buttonChannel, lightChannel)
+	go fsm.ButtonHandler(buttonChannel, lightChannel, motorChannel)
 
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay)
 	//driver.SetLight(1, 2)
 	for {
 		select {
-		case a := <-buttonChannel:
-			log.Println(a)
-		case a := <-floorChannel:
-			log.Println(a)
 		case a := <-receiveMessageChannel:
-
 			log.Println("Main receive: ", a)
 			//log.Println("Floor:", a.Floor)
 			//log.Println("OriginIP:", a.OriginIP)

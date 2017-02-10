@@ -27,20 +27,20 @@ func InitUDP(
 	udpReceiveChannel chan UDPMessage) {
 
 	broadcastAddr, err := net.ResolveUDPAddr("udp4", "255.255.255.255"+":"+strconv.Itoa(broadcastListenPort)) // increment port by 1 for each new connection
-	CheckError("Failed to resolve remote addr", err)
+	CheckError("ERROR [udp] Failed to resolve remote addr", err)
 
 	//laddr, err := net.ResolveUDPAddr("udp4", "129.241.187.50:20014")
-	CheckError("Failed to resolve local addr", err)
+	CheckError("ERROR [udp] Failed to resolve local addr", err)
 
 	listenAddr, err := net.ResolveUDPAddr("udp4", ":6666")
-	CheckError("Failed to resolve listen port", err)
+	CheckError("ERROR [udp] Failed to resolve listen port", err)
 
 	conn, err := net.DialUDP("udp4", nil, broadcastAddr) //TODO: add laddr to DialUp
-	CheckError("DialUDP failed", err)
+	CheckError("ERROR [udp] DialUDP failed", err)
 	//defer conn.Close() // Close connection when function collapses, shoud be moved to other function
 
 	listen, err := net.ListenUDP("udp4", listenAddr)
-	CheckError("ListenUDP failed", err)
+	CheckError("ERROR [udp] ListenUDP failed", err)
 
 	udpReceiveCh := make(chan UDPMessage)
 
@@ -57,7 +57,7 @@ func udpTransmit(conn *net.UDPConn,
 		case message := <-udpSendChannel:
 			_, err := conn.Write(message.Data)
 			if err != nil {
-				log.Println("udpTransmit: write UDP datagram error: ", err)
+				log.Println("ERROR [udp] udpTransmit: write UDP datagram error: ", err)
 			}
 		}
 	}

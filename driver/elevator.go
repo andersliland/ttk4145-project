@@ -138,13 +138,13 @@ func buttonPoller(buttonChannel chan<- ElevatorButton, pollDelay time.Duration) 
 
 func readFloorSensor() int {
 	if ioReadBit(SENSOR_FLOOR1) {
-		return Floor0
-	} else if ioReadBit(SENSOR_FLOOR2) {
 		return Floor1
-	} else if ioReadBit(SENSOR_FLOOR3) {
+	} else if ioReadBit(SENSOR_FLOOR2) {
 		return Floor2
-	} else if ioReadBit(SENSOR_FLOOR4) {
+	} else if ioReadBit(SENSOR_FLOOR3) {
 		return Floor3
+	} else if ioReadBit(SENSOR_FLOOR4) {
+		return Floor4
 	} else {
 		return FloorInvalid
 	}

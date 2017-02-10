@@ -32,7 +32,7 @@ func sendMessageHandler(sendMessageChannel chan ElevatorOrderMessage,
 			networkPack, err := json.Marshal(message)
 			//log.Println("Message from main (network)", message)
 			if err != nil {
-				log.Println("sendMessage marshal failed", err)
+				log.Println("ERROR [network] sendMessage marshal failed", err)
 			} else {
 				udpSendDatagramChannel <- UDPMessage{Raddr: "32", Data: networkPack} // UDPMessage
 			}
@@ -40,7 +40,7 @@ func sendMessageHandler(sendMessageChannel chan ElevatorOrderMessage,
 		case message := <-sendBackupChannel:
 			networkPack, err := json.Marshal(message)
 			if err != nil {
-				log.Println("sendBackup marshal failed", err)
+				log.Println("ERROR [network] sendBackup marshal failed", err)
 			} else {
 				udpSendDatagramChannel <- UDPMessage{Raddr: "32", Data: networkPack} // UDPMessage
 			}
@@ -59,7 +59,7 @@ func receiveMessageHandler(receiveMessageChannel chan ElevatorOrderMessage,
 		case message := <-udpReceiveDatagramChannel:
 			err := json.Unmarshal(message.Data, &receivedOrder)
 			if err != nil {
-				log.Println("Unmarshal failed", err)
+				log.Println("ERROR [network] Unmarshal failed", err)
 			} else {
 				receiveMessageChannel <- receivedOrder
 			}
