@@ -30,14 +30,6 @@ func sendMessageChannelFunc(sendMessageChannel chan ElevatorOrderMessage) {
 	}
 }
 
-func safeKill(safeKillChannel chan os.Signal, motorChannel chan int) {
-	signal.Notify(safeKillChannel, os.Interrupt)
-	<-safeKillChannel
-	motorChannel <- MotorStop
-	log.Fatal(ColorWhite, "User terminated program\n", ColorNeutral)
-}
-
-
 func main() {
 	log.Println("ACTIVATE: Elevator")
 	/*
@@ -60,8 +52,7 @@ func main() {
 	floorChannel := make(chan int, 10)
 	safeKillChannel := make(chan os.Signal)
 
-	go safeKill(safeKillChannel, motorChannel)
-	go sendMessageChannelFunc(sendMessageChannel)
+	//go sendMessageChannelFunc(sendMessageChannel)
 	go network.InitNetwork(sendMessageChannel, receiveMessageChannel, sendBackupChannel)
 	go fsm.InitFSM()
 	go fsm.FSM()
@@ -69,6 +60,17 @@ func main() {
 
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay)
 	//driver.SetLight(1, 2)
+
+	signal.Notify(safeKillChannel, os.Interrupt)
+	go func(){
+		<-safeKillChannel
+		motorChannel <- 0
+		log.Fatal(ColorWhite, "\nUser terminated program\nMOTOR STOPPED\n", ColorNeutral)
+		time.Sleep(100 * time.Millisecond)
+		os.Exit(1)
+		}()
+
+
 	for {
 		select {
 		case a := <-receiveMessageChannel:

@@ -39,23 +39,22 @@ func ButtonHandler(buttonChannel chan ElevatorButton, lightChannel chan Elevator
 	for {
 		select {
 		case  b := <-buttonChannel:
-			if b.Floor == 1 && b.Kind == ButtonCallUp {
-			//	motorChannel <- 1
-			log.Println("test")
-				lightChannel <- ElevatorLight{ Floor : 2, Kind : 0, Active : true}
+			if b.Floor == 0 && b.Kind == 2 {
+			motorChannel <- 0
+			log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
+			lightChannel <- ElevatorLight{ Floor : b.Floor, Kind : b.Kind, Active : true}
 			}
-			/*
-			if b.Floor == 0  && b.Kind == 0 {
-					log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
-					lightChannel <- ElevatorLight{ Floor : b.Floor, Kind : b.Kind, Active : true}
-				}
-			if b.Floor == 2 && b.Kind == BUTTON_COMMAND2 {
-					motorChannel <- 2
+			if b.Floor == 1 && b.Kind == 2 {
+			motorChannel <- 1
+			log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
+			lightChannel <- ElevatorLight{ Floor : b.Floor, Kind : b.Kind, Active : true}
 			}
-			if b.Floor == 3 && b.Kind == BUTTON_COMMAND3 {
-					motorChannel <- 0
+			if b.Floor == 2 && b.Kind == 2 {
+			motorChannel <- 2
+			log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
+			lightChannel <- ElevatorLight{ Floor : b.Floor, Kind : b.Kind, Active : true}
 			}
-			*/
+
 	}
  }
 }
