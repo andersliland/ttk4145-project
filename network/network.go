@@ -9,7 +9,7 @@ import (
 
 func InitNetwork(sendMessageChannel chan ElevatorOrderMessage,
 	receiveMessageChannel chan ElevatorOrderMessage,
-	sendBackupChannel chan ElevatorOrderMessage) {
+	sendBackupChannel chan ElevatorOrderMessage) (localIP string, err error) {
 
 	udpSendDatagramChannel := make(chan UDPMessage, 10)
 	udpReceiveDatagramChannel := make(chan UDPMessage, 5)
@@ -17,9 +17,12 @@ func InitNetwork(sendMessageChannel chan ElevatorOrderMessage,
 	go sendMessageHandler(sendMessageChannel, sendBackupChannel, udpSendDatagramChannel)
 	go receiveMessageHandler(receiveMessageChannel, udpReceiveDatagramChannel)
 
-	InitUDP(udpSendDatagramChannel, udpReceiveDatagramChannel)
+	localIP, err = InitUDP(udpSendDatagramChannel, udpReceiveDatagramChannel)
+	CheckError("", err)
 
+	return localIP, nil
 }
+
 
 // receive message from main.go, marshall and send down to udp.go
 func sendMessageHandler(sendMessageChannel chan ElevatorOrderMessage,

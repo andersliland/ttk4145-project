@@ -38,7 +38,11 @@ const motorSpeed = 2800
 chan<- : accepts a channel for RECEIVING values
 chan : bidirectional
 */
-func Init(buttonChannel chan<- ElevatorButton, lightChannel <-chan ElevatorLight, motorChannel chan int, floorChannel chan<- int, pollDelay time.Duration) {
+func Init(buttonChannel chan<- ElevatorButton,
+	 lightChannel <-chan ElevatorLight,
+	  motorChannel chan int,
+		 floorChannel chan<- int,
+		 pollDelay time.Duration) {
 	ioInit()
 	resetAllLights()
 	go lightController(lightChannel)
@@ -48,7 +52,7 @@ func Init(buttonChannel chan<- ElevatorButton, lightChannel <-chan ElevatorLight
 	go floorSensorPoller(floorChannel, pollDelay)
 	go buttonPoller(buttonChannel, pollDelay)
 
-	log.Println("SUCCESS: Driver initialization")
+	log.Println("SUCCESS [driver] Initialization")
 }
 
 func resetAllLights() {

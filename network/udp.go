@@ -4,12 +4,13 @@ import (
 	"log"
 	"net"
 	"strconv"
-
+"strings"
 	. "../config"
 )
 
 // Maximum allowed UDP datagram size in bytes: 65,507 (imposed by the IPv4 protocol)
 const messageSize = 1024
+const localListenPort = 1
 const broadcastListenPort = 6666
 
 type UDPMessage struct {
@@ -18,24 +19,30 @@ type UDPMessage struct {
 	Length int
 }
 
-var broadcastAddr net.UDPAddr
-var laddr net.UDPAddr
-var listenAddr net.UDPAddr
+var broadcastAddr *net.UDPAddr
+var laddr *net.UDPAddr
+var listenAddr *net.UDPAddr
+var localIP string
+
+
 
 func InitUDP(
 	udpSendChannel chan UDPMessage,
-	udpReceiveChannel chan UDPMessage) {
+	udpReceiveChannel chan UDPMessage) (localIP string, err error) {
 
 	broadcastAddr, err := net.ResolveUDPAddr("udp4", "255.255.255.255"+":"+strconv.Itoa(broadcastListenPort)) // increment port by 1 for each new connection
 	CheckError("ERROR [udp] Failed to resolve remote addr", err)
 
-	//laddr, err := net.ResolveUDPAddr("udp4", "129.241.187.50:20014")
-	CheckError("ERROR [udp] Failed to resolve local addr", err)
-
+	// Local listen conneciton
 	listenAddr, err := net.ResolveUDPAddr("udp4", ":6666")
-	CheckError("ERROR [udp] Failed to resolve listen port", err)
+	CheckError("ERROR [udp] Failed to resolve broadcastListenPort: ", err)
 
-	conn, err := net.DialUDP("udp4", nil, broadcastAddr) //TODO: add laddr to DialUp
+	// Get  local IP adress
+	localIP, err = resolveLocalIP(broadcastAddr)
+	CheckError("ERROR [udp] Failed to get local addr: ", err)
+	log.Println("LocalIP: ", localIP)
+
+	conn, err := net.DialUDP("udp4", nil, broadcastAddr)
 	CheckError("ERROR [udp] DialUDP failed", err)
 	//defer conn.Close() // Close connection when function collapses, shoud be moved to other function
 
@@ -47,6 +54,21 @@ func InitUDP(
 	go udpTransmit(conn, udpSendChannel)
 	go udpReceive(udpReceiveCh, udpReceiveChannel)
 	go listenUDPStream(listen, udpReceiveCh)
+
+	return localIP, nil
+}
+
+func resolveLocalIP(broadcastAddr *net.UDPAddr)( string, error) {
+	if localIP == "" {
+		conn, err := net.DialUDP("udp4", nil, broadcastAddr)
+		if err != nil {
+			return "",err
+		}
+		defer conn.Close()
+		localIP = strings.Split(conn.LocalAddr().String(), ":")[0]
+	}
+	return localIP, nil
+
 }
 
 func udpTransmit(conn *net.UDPConn,

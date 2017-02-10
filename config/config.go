@@ -53,7 +53,7 @@ type ElevatorOrderMessage struct {
 
 func CheckError(errMsg string, err error) {
 	if err != nil {
-		log.Println(errMsg, " ", err.Error())
+		log.Println(errMsg, " :", err.Error())
 		os.Exit(1)
 	}
 
