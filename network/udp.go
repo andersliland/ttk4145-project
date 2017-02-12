@@ -4,7 +4,8 @@ import (
 	"log"
 	"net"
 	"strconv"
-"strings"
+	"strings"
+
 	. "../config"
 )
 
@@ -24,30 +25,28 @@ var laddr *net.UDPAddr
 var listenAddr *net.UDPAddr
 var localIP string
 
-
-
 func InitUDP(
 	udpSendChannel chan UDPMessage,
 	udpReceiveChannel chan UDPMessage) (localIP string, err error) {
 
-	broadcastAddr, err := net.ResolveUDPAddr("udp4", "255.255.255.255"+":"+strconv.Itoa(broadcastListenPort)) // increment port by 1 for each new connection
-	CheckError("ERROR [udp] Failed to resolve remote addr", err)
+	broadcastAddr, err := net.ResolveUDPAddr("udp4", "255.255.255.255"+":"+strconv.Itoa(broadcastListenPort)) // Increment port by 1 for each new connection
+	CheckError("ERROR [udp]: Failed to resolve remote addr", err)
 
-	// Local listen conneciton
+	// Local listen connection
 	listenAddr, err := net.ResolveUDPAddr("udp4", ":6666")
-	CheckError("ERROR [udp] Failed to resolve broadcastListenPort: ", err)
+	CheckError("ERROR [udp]: Failed to resolve broadcastListenPort: ", err)
 
-	// Get  local IP adress
+	// Get local IP address
 	localIP, err = resolveLocalIP(broadcastAddr)
-	CheckError("ERROR [udp] Failed to get local addr: ", err)
+	CheckError("ERROR [udp]: Failed to get local addr: ", err)
 	log.Println("LocalIP: ", localIP)
 
 	conn, err := net.DialUDP("udp4", nil, broadcastAddr)
-	CheckError("ERROR [udp] DialUDP failed", err)
+	CheckError("ERROR [udp]: DialUDP failed", err)
 	//defer conn.Close() // Close connection when function collapses, shoud be moved to other function
 
 	listen, err := net.ListenUDP("udp4", listenAddr)
-	CheckError("ERROR [udp] ListenUDP failed", err)
+	CheckError("ERROR [udp]: ListenUDP failed", err)
 
 	udpReceiveCh := make(chan UDPMessage)
 
@@ -58,11 +57,11 @@ func InitUDP(
 	return localIP, nil
 }
 
-func resolveLocalIP(broadcastAddr *net.UDPAddr)( string, error) {
+func resolveLocalIP(broadcastAddr *net.UDPAddr) (string, error) {
 	if localIP == "" {
 		conn, err := net.DialUDP("udp4", nil, broadcastAddr)
 		if err != nil {
-			return "",err
+			return "", err
 		}
 		defer conn.Close()
 		localIP = strings.Split(conn.LocalAddr().String(), ":")[0]

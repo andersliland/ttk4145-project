@@ -23,8 +23,7 @@ func InitNetwork(sendMessageChannel chan ElevatorOrderMessage,
 	return localIP, nil
 }
 
-
-// receive message from main.go, marshall and send down to udp.go
+// Receive message from main.go, marshal and send down to udp.go
 func sendMessageHandler(sendMessageChannel chan ElevatorOrderMessage,
 	sendBackupChannel chan ElevatorOrderMessage,
 	udpSendDatagramChannel chan UDPMessage) {
@@ -35,7 +34,7 @@ func sendMessageHandler(sendMessageChannel chan ElevatorOrderMessage,
 			networkPack, err := json.Marshal(message)
 			//log.Println("Message from main (network)", message)
 			if err != nil {
-				log.Println("ERROR [network] sendMessage marshal failed", err)
+				log.Println("ERROR [network]: sendMessage marshal failed", err)
 			} else {
 				udpSendDatagramChannel <- UDPMessage{Raddr: "32", Data: networkPack} // UDPMessage
 			}
@@ -43,7 +42,7 @@ func sendMessageHandler(sendMessageChannel chan ElevatorOrderMessage,
 		case message := <-sendBackupChannel:
 			networkPack, err := json.Marshal(message)
 			if err != nil {
-				log.Println("ERROR [network] sendBackup marshal failed", err)
+				log.Println("ERROR [network]: sendBackup marshal failed", err)
 			} else {
 				udpSendDatagramChannel <- UDPMessage{Raddr: "32", Data: networkPack} // UDPMessage
 			}
@@ -52,7 +51,7 @@ func sendMessageHandler(sendMessageChannel chan ElevatorOrderMessage,
 
 }
 
-// receive message from udp.go, unmarshal and send up to main
+// Receive message from udp.go, unmarshal and send up to main
 func receiveMessageHandler(receiveMessageChannel chan ElevatorOrderMessage,
 	udpReceiveDatagramChannel chan UDPMessage) {
 
@@ -62,7 +61,7 @@ func receiveMessageHandler(receiveMessageChannel chan ElevatorOrderMessage,
 		case message := <-udpReceiveDatagramChannel:
 			err := json.Unmarshal(message.Data, &receivedOrder)
 			if err != nil {
-				log.Println("ERROR [network] Unmarshal failed", err)
+				log.Println("ERROR [network]: Unmarshal failed", err)
 			} else {
 				receiveMessageChannel <- receivedOrder
 			}
