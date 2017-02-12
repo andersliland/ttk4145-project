@@ -2,16 +2,16 @@ package main
 
 import (
 	//"./cost"
-	. "./config"
-	"./driver"
-	"./fsm"
-	"./network"
 	"log"
 	"os"
 	"os/signal"
 	"time"
-)
 
+	. "./config"
+	"./driver"
+	"./fsm"
+	"./network"
+)
 
 func main() {
 	log.Println("ACTIVATE: Elevator")
@@ -30,27 +30,25 @@ func main() {
 	var localIP string
 	var err error
 	localIP, err = network.InitNetwork(sendMessageChannel, receiveMessageChannel, sendBackupChannel)
-	CheckError("ERROR [main] Could not initiate network", err)
+	CheckError("ERROR [main]: Could not initiate network", err)
 
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay)
-	//driver.SetLight(1, 2)
 
 	//go sendMessageChannelFunc(sendMessageChannel)
 	go fsm.InitFSM()
 	go fsm.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveMessageChannel, localIP)
 
-
-	// Kill motor when user terinates program
+	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
-	go func(){
+	go func() {
 		<-safeKillChannel
 		motorChannel <- 0
 		log.Fatal(ColorWhite, "\nUser terminated program\nMOTOR STOPPED\n", ColorNeutral)
 		time.Sleep(100 * time.Millisecond)
 		os.Exit(1)
-		}()
+	}()
 
-	log.Println("SUCCESS [main] Ready to run!!")
-	select{}
+	log.Println("SUCCESS [main]: Elevator ready!")
+	select {}
 
 }

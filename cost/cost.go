@@ -1,10 +1,10 @@
 package cost
 
 import (
-	"fmt"
+	"log"
 )
 
 func Cost() {
 
-	fmt.Println("Hello from cost.go")
+	log.Println("Hello from cost.go")
 }
