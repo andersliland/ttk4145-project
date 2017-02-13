@@ -26,8 +26,8 @@ var listenAddr *net.UDPAddr
 var localIP string
 
 func InitUDP(
-	udpSendChannel chan UDPMessage,
-	udpReceiveChannel chan UDPMessage) (localIP string, err error) {
+	udpSendDatagramChannel chan UDPMessage,
+	udpReceiveDatagramChannel chan UDPMessage) (localIP string, err error) {
 
 	broadcastAddr, err := net.ResolveUDPAddr("udp4", "255.255.255.255"+":"+strconv.Itoa(broadcastListenPort)) // Increment port by 1 for each new connection
 	CheckError("ERROR [udp]: Failed to resolve remote addr", err)
@@ -48,11 +48,11 @@ func InitUDP(
 	listen, err := net.ListenUDP("udp4", listenAddr)
 	CheckError("ERROR [udp]: ListenUDP failed", err)
 
-	udpReceiveCh := make(chan UDPMessage)
+	udpReceiveBufferChannel := make(chan UDPMessage)
 
-	go udpTransmit(conn, udpSendChannel)
-	go udpReceive(udpReceiveCh, udpReceiveChannel)
-	go listenUDPStream(listen, udpReceiveCh)
+	go udpTransmit(conn, udpSendDatagramChannel)
+	go udpReceive(udpReceiveDatagramChannel, udpReceiveBufferChannel)
+	go listenUDPStream(listen, udpReceiveBufferChannel)
 
 	return localIP, nil
 }
@@ -70,12 +70,10 @@ func resolveLocalIP(broadcastAddr *net.UDPAddr) (string, error) {
 
 }
 
-func udpTransmit(conn *net.UDPConn,
-	udpSendChannel chan UDPMessage) {
-
+func udpTransmit(conn *net.UDPConn, udpSendDatagramChannel chan UDPMessage) {
 	for {
 		select {
-		case message := <-udpSendChannel:
+		case message := <-udpSendDatagramChannel:
 			_, err := conn.Write(message.Data)
 			if err != nil {
 				log.Println("ERROR [udp] udpTransmit: write UDP datagram error: ", err)
@@ -85,29 +83,30 @@ func udpTransmit(conn *net.UDPConn,
 
 }
 
-func udpReceive(udpReceiveCh chan UDPMessage,
-	udpReceiveChannel chan UDPMessage) {
+func udpReceive(udpReceiveDatagramChannel chan UDPMessage,
+	udpReceiveBufferChannel chan UDPMessage) {
 
 	for {
 		select {
-		case message := <-udpReceiveCh:
-			udpReceiveChannel <- message
+		case message := <-udpReceiveBufferChannel:
+			udpReceiveDatagramChannel <- message
 		}
 	}
 
 }
 
 func listenUDPStream(listen *net.UDPConn,
-	udpReceiveCh chan UDPMessage) {
+	udpReceiveBufferChannel chan UDPMessage) {
 
 	buf := make([]byte, messageSize)
 	for {
 
 		n, raddr, err := listen.ReadFromUDP(buf)
 		if err != nil {
+			log.Println("[udp] Failed to ReadFromUDP stream")
 			return
 		}
-		udpReceiveCh <- UDPMessage{Raddr: raddr.String(), Data: buf[:n], Length: n}
+		udpReceiveBufferChannel <- UDPMessage{Raddr: raddr.String(), Data: buf[:n], Length: n}
 
 	}
 

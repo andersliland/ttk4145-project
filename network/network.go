@@ -8,14 +8,15 @@ import (
 )
 
 func InitNetwork(sendMessageChannel chan ElevatorOrderMessage,
-	receiveMessageChannel chan ElevatorOrderMessage,
-	sendBackupChannel chan ElevatorOrderMessage) (localIP string, err error) {
+	receiveOrderChannel chan ElevatorOrderMessage,
+	sendBackupChannel chan ElevatorOrderMessage,
+	receiveBackupChannel chan ElevatorOrderMessage) (localIP string, err error) {
 
 	udpSendDatagramChannel := make(chan UDPMessage, 10)
 	udpReceiveDatagramChannel := make(chan UDPMessage, 5)
 
 	go sendMessageHandler(sendMessageChannel, sendBackupChannel, udpSendDatagramChannel)
-	go receiveMessageHandler(receiveMessageChannel, udpReceiveDatagramChannel)
+	go receiveMessageHandler(receiveOrderChannel, udpReceiveDatagramChannel)
 
 	localIP, err = InitUDP(udpSendDatagramChannel, udpReceiveDatagramChannel)
 	CheckError("", err)
@@ -52,7 +53,7 @@ func sendMessageHandler(sendMessageChannel chan ElevatorOrderMessage,
 }
 
 // Receive message from udp.go, unmarshal and send up to main
-func receiveMessageHandler(receiveMessageChannel chan ElevatorOrderMessage,
+func receiveMessageHandler(receiveOrderChannel chan ElevatorOrderMessage,
 	udpReceiveDatagramChannel chan UDPMessage) {
 
 	var receivedOrder ElevatorOrderMessage
@@ -63,7 +64,7 @@ func receiveMessageHandler(receiveMessageChannel chan ElevatorOrderMessage,
 			if err != nil {
 				log.Println("ERROR [network]: Unmarshal failed", err)
 			} else {
-				receiveMessageChannel <- receivedOrder
+				receiveOrderChannel <- receivedOrder
 			}
 
 		}

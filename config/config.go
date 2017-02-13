@@ -16,6 +16,12 @@ type NetworkChannels struct {
 type EventChannels struct {
 }
 
+const (
+	EvNewOrder = iota
+	EvExecuteOrder
+	EvRestoreOrder
+)
+
 const NumButtons = 3
 const NumFloors = 4
 
@@ -23,6 +29,7 @@ const (
 	ButtonCallUp = iota
 	ButtonCallDown
 	ButtonCommand
+	ButtonStop
 	DoorIndicator
 	FloorSensor
 	FloorIndicator

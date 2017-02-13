@@ -1,10 +1,11 @@
 package cost
 
-import (
-	"log"
-)
+import . "../config"
 
-func Cost() {
+func ElevatorCostCalulation(newElevatorOrder ElevatorOrderMessage) (assignedOrder ElevatorOrderMessage, err error) {
 
-	log.Println("Hello from cost.go")
+	//TODO: calculate cost
+	newElevatorOrder.AssignedTo = newElevatorOrder.OriginIP
+
+	return newElevatorOrder, nil
 }

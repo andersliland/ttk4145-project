@@ -2,6 +2,7 @@ package fsm
 
 import (
 	. "../config"
+	"../cost"
 	. "../driver"
 	//"../network"
 	"log"
@@ -28,7 +29,8 @@ func FSM(buttonChannel chan ElevatorButton,
 	motorChannel chan int,
 	floorChannel chan int,
 	sendMessageChannel chan ElevatorOrderMessage,
-	receiveMessageChannel chan ElevatorOrderMessage,
+	receiveOrderChannel chan ElevatorOrderMessage,
+	costOrderChannel chan ElevatorOrderMessage,
 	localIP string) {
 
 	wdog := time.NewTicker(watchdogTimeoutInterval)
@@ -48,32 +50,40 @@ func FSM(buttonChannel chan ElevatorButton,
 			//log.Println("watchdog kick")
 			// TODO: implement kick handling
 
+			// Button handler, create order and broadcast to nettwork
 		case b := <-buttonChannel:
+			log.Println("[fsm] Recieved button from Floor:", b.Floor, ", Kind: ", b.Kind)
+			switch b.Kind {
 
-			sendMessageChannel <- ElevatorOrderMessage{
-				Floor:      b.Floor,
-				ButtonType: b.Kind,
-				AssignedTo: "AssignedTo",
-				OriginIP:   localIP,
-				SenderIP:   localIP,
-				Event:      23,
+			case ButtonCallUp, ButtonCallDown, ButtonCommand:
+				newOrder := ElevatorOrderMessage{
+					Floor:      b.Floor,
+					ButtonType: b.Kind,
+					AssignedTo: "none",
+					OriginIP:   localIP,
+					SenderIP:   localIP,
+					Event:      EvNewOrder,
+				}
+				sendMessageChannel <- newOrder
+
+			case ButtonStop:
+				//TODO: add support for stop button in driver
+				motorChannel <- MotorDown
 			}
-
-			log.Println(b)
 
 			if b.Floor == 0 && b.Kind == 2 {
 				motorChannel <- 0
-				log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
+				//log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
 				lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
 			}
 			if b.Floor == 1 && b.Kind == 2 {
 				motorChannel <- 1
-				log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
+				//log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
 				lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
 			}
 			if b.Floor == 2 && b.Kind == 2 {
 				motorChannel <- 2
-				log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
+				//log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
 				lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
 			}
 
@@ -82,12 +92,25 @@ func FSM(buttonChannel chan ElevatorButton,
 				motorChannel <- 0
 			}
 
-		case msg := <-receiveMessageChannel:
-			switch msg.Event {
-			case idle:
-			case moving:
-				motorChannel <- MotorDown
-			case doorOpen:
+		case order := <-receiveOrderChannel:
+			switch order.Event {
+			case EvNewOrder:
+				assignedOrder, err := cost.ElevatorCostCalulation(order)
+				if err != nil {
+					log.Println("[udp] ElevatorCostCalculation failed.")
+				}
+				//log.Println("[fsm] Assigned order to elevator: ", assignedOrder.AssignedTo)
+				assignedOrder.Event = EvExecuteOrder
+				sendMessageChannel <- assignedOrder // broadcast assigned order
+
+			case EvExecuteOrder:
+				if order.AssignedTo == localIP {
+					//TODO: make elevator execute order
+					motorChannel <- MotorDown
+
+				} //else idle/continue order
+
+			case EvRestoreOrder:
 
 			}
 
