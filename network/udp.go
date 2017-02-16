@@ -12,7 +12,7 @@ import (
 // Maximum allowed UDP datagram size in bytes: 65,507 (imposed by the IPv4 protocol)
 const messageSize = 1024
 const localListenPort = 1
-const broadcastListenPort = 6666
+const broadcastListenPort = 6667
 
 type UDPMessage struct {
 	Raddr  string
@@ -29,24 +29,24 @@ func InitUDP(
 	udpSendDatagramChannel chan UDPMessage,
 	udpReceiveDatagramChannel chan UDPMessage) (localIP string, err error) {
 
-	broadcastAddr, err := net.ResolveUDPAddr("udp4", "255.255.255.255"+":"+strconv.Itoa(broadcastListenPort)) // Increment port by 1 for each new connection
+	broadcastAddr, err := net.ResolveUDPAddr("udp4", "255.255.255.255"+":"+strconv.Itoa(broadcastListenPort))
 	CheckError("ERROR [udp]: Failed to resolve remote addr", err)
 
 	// Local listen connection
-	listenAddr, err := net.ResolveUDPAddr("udp4", ":6666")
+	listenAddr, err := net.ResolveUDPAddr("udp4", ":"+strconv.Itoa(broadcastListenPort))
 	CheckError("ERROR [udp]: Failed to resolve broadcastListenPort: ", err)
 
 	// Get local IP address
 	localIP, err = resolveLocalIP(broadcastAddr)
 	CheckError("ERROR [udp]: Failed to get local addr: ", err)
-	log.Println("LocalIP: ", localIP)
+	log.Println("[udp] LocalIP: ", localIP)
 
+	// Local broadcast connection
 	conn, err := net.DialUDP("udp4", nil, broadcastAddr)
 	CheckError("ERROR [udp]: DialUDP failed", err)
-	//defer conn.Close() // Close connection when function collapses, shoud be moved to other function
 
 	listen, err := net.ListenUDP("udp4", listenAddr)
-	CheckError("ERROR [udp]: ListenUDP failed", err)
+	CheckError("ERROR [udp] ListenUDP failed", err)
 
 	udpReceiveBufferChannel := make(chan UDPMessage)
 
@@ -71,10 +71,14 @@ func resolveLocalIP(broadcastAddr *net.UDPAddr) (string, error) {
 }
 
 func udpTransmit(conn *net.UDPConn, udpSendDatagramChannel chan UDPMessage) {
+	defer conn.Close()
 	for {
 		select {
 		case message := <-udpSendDatagramChannel:
-			_, err := conn.Write(message.Data)
+			n, err := conn.Write(message.Data)
+			if debug {
+				log.Println("[udp] Number of bytes written:", n)
+			}
 			if err != nil {
 				log.Println("ERROR [udp] udpTransmit: write UDP datagram error: ", err)
 			}
@@ -85,29 +89,27 @@ func udpTransmit(conn *net.UDPConn, udpSendDatagramChannel chan UDPMessage) {
 
 func udpReceive(udpReceiveDatagramChannel chan UDPMessage,
 	udpReceiveBufferChannel chan UDPMessage) {
-
 	for {
 		select {
-		case message := <-udpReceiveBufferChannel:
-			udpReceiveDatagramChannel <- message
+		case u := <-udpReceiveBufferChannel:
+			udpReceiveDatagramChannel <- u
 		}
 	}
-
 }
 
 func listenUDPStream(listen *net.UDPConn,
 	udpReceiveBufferChannel chan UDPMessage) {
+	defer listen.Close()
 
 	buf := make([]byte, messageSize)
 	for {
-
 		n, raddr, err := listen.ReadFromUDP(buf)
+		//log.Println("[udp] Number of bytes received:", n, " from:", raddr)
 		if err != nil {
 			log.Println("[udp] Failed to ReadFromUDP stream")
 			return
 		}
 		udpReceiveBufferChannel <- UDPMessage{Raddr: raddr.String(), Data: buf[:n], Length: n}
-
 	}
 
 }

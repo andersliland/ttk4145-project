@@ -7,6 +7,8 @@ import (
 	. "../config"
 )
 
+const debug = false
+
 func InitNetwork(sendMessageChannel chan ElevatorOrderMessage,
 	receiveOrderChannel chan ElevatorOrderMessage,
 	sendBackupChannel chan ElevatorOrderMessage,
@@ -33,7 +35,7 @@ func sendMessageHandler(sendMessageChannel chan ElevatorOrderMessage,
 		select {
 		case message := <-sendMessageChannel:
 			networkPack, err := json.Marshal(message)
-			//log.Println("Message from main (network)", message)
+			//log.Println("[network] Message to be sendt", message)
 			if err != nil {
 				log.Println("ERROR [network]: sendMessage marshal failed", err)
 			} else {
@@ -65,9 +67,8 @@ func receiveMessageHandler(receiveOrderChannel chan ElevatorOrderMessage,
 				log.Println("ERROR [network]: Unmarshal failed", err)
 			} else {
 				receiveOrderChannel <- receivedOrder
-			}
 
+			}
 		}
 	}
-
 }

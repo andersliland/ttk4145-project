@@ -10,6 +10,8 @@ import (
 	//"../watchdog"
 )
 
+const debug = false
+
 const (
 	idle = iota
 	moving
@@ -20,6 +22,7 @@ const watchdogTimeoutInterval = time.Second * 1
 const watchdogKickInterval = watchdogTimeoutInterval / 3
 
 func InitFSM() {
+	//goToFloorBelow(motorChannel, pollDelay) // move to fsm, before for-select (include shouldStop() )
 
 }
 
@@ -39,6 +42,8 @@ func FSM(buttonChannel chan ElevatorButton,
 	wdogKick := time.NewTicker(watchdogKickInterval)
 	defer wdogKick.Stop()
 
+	orderSlice := make([]ElevatorOrderMessage, 1)
+
 	for {
 		select {
 		case <-wdog.C:
@@ -52,9 +57,8 @@ func FSM(buttonChannel chan ElevatorButton,
 
 			// Button handler, create order and broadcast to nettwork
 		case b := <-buttonChannel:
-			log.Println("[fsm] Recieved button from Floor:", b.Floor, ", Kind: ", b.Kind)
+			//log.Println("[fsm] Recieved button from Floor:", b.Floor, ", Kind: ", b.Kind)
 			switch b.Kind {
-
 			case ButtonCallUp, ButtonCallDown, ButtonCommand:
 				newOrder := ElevatorOrderMessage{
 					Floor:      b.Floor,
@@ -95,6 +99,8 @@ func FSM(buttonChannel chan ElevatorButton,
 		case order := <-receiveOrderChannel:
 			switch order.Event {
 			case EvNewOrder:
+				orderSlice = append(orderSlice, order)
+				log.Println("Order Slice", orderSlice)
 				assignedOrder, err := cost.ElevatorCostCalulation(order)
 				if err != nil {
 					log.Println("[udp] ElevatorCostCalculation failed.")
@@ -115,5 +121,11 @@ func FSM(buttonChannel chan ElevatorButton,
 			}
 
 		}
+	}
+}
+
+func printDebug(s string) {
+	if debug {
+		log.Println("[fsm] \t", s)
 	}
 }

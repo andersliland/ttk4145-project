@@ -14,8 +14,6 @@ import (
 )
 
 func main() {
-	log.Println("ACTIVATE: Elevator")
-
 	const elevatorPollDelay = 5 * time.Millisecond
 
 	sendMessageChannel := make(chan ElevatorOrderMessage, 5)

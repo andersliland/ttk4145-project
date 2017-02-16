@@ -39,19 +39,17 @@ chan<- : accepts a channel for RECEIVING values
 chan : bidirectional
 */
 func Init(buttonChannel chan<- ElevatorButton,
-	 lightChannel <-chan ElevatorLight,
-	  motorChannel chan int,
-		 floorChannel chan<- int,
-		 pollDelay time.Duration) {
+	lightChannel <-chan ElevatorLight,
+	motorChannel chan int,
+	floorChannel chan<- int,
+	pollDelay time.Duration) {
+
 	ioInit()
 	resetAllLights()
 	go lightController(lightChannel)
 	go motorController(motorChannel)
-
-	goToFloorBelow(motorChannel, pollDelay) // move to fsm, before for-select (include shouldStop() )
 	go floorSensorPoller(floorChannel, pollDelay)
 	go buttonPoller(buttonChannel, pollDelay)
-
 	log.Println("SUCCESS [driver] Initialization")
 }
 
