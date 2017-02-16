@@ -11,8 +11,8 @@ const debug = false
 
 func InitNetwork(sendMessageChannel chan ElevatorOrderMessage,
 	receiveOrderChannel chan ElevatorOrderMessage,
-	sendBackupChannel chan ElevatorOrderMessage,
-	receiveBackupChannel chan ElevatorOrderMessage) (localIP string, err error) {
+	sendBackupChannel chan ElevatorBackupMessage,
+	receiveBackupChannel chan ElevatorBackupMessage) (localIP string, err error) {
 
 	udpSendDatagramChannel := make(chan UDPMessage, 10)
 	udpReceiveDatagramChannel := make(chan UDPMessage, 5)
@@ -28,7 +28,7 @@ func InitNetwork(sendMessageChannel chan ElevatorOrderMessage,
 
 // Receive message from main.go, marshal and send down to udp.go
 func sendMessageHandler(sendMessageChannel chan ElevatorOrderMessage,
-	sendBackupChannel chan ElevatorOrderMessage,
+	sendBackupChannel chan ElevatorBackupMessage,
 	udpSendDatagramChannel chan UDPMessage) {
 
 	for {

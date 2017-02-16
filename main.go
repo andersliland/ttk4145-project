@@ -18,10 +18,8 @@ func main() {
 
 	sendMessageChannel := make(chan ElevatorOrderMessage, 5)
 	receiveOrderChannel := make(chan ElevatorOrderMessage, 5)
-	sendBackupChannel := make(chan ElevatorOrderMessage, 5)
-	receiveBackupChannel := make(chan ElevatorOrderMessage, 5)
-
-	costOrderChannel := make(chan ElevatorOrderMessage, 5)
+	sendBackupChannel := make(chan ElevatorBackupMessage, 5)
+	receiveBackupChannel := make(chan ElevatorBackupMessage, 5)
 
 	buttonChannel := make(chan driver.ElevatorButton, 10)
 	lightChannel := make(chan driver.ElevatorLight, 10)
@@ -37,7 +35,7 @@ func main() {
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay)
 
 	go fsm.InitFSM()
-	go fsm.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, costOrderChannel, localIP)
+	go fsm.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)

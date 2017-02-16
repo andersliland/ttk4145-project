@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"time"
 )
 
 const debug = false
@@ -22,6 +23,8 @@ const (
 	EvNewOrder = iota
 	EvExecuteOrder
 	EvRestoreOrder
+	AckExecuteOrder
+	EvElevatorAliveMessage
 )
 
 const NumButtons = 3
@@ -52,12 +55,19 @@ const (
 )
 
 type ElevatorOrderMessage struct {
+	Time       time.Time
 	Floor      int
 	ButtonType int
 	AssignedTo string
 	OriginIP   string
 	SenderIP   string
 	Event      int
+}
+
+type ElevatorBackupMessage struct {
+	Time     time.Time
+	OriginIP string
+	Event    int
 }
 
 func CheckError(errMsg string, err error) {

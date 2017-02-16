@@ -1,6 +1,8 @@
 package fsm
 
 import (
+	"os"
+
 	. "../config"
 	"../cost"
 	. "../driver"
@@ -33,7 +35,8 @@ func FSM(buttonChannel chan ElevatorButton,
 	floorChannel chan int,
 	sendMessageChannel chan ElevatorOrderMessage,
 	receiveOrderChannel chan ElevatorOrderMessage,
-	costOrderChannel chan ElevatorOrderMessage,
+	sendBackupChannel chan ElevatorBackupMessage,
+	receiveBackupChannel chan ElevatorBackupMessage,
 	localIP string) {
 
 	wdog := time.NewTicker(watchdogTimeoutInterval)
@@ -43,24 +46,28 @@ func FSM(buttonChannel chan ElevatorButton,
 	defer wdogKick.Stop()
 
 	orderSlice := make([]ElevatorOrderMessage, 1)
+	//	aliveElevators := make([]net.UDPAddr, 3)
 
 	for {
 		select {
 		case <-wdog.C:
-			//log.Println("watchdog timeout")
-			// implement timeout handling
-			//os.Exit(1)
+			log.Println("[fsm] watchdog timeout. Kill process")
+			os.Exit(1)
 
 		case <-wdogKick.C:
-			//log.Println("watchdog kick")
-			// TODO: implement kick handling
+			wdog = time.NewTicker(watchdogTimeoutInterval) // reset watchdog
+			sendBackupChannel <- ElevatorBackupMessage{
+				Time:     time.Now(),
+				OriginIP: localIP,
+				Event:    EvElevatorAliveMessage,
+			}
 
-			// Button handler, create order and broadcast to nettwork
-		case b := <-buttonChannel:
+		case b := <-buttonChannel: // Button handler, create order and broadcast to nettwork
 			//log.Println("[fsm] Recieved button from Floor:", b.Floor, ", Kind: ", b.Kind)
 			switch b.Kind {
 			case ButtonCallUp, ButtonCallDown, ButtonCommand:
 				newOrder := ElevatorOrderMessage{
+					Time:       time.Now(),
 					Floor:      b.Floor,
 					ButtonType: b.Kind,
 					AssignedTo: "none",
@@ -97,17 +104,25 @@ func FSM(buttonChannel chan ElevatorButton,
 			}
 
 		case order := <-receiveOrderChannel:
+			//log.Println("[fsm] Recieved event", order.Event)
 			switch order.Event {
 			case EvNewOrder:
-				orderSlice = append(orderSlice, order)
-				log.Println("Order Slice", orderSlice)
-				assignedOrder, err := cost.ElevatorCostCalulation(order)
+				assignedOrder, err := cost.ElevatorCostCalulation(order) // need to take in position of other elevators
 				if err != nil {
 					log.Println("[udp] ElevatorCostCalculation failed.")
 				}
+				orderSlice = append(orderSlice, order)
+				//log.Println("Order Slice", orderSlice)
 				//log.Println("[fsm] Assigned order to elevator: ", assignedOrder.AssignedTo)
-				assignedOrder.Event = EvExecuteOrder
+				assignedOrder.Event = AckExecuteOrder
 				sendMessageChannel <- assignedOrder // broadcast assigned order
+
+			case AckExecuteOrder:
+				if order.AssignedTo != localIP {
+					order.Event = EvExecuteOrder
+					sendMessageChannel <- order
+
+				}
 
 			case EvExecuteOrder:
 				if order.AssignedTo == localIP {
