@@ -87,8 +87,8 @@ func udpTransmit(conn *net.UDPConn, udpSendDatagramChannel chan UDPMessage) {
 
 }
 
-func udpReceive(udpReceiveDatagramChannel chan UDPMessage,
-	udpReceiveBufferChannel chan UDPMessage) {
+func udpReceive(udpReceiveDatagramChannel chan UDPMessage, udpReceiveBufferChannel chan UDPMessage) {
+
 	for {
 		select {
 		case u := <-udpReceiveBufferChannel:

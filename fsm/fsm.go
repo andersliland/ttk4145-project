@@ -48,6 +48,9 @@ func FSM(buttonChannel chan ElevatorButton,
 	orderSlice := make([]ElevatorOrderMessage, 1)
 	//	aliveElevators := make([]net.UDPAddr, 3)
 
+	//var knownElevators = make(map[string])
+	//var activeElevators = make(map[string]bool)
+
 	for {
 		select {
 		case <-wdog.C:
@@ -77,36 +80,38 @@ func FSM(buttonChannel chan ElevatorButton,
 				}
 				sendMessageChannel <- newOrder
 
+				if b.Floor == Floor1 && b.Kind == ButtonCallUp {
+					motorChannel <- MotorDown
+					log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
+					lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
+				}
+				if b.Floor == Floor2 && b.Kind == ButtonCallUp {
+					motorChannel <- MotorStop
+					log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
+					lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
+				}
+				if b.Floor == Floor3 && b.Kind == ButtonCallUp {
+					motorChannel <- MotorUp
+					log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
+					lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
+				}
+
 			case ButtonStop:
 				//TODO: add support for stop button in driver
 				motorChannel <- MotorDown
 			}
 
-			if b.Floor == 0 && b.Kind == 2 {
-				motorChannel <- 0
-				//log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
-				lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
-			}
-			if b.Floor == 1 && b.Kind == 2 {
-				motorChannel <- 1
-				//log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
-				lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
-			}
-			if b.Floor == 2 && b.Kind == 2 {
-				motorChannel <- 2
-				//log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
-				lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
-			}
-
 		case f := <-floorChannel:
 			if f != -1 {
-				motorChannel <- 0
+				motorChannel <- MotorStop
 			}
 
 		case order := <-receiveOrderChannel:
 			//log.Println("[fsm] Recieved event", order.Event)
 			switch order.Event {
 			case EvNewOrder:
+				log.Println("[udp]", order)
+
 				assignedOrder, err := cost.ElevatorCostCalulation(order) // need to take in position of other elevators
 				if err != nil {
 					log.Println("[udp] ElevatorCostCalculation failed.")

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"time"
 
 	. "./config"
@@ -14,6 +15,7 @@ import (
 )
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	const elevatorPollDelay = 5 * time.Millisecond
 
 	sendMessageChannel := make(chan ElevatorOrderMessage, 5)
@@ -41,9 +43,9 @@ func main() {
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go func() {
 		<-safeKillChannel
-		motorChannel <- 0
+		motorChannel <- MotorStop
+		time.Sleep(10 * time.Millisecond) // wait for motor stop too be processed
 		log.Fatal(ColorWhite, "\nUser terminated program\nMOTOR STOPPED\n", ColorNeutral)
-		time.Sleep(100 * time.Millisecond)
 		os.Exit(1)
 	}()
 

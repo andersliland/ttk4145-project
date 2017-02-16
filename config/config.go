@@ -8,16 +8,8 @@ import (
 
 const debug = false
 
-//TODO:make channel structs
-// Channels vs Channel?
-type HardwareChannels struct {
-}
-
-type NetworkChannels struct {
-}
-
-type EventChannels struct {
-}
+const NumButtons = 3
+const NumFloors = 4
 
 const (
 	EvNewOrder = iota
@@ -26,9 +18,6 @@ const (
 	AckExecuteOrder
 	EvElevatorAliveMessage
 )
-
-const NumButtons = 3
-const NumFloors = 4
 
 const (
 	ButtonCallUp = iota
@@ -64,10 +53,23 @@ type ElevatorOrderMessage struct {
 	Event      int
 }
 
+type ElevatorState struct {
+	LocalIP    string
+	LastFloor  int
+	Direction  int
+	IsMoving   int
+	DoorStatus int
+}
+
 type ElevatorBackupMessage struct {
 	Time     time.Time
 	OriginIP string
 	Event    int
+}
+
+type Elevator struct {
+	State ElevatorState
+	Time  time.Time
 }
 
 func CheckError(errMsg string, err error) {

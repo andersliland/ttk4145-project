@@ -22,8 +22,8 @@ else
   exit 1
 fi
 
-# Send RSA key to conputer. Uncomment to send RSA key once
-#cat ~/.ssh/id_rsa.pub | ssh $user@129.241.187.$IP 'cat >> .ssh/authorized_keys'
+# Send RSA key to remote conputer
+cat ~/.ssh/id_rsa.pub | ssh $user@129.241.187.$IP 'cat >> .ssh/authorized_keys'
 
 echo "Connecting to Workstation" $workstationNumber "at 129.241.187."$IP
 echo "Delete old files and folder"
