@@ -69,6 +69,12 @@ func lightController(lightChannel <-chan ElevatorLight) {
 		select {
 		case command = <-lightChannel:
 			switch command.Kind {
+			case ButtonStop:
+				if command.Active {
+					ioSetBit(LIGHT_STOP)
+				} else {
+					ioClearBit(LIGHT_STOP)
+				}
 			case ButtonCallUp, ButtonCallDown, ButtonCommand:
 				if command.Active {
 					ioSetBit(lampMatrix[command.Floor][command.Kind])
@@ -124,6 +130,7 @@ func floorSensorPoller(floorChannel chan<- int, pollDelay time.Duration) {
 
 func buttonPoller(buttonChannel chan<- ElevatorButton, pollDelay time.Duration) {
 	inputMatrix := [NumFloors][NumButtons]bool{}
+	buttonStopActivated = false
 	for {
 		for f := 0; f < NumFloors; f++ {
 			for k := ButtonCallUp; k <= ButtonCommand; k++ {
@@ -132,6 +139,14 @@ func buttonPoller(buttonChannel chan<- ElevatorButton, pollDelay time.Duration) 
 					buttonChannel <- ElevatorButton{f, k}
 				}
 				inputMatrix[f][k] = b
+			}
+			if ioReadBit(ButtonStop) {
+				if !buttonStopActivated {
+					buttonStopActivated = true
+					buttonChannel <- ElevatorButton{Kind: ButtonStop}
+				} else {
+					buttonStopActivated = false
+				}
 			}
 		}
 		time.Sleep(pollDelay)
