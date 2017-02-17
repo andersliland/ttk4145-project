@@ -9,7 +9,7 @@ import (
 
 const debug = false
 
-func InitNetwork(sendMessageChannel chan ElevatorOrderMessage,
+func Init(sendMessageChannel chan ElevatorOrderMessage,
 	receiveOrderChannel chan ElevatorOrderMessage,
 	sendBackupChannel chan ElevatorBackupMessage,
 	receiveBackupChannel chan ElevatorBackupMessage) (localIP string, err error) {
