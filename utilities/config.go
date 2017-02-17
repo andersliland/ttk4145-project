@@ -1,10 +1,6 @@
-package config
+package utilities
 
-import (
-	"log"
-	"os"
-	"time"
-)
+import "time"
 
 const debug = false
 
@@ -70,19 +66,6 @@ type ElevatorBackupMessage struct {
 type Elevator struct {
 	State ElevatorState
 	Time  time.Time
-}
-
-func CheckError(errMsg string, err error) {
-	if err != nil {
-		log.Println(errMsg, " :", err.Error())
-		os.Exit(1)
-	}
-}
-
-func printDebug(s string) {
-	if debug {
-		log.Println("CONFIG: \t", s)
-	}
 }
 
 // Console colors

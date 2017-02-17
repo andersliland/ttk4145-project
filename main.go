@@ -10,33 +10,12 @@ import (
 
 	. "./config"
 	"./driver"
-	"./fsm"
 	"./network"
 )
 
-type Channels struct {
-	Driver
-	Network
-	safeKill chan os.Signal
-}
-
-type Driver struct {
-	button chan driver.ElevatorButton
-	light  chan driver.ElevatorLight
-	motor  chan int
-	floor  chan int
-}
-
-type Network struct {
-	sendMessage   chan ElevetorOrderMessage
-	receiveOrder  chan ElevatorOrderMessage
-	sendBackup    chan ElevatorBackupMessage
-	receiveBackup chan ElevatorBackup
-}
-
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	const elevatorPollDelay = 5 * time.Millisecond
+	const elevatorPollDelay = 5 * time.Millisecond // Move to config?
 
 	sendMessageChannel := make(chan ElevatorOrderMessage, 5)
 	receiveOrderChannel := make(chan ElevatorOrderMessage, 5)
@@ -57,8 +36,8 @@ func main() {
 
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay)
 
-	fsm.Init()
-	go fsm.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
+	control.Init()
+	go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
