@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"time"
 
+	"./control"
 	"./driver"
 	"./network"
 	. "./utilities"
@@ -36,8 +37,10 @@ func main() {
 
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay)
 
-	control.Init()
+	control.InitElevatorControl()
 	go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
+
+	go control.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)

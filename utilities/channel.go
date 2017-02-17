@@ -1,7 +1,6 @@
 package utilities
 
-import "os"
-
+/*
 type Channels struct {
 	Driver
 	Network
@@ -21,3 +20,4 @@ type Network struct {
 	sendBackup    chan ElevatorBackupMessage
 	receiveBackup chan ElevatorBackup
 }
+*/

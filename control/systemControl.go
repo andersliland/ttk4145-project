@@ -1,1 +1,5 @@
 package control
+
+func InitSystemControl() {
+
+}

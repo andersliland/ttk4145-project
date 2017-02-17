@@ -1,5 +1,6 @@
 package cost
 
+/*
 import . "../utilities"
 
 func ElevatorCostCalulation(newElevatorOrder ElevatorOrderMessage) (assignedOrder ElevatorOrderMessage, err error) {
@@ -9,3 +10,4 @@ func ElevatorCostCalulation(newElevatorOrder ElevatorOrderMessage) (assignedOrde
 
 	return newElevatorOrder, nil
 }
+*/

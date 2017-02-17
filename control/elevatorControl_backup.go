@@ -1,5 +1,6 @@
 package control
 
+/*
 import (
 	"os"
 
@@ -91,7 +92,7 @@ func FSM(buttonChannel chan ElevatorButton,
 						log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
 						lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
 					}
-				*/
+
 				if b.Floor == Floor3 && b.Kind == ButtonCallUp {
 					motorChannel <- MotorUp
 					log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
@@ -154,3 +155,4 @@ func printDebug(s string) {
 		log.Println("[fsm] \t", s)
 	}
 }
+*/
