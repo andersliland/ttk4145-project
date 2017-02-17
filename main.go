@@ -30,6 +30,8 @@ func main() {
 
 	safeKillChannel := make(chan os.Signal, 10)
 
+	executeOrderChannel := make(chan ElevatorOrderMessage, 10)
+
 	var localIP string
 	var err error
 	localIP, err = network.Init(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel)
@@ -39,14 +41,24 @@ func main() {
 
 	control.InitElevatorControl()
 	go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
+	go control.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 
-	go control.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
+	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go safeKill(safeKillChannel, motorChannel)
 
 	log.Println("SUCCESS [main]: Elevator ready!")
+
+	// initialise this elevator
+	// send out request for previous state
+	sendBackupChannel <- ElevatorBackupMessage{
+		AskerIP: localIP,
+		State:   ElevatorState{},
+		Event:   EvRequestState,
+	}
+
 	select {}
 
 }

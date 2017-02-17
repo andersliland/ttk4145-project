@@ -41,7 +41,6 @@ func sendMessageHandler(sendMessageChannel chan ElevatorOrderMessage,
 			} else {
 				udpSendDatagramChannel <- UDPMessage{Raddr: "32", Data: networkPack} // UDPMessage
 			}
-
 		case message := <-sendBackupChannel:
 			networkPack, err := json.Marshal(message)
 			if err != nil {
@@ -51,24 +50,23 @@ func sendMessageHandler(sendMessageChannel chan ElevatorOrderMessage,
 			}
 		}
 	}
-
 }
 
 // Receive message from udp.go, unmarshal and send up to main
 func receiveMessageHandler(receiveOrderChannel chan ElevatorOrderMessage,
 	udpReceiveDatagramChannel chan UDPMessage) {
 
-	var receivedOrder ElevatorOrderMessage
+	var receivedMessage ElevatorOrderMessage
 	for {
 		select {
-		case message := <-udpReceiveDatagramChannel:
-			err := json.Unmarshal(message.Data, &receivedOrder)
+		case msg := <-udpReceiveDatagramChannel:
+			err := json.Unmarshal(msg.Data, &receivedMessage)
 			if err != nil {
 				log.Println("ERROR [network]: Unmarshal failed", err)
 			} else {
-				receiveOrderChannel <- receivedOrder
-
+				receiveOrderChannel <- receivedMessage
 			}
+
 		}
 	}
 }

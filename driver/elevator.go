@@ -7,6 +7,8 @@ import (
 	. "../utilities"
 )
 
+var debug = false
+
 var lampMatrix = [NumFloors][NumButtons]int{
 	{LIGHT_UP1, LIGHT_DOWN1, LIGHT_COMMAND1},
 	{LIGHT_UP2, LIGHT_DOWN2, LIGHT_COMMAND2},
@@ -50,7 +52,7 @@ func Init(buttonChannel chan<- ElevatorButton,
 	go motorController(motorChannel)
 	go floorSensorPoller(floorChannel, pollDelay)
 	go buttonPoller(buttonChannel, pollDelay)
-	log.Println("SUCCESS [driver] Initialization")
+	printDebug("SUCCESS Initialization")
 }
 
 func resetAllLights() {
@@ -195,4 +197,11 @@ func goToFloorBelow(motorChannel chan int, pollDelay time.Duration) {
 			}
 		}
 	}
+}
+
+func printDebug(s string) {
+	if debug {
+		log.Println("[driver]", s)
+	}
+
 }

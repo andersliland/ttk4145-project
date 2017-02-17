@@ -18,6 +18,7 @@ type UDPMessage struct {
 	Raddr  string
 	Data   []byte
 	Length int
+	Type   int
 }
 
 var broadcastAddr *net.UDPAddr

@@ -7,13 +7,33 @@ const debug = false
 const NumButtons = 3
 const NumFloors = 4
 
+var EventType = []string{
+	"EvNewOrder",
+	"EvExecuteOrder",
+	"EvRestoreOrder",
+	"AckExecuteOrder",
+	"EvElevatorAliveMessage",
+	"EvRequestState",
+}
+
 const (
 	EvNewOrder = iota
 	EvExecuteOrder
 	EvRestoreOrder
 	AckExecuteOrder
 	EvElevatorAliveMessage
+	EvRequestState
 )
+
+var ButtonType = []string{
+	"ButtonCallUp",
+	"ButtonCallDown",
+	"ButtonCommand",
+	"ButtonStop",
+	"DoorIndicator",
+	"FloorSensor",
+	"FloorIndicator",
+}
 
 const (
 	ButtonCallUp = iota
@@ -23,6 +43,18 @@ const (
 	DoorIndicator
 	FloorSensor
 	FloorIndicator
+)
+
+var OrderStatus = []string{
+	"NotActive",
+	"Awaiting",
+	"UnderExecution",
+}
+
+const (
+	NotActive = iota
+	Awaiting
+	UnderExecution
 )
 
 const (
@@ -49,6 +81,13 @@ type ElevatorOrderMessage struct {
 	Event      int
 }
 
+type ElevatorOrder struct {
+	Status      int
+	AssignedTo  string
+	ConfirmedBy map[string]bool
+	Timer       time.Timer
+}
+
 type ElevatorState struct {
 	LocalIP    string
 	LastFloor  int
@@ -58,9 +97,9 @@ type ElevatorState struct {
 }
 
 type ElevatorBackupMessage struct {
-	Time     time.Time
-	OriginIP string
-	Event    int
+	AskerIP string
+	State   ElevatorState
+	Event   int
 }
 
 type Elevator struct {
