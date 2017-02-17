@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
-	. "../config"
+	. "../utilities"
 )
 
 const debug = false

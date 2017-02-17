@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	. "../config"
+	. "../utilities"
 )
 
 // Maximum allowed UDP datagram size in bytes: 65,507 (imposed by the IPv4 protocol)

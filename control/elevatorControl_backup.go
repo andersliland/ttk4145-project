@@ -1,11 +1,11 @@
-package fsm
+package control
 
 import (
 	"os"
 
-	. "../config"
 	"../cost"
 	. "../driver"
+	. "../utilities"
 	//"../network"
 	"log"
 	"time"
@@ -86,11 +86,11 @@ func FSM(buttonChannel chan ElevatorButton,
 					lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
 				}
 				/*
-				if b.Floor == Floor2 && b.Kind == ButtonCallUp {
-					motorChannel <- MotorStop
-					log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
-					lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
-				}
+					if b.Floor == Floor2 && b.Kind == ButtonCallUp {
+						motorChannel <- MotorStop
+						log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
+						lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
+					}
 				*/
 				if b.Floor == Floor3 && b.Kind == ButtonCallUp {
 					motorChannel <- MotorUp

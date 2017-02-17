@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	. "../config"
+	. "../utilities"
 )
 
 var lampMatrix = [NumFloors][NumButtons]int{

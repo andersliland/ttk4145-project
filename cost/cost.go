@@ -1,6 +1,6 @@
 package cost
 
-import . "../config"
+import . "../utilities"
 
 func ElevatorCostCalulation(newElevatorOrder ElevatorOrderMessage) (assignedOrder ElevatorOrderMessage, err error) {
 
