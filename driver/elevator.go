@@ -130,7 +130,7 @@ func floorSensorPoller(floorChannel chan<- int, pollDelay time.Duration) {
 
 func buttonPoller(buttonChannel chan<- ElevatorButton, pollDelay time.Duration) {
 	inputMatrix := [NumFloors][NumButtons]bool{}
-	buttonStopActivated = false
+	buttonStopActivated := false
 	for {
 		for f := 0; f < NumFloors; f++ {
 			for k := ButtonCallUp; k <= ButtonCommand; k++ {
@@ -140,13 +140,11 @@ func buttonPoller(buttonChannel chan<- ElevatorButton, pollDelay time.Duration) 
 				}
 				inputMatrix[f][k] = b
 			}
-			if ioReadBit(ButtonStop) {
+			if s := ioReadBit(STOP); s {
 				if !buttonStopActivated {
-					buttonStopActivated = true
 					buttonChannel <- ElevatorButton{Kind: ButtonStop}
-				} else {
-					buttonStopActivated = false
 				}
+				buttonStopActivated = s
 			}
 		}
 		time.Sleep(pollDelay)

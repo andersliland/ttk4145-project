@@ -65,8 +65,8 @@ func FSM(buttonChannel chan ElevatorButton,
 				Event:    EvElevatorAliveMessage,
 			}
 
-		case b := <-buttonChannel: // Button handler, create order and broadcast to nettwork
-			//log.Println("[fsm] Recieved button from Floor:", b.Floor, ", Kind: ", b.Kind)
+		case b := <-buttonChannel: // Button handler, create order and broadcast to network
+			//log.Println("[fsm] Received button from Floor:", b.Floor, ", Kind: ", b.Kind)
 			switch b.Kind {
 			case ButtonCallUp, ButtonCallDown, ButtonCommand:
 				newOrder := ElevatorOrderMessage{
@@ -85,11 +85,13 @@ func FSM(buttonChannel chan ElevatorButton,
 					log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
 					lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
 				}
+				/*
 				if b.Floor == Floor2 && b.Kind == ButtonCallUp {
 					motorChannel <- MotorStop
 					log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
 					lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.Kind, Active: true}
 				}
+				*/
 				if b.Floor == Floor3 && b.Kind == ButtonCallUp {
 					motorChannel <- MotorUp
 					log.Println("Button", "Floor:", b.Floor, "Kind:", b.Kind)
@@ -97,8 +99,11 @@ func FSM(buttonChannel chan ElevatorButton,
 				}
 
 			case ButtonStop:
-				//TODO: add support for stop button in driver
-				motorChannel <- MotorDown
+				motorChannel <- MotorStop
+				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
+				log.Println("Stop button pressed. Elevator will come to a halt.")
+				time.Sleep(time.Second)
+				os.Exit(1)
 			}
 
 		case f := <-floorChannel:
