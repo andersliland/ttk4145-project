@@ -41,15 +41,17 @@ func main() {
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
-	go func() {
-		<-safeKillChannel
-		motorChannel <- MotorStop
-		time.Sleep(10 * time.Millisecond) // wait for motor stop too be processed
-		log.Fatal(ColorWhite, "\nUser terminated program\nMOTOR STOPPED\n", ColorNeutral)
-		os.Exit(1)
-	}()
+	go safeKill()
 
 	log.Println("SUCCESS [main]: Elevator ready!")
 	select {}
 
+}
+
+func safeKill() {
+	<-safeKillChannel
+	motorChannel <- MotorStop
+	time.Sleep(10 * time.Millisecond) // wait for motor stop too be processed
+	log.Fatal(ColorWhite, "\nUser terminated program\nMOTOR STOPPED\n", ColorNeutral)
+	os.Exit(1)
 }
