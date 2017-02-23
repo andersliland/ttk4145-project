@@ -120,7 +120,6 @@ func floorSensorPoller(floorChannel chan<- int, pollDelay time.Duration) {
 	for {
 		f := readFloorSensor()
 		if f != prevFloor && f != -1 {
-			SetFloorIndicator(f) // Move to fsm
 			floorChannel <- f
 		}
 		prevFloor = f
@@ -183,11 +182,11 @@ func SetFloorIndicator(floor int) {
 	}
 }
 
-func goToFloorBelow(motorChannel chan int, pollDelay time.Duration) {
+func goToFloorBelow(motorChannel chan int, pollDelay time.Duration) int {
 	if readFloorSensor() == FloorInvalid {
 		motorChannel <- MotorDown
 		for {
-			if readFloorSensor() != FloorInvalid {
+			if floor := readFloorSensor(); floor != FloorInvalid {
 				motorChannel <- MotorStop
 				break
 			} else {

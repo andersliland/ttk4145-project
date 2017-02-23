@@ -113,7 +113,7 @@ func FSM(buttonChannel chan ElevatorButton,
 			}
 
 		case order := <-receiveOrderChannel:
-			//log.Println("[fsm] Recieved event", order.Event)
+			//log.Println("[fsm] Received event", order.Event)
 			switch order.Event {
 			case EvNewOrder:
 				log.Println("[udp]", order)

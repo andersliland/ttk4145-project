@@ -12,10 +12,25 @@ import (
 const watchdogTimeoutInterval = time.Second * 1
 const watchdogKickInterval = watchdogTimeoutInterval / 3
 
-func InitElevatorControl() {
+func InitElevatorControl(
+	buttonChannel chan ElevatorButton,
+	lightChannel chan ElevatorLight,
+	motorChannel chan int,
+	floorChannel chan int,
+	sendMessageChannel chan ElevatorOrderMessage,
+	receiveOrderChannel chan ElevatorOrderMessage,
+	sendBackupChannel chan ElevatorBackupMessage,
+	receiveBackupChannel chan ElevatorBackupMessage,
+	localIP string) {
 
-	log.Println("From init")
+	go eventManger()
+
+	go MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel,
+		sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
+	log.Println("SUCCESS [elevatorControl]: Initialization")
 }
+
+var cabOrders [NumFloors]bool
 
 func MessageLoop(
 	buttonChannel chan ElevatorButton,
@@ -28,18 +43,70 @@ func MessageLoop(
 	receiveBackupChannel chan ElevatorBackupMessage,
 	localIP string) {
 
+	// If floor is defined in file & elevator was moving to process order
+	// Restore order execution
+	// Else move down to closest floor
+	goToFloorBelow()
+
+	eventManagerInit()
+
 	for {
 		select {
 		//case message := <-receiveBackupChannel: // Network
-		//case message := <-receiveOrderChannel: // Orders
+		case message := <-receiveOrderChannel: // Orders
+			newOrder <- true
 		//case message := <-timeOutChannel: // Timeout
-		//case button := <-buttonChannel: // Hardware
-		//case floor := <-floorChannel: // Hardware
-		// Add cases for tickers
+		case button := <-buttonChannel: // Hardware
+			buttonHandler(button)
+		case floor := <-floorChannel: // Hardware
+			floorHandler(floor)
+			floorReached <- floor
+			// Add cases for tickers
 		}
 	}
 }
 
+func buttonHandler(button ElevatorButton) {
+	switch button.Kind {
+	case ButtonCallUp, ButtonCallDown:
+		newOrder := ElevatorOrderMessage{
+			Time:       time.Now(),
+			Floor:      b.Floor,
+			ButtonType: b.Kind,
+			AssignedTo: "none",
+			OriginIP:   localIP,
+			SenderIP:   localIP,
+			Event:      EvNewOrder,
+		}
+		sendMessageChannel <- newOrder
+	case ButtonCommand:
+		addLocalOrder(button)
+		// AddLocalOrder + SaveOrderToFile
+	case ButtonStop:
+		motorChannel <- MotorStop
+		lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
+		log.Println("Stop button pressed. Elevator will come to a halt.")
+		time.Sleep(time.Second)
+		os.Exit(1)
+	}
+}
+
+func floorHandler(floor int) {
+	if shouldStop(floor) {
+		// send channel floorReached to fsm
+		// previous floor is received from the network
+	}
+
+	// then SendOrderComplete
+}
+
+func addLocalOrder(button ElevatorButton) {
+	cabOrders[button.Floor] = true
+}
+
+// --- //
+// --- //
+// --- //
 func FSM(buttonChannel chan ElevatorButton,
 	lightChannel chan ElevatorLight,
 	motorChannel chan int,
@@ -123,7 +190,7 @@ func FSM(buttonChannel chan ElevatorButton,
 			}
 
 		case order := <-receiveOrderChannel:
-			//log.Println("[fsm] Recieved event", order.Event)
+			//log.Println("[fsm] Received event", order.Event)
 			switch order.Event {
 			case EvNewOrder:
 				log.Println("[udp]", order)
