@@ -35,8 +35,8 @@ func SystemControl(
 	floorChannel chan int,
 	localIP string) {
 
-	const watchdogKickTime = 5000 * time.Millisecond
-	const watchdogLimit = 4000 * time.Millisecond //3*watchdogKickTime + 10*time.Millisecond
+	const watchdogKickTime = 100 * time.Millisecond
+	const watchdogLimit = 3*watchdogKickTime + 10*time.Millisecond
 
 	// key = IPaddr
 	var knownElevators = make(map[string]*Elevator) // containing last known state
@@ -51,8 +51,6 @@ func SystemControl(
 	goToFloorBelow(motorChannel, floorChannel)
 
 	// init states
-	log.Println("[systemControl] Send request for previous state")
-
 	sendBackupChannel <- ElevatorBackupMessage{
 		AskerIP: localIP,
 		State:   ElevatorState{},
@@ -66,14 +64,13 @@ func SystemControl(
 		// Watchdog
 		case <-watchdogKickTimer.C:
 			sendBackupChannel <- ResolveWatchdogKickMessage(knownElevators[localIP])
-			log.Printf("[systemControl] Watchdog send IAmAlive from %v \n", localIP)
+			//log.Printf("[systemControl] Watchdog send IAmAlive from %v \n", localIP)
 
 		case <-watchdogTimer.C:
 			updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
 			log.Println("[systemControl] Active Elevators", activeElevators)
 
 			// Network
-			//
 		case f := <-receiveBackupChannel:
 			switch f.Event {
 			case EvIAmAlive:
@@ -88,7 +85,7 @@ func SystemControl(
 			case EvBackupState:
 
 			case EvRequestBackupState:
-				//log.Println("[systemControl] From EvRequestBackupState")
+				log.Println("[systemControl] From EvRequestBackupState")
 
 			case EvBackupStateReturned:
 
@@ -115,7 +112,7 @@ func SystemControl(
 // checks
 func updateActiveElevators(knownElevators map[string]*Elevator, activeElevators map[string]bool, localIP string, watchdogLimit time.Duration) {
 	for k := range knownElevators {
-		log.Println(time.Since(knownElevators[localIP].Time), watchdogLimit)
+		//log.Println(time.Since(knownElevators[localIP].Time), watchdogLimit)
 		if time.Since(knownElevators[localIP].Time) > watchdogLimit { //watchdog timeout
 			log.Println("[systemControl] watchdog timeout")
 			if activeElevators[localIP] == true {

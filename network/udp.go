@@ -80,7 +80,7 @@ func udpTransmit(conn *net.UDPConn, udpSendDatagramChannel chan UDPMessage) {
 			if debug {
 				log.Println("[udp] Number of bytes written:", n)
 			}
-			if err != nil {
+			if err != nil || n < 0 {
 				log.Println("ERROR [udp] udpTransmit: write UDP datagram error: ", err)
 			}
 		}
@@ -89,7 +89,6 @@ func udpTransmit(conn *net.UDPConn, udpSendDatagramChannel chan UDPMessage) {
 }
 
 func udpReceive(udpReceiveDatagramChannel chan UDPMessage, udpReceiveBufferChannel chan UDPMessage) {
-
 	for {
 		select {
 		case u := <-udpReceiveBufferChannel:
