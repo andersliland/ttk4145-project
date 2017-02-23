@@ -1,17 +1,15 @@
 package control
 
 import (
-	"log"
-	"time"
 
-	. "../driver"
+	//"../driver"
 	. "../utilities"
 )
 
 func InitElevatorControl() {
 
 }
-
+/*
 func MessageLoop(
 	buttonChannel chan ElevatorButton,
 	lightChannel chan ElevatorLight,
@@ -34,9 +32,8 @@ func MessageLoop(
 		}
 	}
 }
-
-var externalOrderMatrix [NumFloors][NumButtons]ElevatorOrder
-
+*/
+/*
 func FSM(buttonChannel chan ElevatorButton,
 	lightChannel chan ElevatorLight,
 	motorChannel chan int,
@@ -100,12 +97,12 @@ func FSM(buttonChannel chan ElevatorButton,
 					//log.Println("Button", "Floor:", b.Floor, "ButtonType:", b.ButtonType)
 					lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.ButtonType, Active: true}
 				}
-			*/
+
 
 		}
 	}
 }
-
+*/
 func ElevatorCostCalulation(newElevatorOrder ElevatorOrderMessage) (assignedOrder ElevatorOrderMessage, err error) {
 
 	//TODO: calculate cost

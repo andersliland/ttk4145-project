@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"./control"
-	"./driver"
+	//"./driver"
+	. "./simulator/simulatorCore"
 	"./network"
 	. "./utilities"
 )
@@ -23,8 +24,8 @@ func main() {
 	sendBackupChannel := make(chan ElevatorBackupMessage, 5)
 	receiveBackupChannel := make(chan ElevatorBackupMessage, 5)
 
-	buttonChannel := make(chan driver.ElevatorButton, 10)
-	lightChannel := make(chan driver.ElevatorLight, 10)
+	buttonChannel := make(chan ElevatorButton, 10)
+	lightChannel := make(chan ElevatorLight, 10)
 	motorChannel := make(chan int, 10)
 	floorChannel := make(chan int, 10)
 
@@ -37,11 +38,12 @@ func main() {
 	localIP, err = network.Init(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel)
 	CheckError("ERROR [main]: Could not initiate network", err)
 
-	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay)
+	IOInit()
+	// Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
 
 	control.InitElevatorControl()
-	go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
-	go control.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
+	//go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
+	//go control.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 
 	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, buttonChannel, lightChannel, motorChannel, floorChannel, localIP)
 

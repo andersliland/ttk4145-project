@@ -12,8 +12,6 @@ import (
 	"log"
 	"time"
 
-	. "../driver"
-
 	. "../utilities"
 )
 
@@ -64,7 +62,7 @@ func SystemControl(
 		// Watchdog
 		case <-watchdogKickTimer.C:
 			sendBackupChannel <- ResolveWatchdogKickMessage(knownElevators[localIP])
-			//log.Printf("[systemControl] Watchdog send IAmAlive from %v \n", localIP)
+			log.Printf("[systemControl] Watchdog send IAmAlive from %v \n", localIP)
 
 		case <-watchdogTimer.C:
 			updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)

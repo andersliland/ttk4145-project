@@ -124,6 +124,18 @@ type ElevatorBackupMessage struct {
 	//ExternalOrderMatrix
 }
 
+type ElevatorButton struct {
+	Floor int
+	Kind  int
+}
+
+type ElevatorLight struct {
+	Floor  int
+	Kind   int
+	Active bool
+}
+
+
 // Console colors
 const (
 	ColorWhite   = "\x1b[37;1m"
@@ -142,4 +154,27 @@ func ResolveWatchdogKickMessage(elevator *Elevator) ElevatorBackupMessage {
 		Event:       EvIAmAlive,
 		State:       elevator.State}
 
+}
+
+func (m ElevatorBackupMessage) IsValid() bool {
+	if m.AskerIP == m.ResponderIP {
+		return false
+	}
+	if m.Event > 3 || m.Event < 0 {
+		return false
+	}
+	return true
+}
+
+func (m ElevatorOrderMessage) IsValid() bool {
+	if m.Floor > NumFloors || m.Floor < -1 {
+		return false
+	}
+	if m.ButtonType > 2 || m.ButtonType < 0 {
+		return false
+	}
+	if m.Event > 10 || m.Event < 4 {
+		return false
+	}
+	return true
 }

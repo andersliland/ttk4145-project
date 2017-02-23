@@ -23,16 +23,6 @@ var buttonMatrix = [NumFloors][NumButtons]int{
 	{BUTTON_UP4, BUTTON_DOWN4, BUTTON_COMMAND4},
 }
 
-type ElevatorButton struct {
-	Floor int
-	Kind  int
-}
-
-type ElevatorLight struct {
-	Floor  int
-	Kind   int
-	Active bool
-}
 
 const motorSpeed = 2800
 
