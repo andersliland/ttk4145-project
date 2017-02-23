@@ -36,7 +36,7 @@ func MessageLoop(
 		//	newOrder <- true
 		//case message := <-timeOutChannel: // Timeout
 		case button := <-buttonChannel: // Hardware
-			buttonHandler(button, sendMessageChannel)
+			buttonHandler(button, sendMessageChannel, lightChannel, motorChannel)
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)
 			floorReached <- floor

@@ -26,7 +26,7 @@ var direction int
 // RemoveOrdersAt(floor)
 
 func eventManager(newOrder chan bool, floorReached chan int,
-	lightChannel <-chan ElevatorLight, motorChannel chan int) {
+	lightChannel chan ElevatorLight, motorChannel chan int) {
 	// if restore order from file do ..., else:
 	floor = GoToFloorBelow()
 
@@ -47,7 +47,7 @@ func eventManager(newOrder chan bool, floorReached chan int,
 	}
 }
 
-func eventNewOrder(lightChannel <-chan ElevatorLight, doorTimerReset chan bool) {
+func eventNewOrder(lightChannel chan ElevatorLight, doorTimerReset chan bool) {
 	switch state {
 	case idle:
 		direction = queue.ChooseDirection(floor, direction)
@@ -70,7 +70,7 @@ func eventNewOrder(lightChannel <-chan ElevatorLight, doorTimerReset chan bool) 
 	}
 }
 
-func eventFloorReached(lightChannel <-chan ElevatorLight, motorChannel chan int, doorTimerReset chan bool) {
+func eventFloorReached(lightChannel chan ElevatorLight, motorChannel chan int, doorTimerReset chan bool) {
 	SetFloorIndicator(floor)
 	switch state {
 	case moving:
@@ -87,7 +87,7 @@ func eventFloorReached(lightChannel <-chan ElevatorLight, motorChannel chan int,
 	}
 }
 
-func eventDoorTimeout(lightChannel <-chan ElevatorLight, motorChannel chan int) {
+func eventDoorTimeout(lightChannel chan ElevatorLight, motorChannel chan int) {
 	switch state {
 	case doorOpen:
 		lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
