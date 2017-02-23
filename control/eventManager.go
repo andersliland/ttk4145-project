@@ -6,7 +6,7 @@ import (
 
 	. "../utilities"
 
-	"../driver"
+	. "../driver"
 	"../queue"
 )
 
@@ -28,7 +28,7 @@ var direction int
 func eventManager(newOrder chan bool, floorReached chan int,
 	lightChannel <-chan ElevatorLight, motorChannel chan int) {
 	// if restore order from file do ..., else:
-	floor = driver.GoToFloorBelow()
+	floor = GoToFloorBelow()
 
 	doorTimeout := make(chan bool)
 	doorTimerReset := make(chan bool)
@@ -47,7 +47,7 @@ func eventManager(newOrder chan bool, floorReached chan int,
 	}
 }
 
-func eventNewOrder(lightChannel <-chan ElevatorLight, doorTimerReset <-chan bool) {
+func eventNewOrder(lightChannel <-chan ElevatorLight, doorTimerReset chan bool) {
 	switch state {
 	case idle:
 		direction = queue.ChooseDirection(floor, direction)
@@ -70,8 +70,8 @@ func eventNewOrder(lightChannel <-chan ElevatorLight, doorTimerReset <-chan bool
 	}
 }
 
-func eventFloorReached(lightChannel <-chan ElevatorLight, motorChannel chan int, doorTimerReset <-chan bool) {
-	driver.SetFloorIndicator(floor)
+func eventFloorReached(lightChannel <-chan ElevatorLight, motorChannel chan int, doorTimerReset chan bool) {
+	SetFloorIndicator(floor)
 	switch state {
 	case moving:
 		if queue.ShouldStop(floor, direction) { // not implemented yet

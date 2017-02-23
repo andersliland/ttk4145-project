@@ -36,7 +36,7 @@ func MessageLoop(
 		//	newOrder <- true
 		//case message := <-timeOutChannel: // Timeout
 		case button := <-buttonChannel: // Hardware
-			buttonHandler(button)
+			buttonHandler(button, sendMessageChannel)
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)
 			floorReached <- floor
@@ -45,7 +45,8 @@ func MessageLoop(
 	}
 }
 
-func buttonHandler(button ElevatorButton) {
+func buttonHandler(button ElevatorButton, sendMessageChannel chan ElevatorOrderMessage,
+	lightChannel chan ElevatorLight, motorChannel chan int) {
 	switch button.Kind {
 	case ButtonCallUp, ButtonCallDown:
 		newOrder := ElevatorOrderMessage{
