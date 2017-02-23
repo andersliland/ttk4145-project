@@ -37,7 +37,6 @@ func main() {
 
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay)
 
-	control.InitElevatorControl()
 	go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
 
 	go control.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)

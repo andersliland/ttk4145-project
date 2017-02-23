@@ -182,7 +182,7 @@ func SetFloorIndicator(floor int) {
 	}
 }
 
-func goToFloorBelow(motorChannel chan int, pollDelay time.Duration) int {
+func GoToFloorBelow(motorChannel chan int, pollDelay time.Duration) int {
 	if readFloorSensor() == FloorInvalid {
 		motorChannel <- MotorDown
 		for {

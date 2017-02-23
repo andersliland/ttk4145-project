@@ -4,6 +4,8 @@ import (
 	"log"
 	"time"
 
+	. "../utilities"
+
 	"../driver"
 	"../queue"
 )
@@ -26,7 +28,7 @@ var direction int
 func eventManager(newOrder chan bool, floorReached chan int,
 	lightChannel <-chan ElevatorLight, motorChannel chan int) {
 	// if restore order from file do ..., else:
-	floor = driver.goToFloorBelow()
+	floor = driver.GoToFloorBelow()
 
 	doorTimeout := make(chan bool)
 	doorTimerReset := make(chan bool)

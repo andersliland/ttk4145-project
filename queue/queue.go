@@ -27,26 +27,28 @@ func ShouldStop(floor, direction int) bool {
 	return cabOrders[floor]
 }
 
-func ChooseDirection(floor, dir int) int {
+func ChooseDirection(floor, direction int) int {
 	var nextFloor int
-	for _, nextFloor = range cabOrders {
-		if nextFloor == true {
+	for index, active := range cabOrders {
+		if active == true {
+			nextFloor = index
 			break
 		}
 	}
-	switch floor {
+	switch {
 	case floor < nextFloor:
 		return MotorUp
 	case floor > nextFloor:
 		return MotorDown
 	case floor == nextFloor:
 		return MotorStop
-		//default:
+	default:
 		// Error handling
+		return MotorStop
 	}
 }
 
-func RemoveOrder(floor, dir int) {
+func RemoveOrder(floor, direction int) {
 	cabOrders[floor] = false
 }
 

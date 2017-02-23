@@ -13,24 +13,6 @@ import (
 const watchdogTimeoutInterval = time.Second * 1
 const watchdogKickInterval = watchdogTimeoutInterval / 3
 
-func InitElevatorControl(
-	buttonChannel chan ElevatorButton,
-	lightChannel chan ElevatorLight,
-	motorChannel chan int,
-	floorChannel chan int,
-	sendMessageChannel chan ElevatorOrderMessage,
-	receiveOrderChannel chan ElevatorOrderMessage,
-	sendBackupChannel chan ElevatorBackupMessage,
-	receiveBackupChannel chan ElevatorBackupMessage,
-	localIP string) {
-
-	go eventManger()
-
-	go MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel,
-		sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
-	log.Println("SUCCESS [elevatorControl]: Initialization")
-}
-
 func MessageLoop(
 	buttonChannel chan ElevatorButton,
 	lightChannel chan ElevatorLight,
@@ -45,6 +27,7 @@ func MessageLoop(
 	newOrder := make(chan bool)
 	floorReached := make(chan int)
 	go eventManager(newOrder, floorReached, lightChannel, motorChannel)
+	log.Println("SUCCESS [elevatorControl]: Initialization") // remove
 
 	for {
 		select {
@@ -67,12 +50,12 @@ func buttonHandler(button ElevatorButton) {
 	case ButtonCallUp, ButtonCallDown:
 		newOrder := ElevatorOrderMessage{
 			Time:       time.Now(),
-			Floor:      b.Floor,
-			ButtonType: b.Kind,
+			Floor:      button.Floor,
+			ButtonType: button.Kind,
 			AssignedTo: "none",
-			OriginIP:   localIP,
-			SenderIP:   localIP,
-			Event:      EvNewOrder,
+			//OriginIP:   localIP,
+			//SenderIP:   localIP,
+			//Event: EvNewOrder,
 		}
 		sendMessageChannel <- newOrder
 	case ButtonCommand:
