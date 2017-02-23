@@ -28,7 +28,8 @@ var direction int
 func eventManager(newOrder chan bool, floorReached chan int,
 	lightChannel chan ElevatorLight, motorChannel chan int) {
 	// if restore order from file do ..., else:
-	floor = GoToFloorBelow()
+	const pollDelay = 5 * time.Millisecond
+	floor = GoToFloorBelow(motorChannel, pollDelay)
 
 	doorTimeout := make(chan bool)
 	doorTimerReset := make(chan bool)
@@ -76,7 +77,8 @@ func eventFloorReached(lightChannel chan ElevatorLight, motorChannel chan int, d
 	case moving:
 		if queue.ShouldStop(floor, direction) { // not implemented yet
 			doorTimerReset <- true
-			queue.RemoveOrdersAt()
+			queue.RemoveOrder(floor, direction)
+			//queue.RemoveOrdersAt()
 			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 			direction = MotorStop
 			motorChannel <- MotorStop
