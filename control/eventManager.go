@@ -1,9 +1,11 @@
 package control
 
 import (
+	"log"
 	"time"
 
 	"../driver"
+	"../queue"
 )
 
 const (
@@ -29,7 +31,7 @@ func eventManager(newOrder chan bool, floorReached chan int,
 	doorTimeout := make(chan bool)
 	doorTimerReset := make(chan bool)
 	go doorTimer(doorTimeout, doorTimerReset)
-	// go stateIndicator(state) - implement for debug purpose only
+	go stateIndicator() // use for debug purpose only - remove later?
 
 	for {
 		select {
@@ -49,7 +51,8 @@ func eventNewOrder(lightChannel <-chan ElevatorLight, doorTimerReset <-chan bool
 		direction = queue.ChooseDirection(floor, direction)
 		if queue.ShouldStop(floor, direction) {
 			doorTimerReset <- true
-			queue.RemoveOrdersAt(floor, sendMessageChannel)
+			queue.RemoveOrder(floor, direction)
+			//queue.RemoveOrdersAt(floor, sendMessageChannel) // change the above function with this later
 			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 			state = doorOpen
 		}
@@ -57,7 +60,8 @@ func eventNewOrder(lightChannel <-chan ElevatorLight, doorTimerReset <-chan bool
 	case doorOpen:
 		if queue.ShouldStop(floor, direction) {
 			doorTimerReset <- true
-			queue.RemoveOrdersAt(floor, sendMessageChannel)
+			queue.RemoveOrder(floor, direction)
+			//queue.RemoveOrdersAt(floor, sendMessageChannel)
 		}
 	default:
 		// Insert error handling
@@ -108,6 +112,23 @@ func doorTimer(timeout chan<- bool, reset <-chan bool) {
 		case <-timer.C:
 			timer.Stop()
 			timeout <- true
+		}
+	}
+}
+
+func stateIndicator() {
+	prevState := idle
+	for {
+		if state != prevState {
+			switch state {
+			case idle:
+				log.Println("STATE [eventManager]: idle")
+			case moving:
+				log.Println("STATE [eventManager]: moving")
+			case doorOpen:
+				log.Println("STATE [eventManager]: doorOpen")
+			}
+			prevState = state
 		}
 	}
 }

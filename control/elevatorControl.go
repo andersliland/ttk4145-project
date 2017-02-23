@@ -6,6 +6,7 @@ import (
 	"time"
 
 	. "../driver"
+	"../queue"
 	. "../utilities"
 )
 
@@ -30,8 +31,6 @@ func InitElevatorControl(
 	log.Println("SUCCESS [elevatorControl]: Initialization")
 }
 
-var cabOrders [NumFloors]bool
-
 func MessageLoop(
 	buttonChannel chan ElevatorButton,
 	lightChannel chan ElevatorLight,
@@ -43,23 +42,20 @@ func MessageLoop(
 	receiveBackupChannel chan ElevatorBackupMessage,
 	localIP string) {
 
-	// If floor is defined in file & elevator was moving to process order
-	// Restore order execution
-	// Else move down to closest floor
-	goToFloorBelow()
-
-	eventManagerInit()
+	newOrder := make(chan bool)
+	floorReached := make(chan int)
+	go eventManager(newOrder, floorReached, lightChannel, motorChannel)
 
 	for {
 		select {
 		//case message := <-receiveBackupChannel: // Network
-		case message := <-receiveOrderChannel: // Orders
-			newOrder <- true
+		//case message := <-receiveOrderChannel: // Orders
+		//	newOrder <- true
 		//case message := <-timeOutChannel: // Timeout
 		case button := <-buttonChannel: // Hardware
 			buttonHandler(button)
 		case floor := <-floorChannel: // Hardware
-			floorHandler(floor)
+			//floorHandler(floor)
 			floorReached <- floor
 			// Add cases for tickers
 		}
@@ -80,7 +76,7 @@ func buttonHandler(button ElevatorButton) {
 		}
 		sendMessageChannel <- newOrder
 	case ButtonCommand:
-		addLocalOrder(button)
+		queue.AddLocalOrder(button)
 		// AddLocalOrder + SaveOrderToFile
 	case ButtonStop:
 		motorChannel <- MotorStop
@@ -89,19 +85,6 @@ func buttonHandler(button ElevatorButton) {
 		time.Sleep(time.Second)
 		os.Exit(1)
 	}
-}
-
-func floorHandler(floor int) {
-	if shouldStop(floor) {
-		// send channel floorReached to fsm
-		// previous floor is received from the network
-	}
-
-	// then SendOrderComplete
-}
-
-func addLocalOrder(button ElevatorButton) {
-	cabOrders[button.Floor] = true
 }
 
 // --- //

@@ -1,25 +1,51 @@
 package queue
 
+import (
+	"time"
 
+	. "../utilities"
+)
+
+var cabOrders [NumFloors]bool
 
 type orderStatus struct {
-  active bool
-    ip string
-  timer time.Timer
+	active bool
+	ip     string
+	timer  time.Timer
 }
 
-func Init(){
+//func (q queue) setOrder(floor, button int, status orderStatus){
+//
+//}
 
+func AddLocalOrder(button ElevatorButton) {
+	cabOrders[button.Floor] = true
 }
 
-func (q queue) setOrder(floor, button int, status orderStatus){
-  
+func ShouldStop(floor, direction int) bool {
+	return cabOrders[floor]
 }
 
-AddLocalOrder
+func ChooseDirection(floor, dir int) int {
+	for _, nextFloor := range cabOrders {
+		if nextFloor == true {
+			break
+		}
+	}
+	switch floor {
+	case floor < nextFloor:
+		return MotorUp
+	case floor > nextFloor:
+		return MotorDown
+	case floor == nextFloor:
+		return MotorStop
+	default:
+		// Error handling
+	}
+}
 
-AddRemoveOrder
+func RemoveOrder(floor, dir int) {
+	cabOrders[floor] = false
+}
 
-RemoveRemoteOrderAt
-
-RemoveOrder
+//RemoveRemoteOrderAt
