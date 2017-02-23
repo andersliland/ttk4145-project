@@ -188,11 +188,11 @@ func goToFloorBelow(motorChannel chan int, pollDelay time.Duration) int {
 		for {
 			if floor := readFloorSensor(); floor != FloorInvalid {
 				motorChannel <- MotorStop
-				break
+				return floor
 			} else {
 				time.Sleep(pollDelay)
 			}
 		}
 	}
-	return floor
+	return readFloorSensor()
 }
