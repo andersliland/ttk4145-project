@@ -39,7 +39,7 @@ func eventManager(newOrder chan bool, floorReached chan int,
 	for {
 		select {
 		case <-newOrder:
-			eventNewOrder(lightChannel, doorTimerReset)
+			eventNewOrder(lightChannel, motorChannel, doorTimerReset)
 		case floor = <-floorReached:
 			eventFloorReached(lightChannel, motorChannel, doorTimerReset)
 		case <-doorTimeout:
@@ -48,7 +48,7 @@ func eventManager(newOrder chan bool, floorReached chan int,
 	}
 }
 
-func eventNewOrder(lightChannel chan ElevatorLight, doorTimerReset chan bool) {
+func eventNewOrder(lightChannel chan ElevatorLight, motorChannel chan int, doorTimerReset chan bool) {
 	switch state {
 	case idle:
 		direction = queue.ChooseDirection(floor, direction)
@@ -58,6 +58,9 @@ func eventNewOrder(lightChannel chan ElevatorLight, doorTimerReset chan bool) {
 			//queue.RemoveOrdersAt(floor, sendMessageChannel) // change the above function with this later
 			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 			state = doorOpen
+		} else {
+			motorChannel <- direction
+			state = moving
 		}
 	case moving: // Ignore
 	case doorOpen:
@@ -97,6 +100,7 @@ func eventDoorTimeout(lightChannel chan ElevatorLight, motorChannel chan int) {
 		if direction == MotorStop {
 			state = idle
 		} else {
+			motorChannel <- direction
 			state = moving
 		}
 	default:

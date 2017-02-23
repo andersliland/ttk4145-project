@@ -35,13 +35,14 @@ func ChooseDirection(floor, direction int) int {
 			break
 		}
 	}
+	// THIS IS WRONG! Implement algorithm from example project at github.
 	switch {
+	case floor == nextFloor:
+		return MotorStop
 	case floor < nextFloor:
 		return MotorUp
 	case floor > nextFloor:
 		return MotorDown
-	case floor == nextFloor:
-		return MotorStop
 	default:
 		// Error handling
 		return MotorStop
