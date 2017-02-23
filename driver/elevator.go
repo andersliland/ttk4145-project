@@ -194,4 +194,5 @@ func goToFloorBelow(motorChannel chan int, pollDelay time.Duration) int {
 			}
 		}
 	}
+	return floor
 }

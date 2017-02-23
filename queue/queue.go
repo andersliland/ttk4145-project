@@ -3,6 +3,7 @@ package queue
 import (
 	"time"
 
+	. "../driver"
 	. "../utilities"
 )
 
@@ -27,7 +28,8 @@ func ShouldStop(floor, direction int) bool {
 }
 
 func ChooseDirection(floor, dir int) int {
-	for _, nextFloor := range cabOrders {
+	var nextFloor int
+	for _, nextFloor = range cabOrders {
 		if nextFloor == true {
 			break
 		}
@@ -39,7 +41,7 @@ func ChooseDirection(floor, dir int) int {
 		return MotorDown
 	case floor == nextFloor:
 		return MotorStop
-	default:
+		//default:
 		// Error handling
 	}
 }
