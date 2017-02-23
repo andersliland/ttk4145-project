@@ -2,7 +2,6 @@ package control
 
 import (
 	"log"
-	"os"
 	"time"
 
 	. "../driver"
@@ -71,8 +70,7 @@ func FSM(buttonChannel chan ElevatorButton,
 				motorChannel <- MotorStop
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
 				log.Println("Stop button pressed. Elevator will come to a halt.")
-				time.Sleep(time.Second)
-				os.Exit(1)
+
 			}
 
 		case <-executeOrderChannel:

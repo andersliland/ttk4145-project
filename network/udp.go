@@ -15,10 +15,10 @@ const localListenPort = 1
 const broadcastListenPort = 6667
 
 type UDPMessage struct {
-	Raddr  string
-	Data   []byte
-	Length int
 	Type   int
+	Data   []byte
+	Raddr  string
+	Length int
 }
 
 var broadcastAddr *net.UDPAddr
@@ -101,8 +101,8 @@ func udpReceive(udpReceiveDatagramChannel chan UDPMessage, udpReceiveBufferChann
 func listenUDPStream(listen *net.UDPConn,
 	udpReceiveBufferChannel chan UDPMessage) {
 	defer listen.Close()
-
 	buf := make([]byte, messageSize)
+
 	for {
 		n, raddr, err := listen.ReadFromUDP(buf)
 		//log.Println("[udp] Number of bytes received:", n, " from:", raddr)

@@ -35,11 +35,12 @@ func SystemControl(
 	floorChannel chan int,
 	localIP string) {
 
-	const watchdogKickTime = 100 * time.Millisecond
-	const watchdogLimit = 3*watchdogKickTime + 10*time.Millisecond
+	const watchdogKickTime = 5000 * time.Millisecond
+	const watchdogLimit = 4000 * time.Millisecond //3*watchdogKickTime + 10*time.Millisecond
 
-	var knownElevators = make(map[string]*Elevator) // key = IPaddr
-	var activeElevators = make(map[string]bool)     // key = IPaddr
+	// key = IPaddr
+	var knownElevators = make(map[string]*Elevator) // containing last known state
+	var activeElevators = make(map[string]bool)
 
 	// Timers
 	watchdogTimer := time.NewTicker(watchdogLimit)
@@ -51,30 +52,53 @@ func SystemControl(
 
 	// init states
 	log.Println("[systemControl] Send request for previous state")
-	/*
-		sendBackupChannel <- ElevatorBackupMessage{
-			AskerIP:     localIP,
-			ResponderIP: "blank",
-			State:       ElevatorState{},
-			Event:       EvRequestBackup,
-		}
-	*/
 
+	sendBackupChannel <- ElevatorBackupMessage{
+		AskerIP: localIP,
+		State:   ElevatorState{},
+		Event:   EvRequestBackupState,
+	}
 	knownElevators[localIP] = ResolveElevator(ElevatorState{LocalIP: localIP, LastFloor: 2})
-	log.Println("knownElevators", knownElevators)
 	updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
 
 	for {
 		select {
+		// Watchdog
 		case <-watchdogKickTimer.C:
 			sendBackupChannel <- ResolveWatchdogKickMessage(knownElevators[localIP])
+			log.Printf("[systemControl] Watchdog send IAmAlive from %v \n", localIP)
 
 		case <-watchdogTimer.C:
 			updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
+			log.Println("[systemControl] Active Elevators", activeElevators)
 
+			// Network
+			//
+		case f := <-receiveBackupChannel:
+			switch f.Event {
+			case EvIAmAlive:
+				if _, ok := knownElevators[f.ResponderIP]; ok { // check if a value exsist for ResponderIP
+					knownElevators[f.ResponderIP].Time = time.Now() //update time for known elevator
+				} else {
+					log.Println("[systemControl] Received EvIAmAlive from a new elevator with IP ", f.ResponderIP)
+					knownElevators[f.ResponderIP] = ResolveElevator(f.State)
+				}
+				updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
+
+			case EvBackupState:
+
+			case EvRequestBackupState:
+				//log.Println("[systemControl] From EvRequestBackupState")
+
+			case EvBackupStateReturned:
+
+			default:
+				log.Println("Received invalid ElevatorBackupMessage from", f.ResponderIP)
+			}
+
+		// Order
 		case order := <-receiveOrderChannel:
 			//printDebug("Recieved an " + EventType[order.Event] + " from " + order.SenderIP + " with OriginIP " + order.OriginIP)
-
 			// calculate cost
 			// broadcast answer
 			// sort incomming answer, wait for all elevator to reply
@@ -88,18 +112,17 @@ func SystemControl(
 	}
 }
 
-func updateActiveElevators(knownElevators map[string]*Elevator,
-	activeElevators map[string]bool,
-	localIP string,
-	watchdogLimit time.Duration) {
-
+// checks
+func updateActiveElevators(knownElevators map[string]*Elevator, activeElevators map[string]bool, localIP string, watchdogLimit time.Duration) {
 	for k := range knownElevators {
-		if time.Since(knownElevators[localIP].Time) > watchdogLimit {
+		log.Println(time.Since(knownElevators[localIP].Time), watchdogLimit)
+		if time.Since(knownElevators[localIP].Time) > watchdogLimit { //watchdog timeout
+			log.Println("[systemControl] watchdog timeout")
 			if activeElevators[localIP] == true {
 				log.Printf("[systemControl] Removed elevator %s in activeElevators\n", knownElevators[k].State.LocalIP)
 				delete(activeElevators, k)
 			}
-		} else {
+		} else { // watchdog not timed out
 			if activeElevators[k] != true {
 				activeElevators[k] = true
 				log.Printf("[systemControll] Added elevator %s in active elevators", knownElevators[k].State.LocalIP)

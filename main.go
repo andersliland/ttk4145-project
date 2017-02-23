@@ -49,7 +49,7 @@ func main() {
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go safeKill(safeKillChannel, motorChannel)
 
-	log.Println("SUCCESS [main]: Elevator ready!")
+	log.Println("[main] SUCCESS Elevator ready!")
 
 	// initialise this elevator
 	// send out request for previous state
