@@ -8,21 +8,36 @@ const NumButtons = 3
 const NumFloors = 4
 
 var EventType = []string{
+	// BackupMessage Events
+	"EvIAmAlive",
+	"EvBackupState",
+	"EvRequestBackupState",
+	"EvBackupStateReturned",
+	// OrderMessage Events
+
 	"EvNewOrder",
-	"EvExecuteOrder",
-	"EvRestoreOrder",
-	"AckExecuteOrder",
-	"EvElevatorAliveMessage",
-	"EvRequestState",
+	"EvAckNewOrder",
+	"EvOrderConfirmed",
+	"EvAckOrderConfirmed",
+	"EvOrderDone",
+	"EvAckOrderDone",
+	"EvReassignOrder",
 }
 
 const (
-	EvNewOrder = iota
-	EvExecuteOrder
-	EvRestoreOrder
-	AckExecuteOrder
-	EvElevatorAliveMessage
-	EvRequestState
+	// BackupMessage Events
+	EvIAmAlive = iota //  = 0
+	EvBackupState
+	EvRequestBackupState
+	EvBackupStateReturned
+	// OrderMessage Events
+	EvNewOrder
+	EvAckNewOrder
+	EvOrderConfirmed
+	EvAckOrderConfirmed
+	EvOrderDone
+	EvAckOrderDone
+	EvReassignOrder
 )
 
 var ButtonType = []string{
@@ -71,16 +86,6 @@ const (
 	MotorDown
 )
 
-type ElevatorOrderMessage struct {
-	Time       time.Time
-	Floor      int
-	ButtonType int
-	AssignedTo string
-	OriginIP   string
-	SenderIP   string
-	Event      int
-}
-
 type ElevatorOrder struct {
 	Status      int
 	AssignedTo  string
@@ -96,15 +101,27 @@ type ElevatorState struct {
 	DoorStatus int
 }
 
-type ElevatorBackupMessage struct {
-	AskerIP string
-	State   ElevatorState
-	Event   int
-}
-
 type Elevator struct {
 	State ElevatorState
 	Time  time.Time
+}
+
+type ElevatorOrderMessage struct {
+	Time       time.Time
+	Floor      int
+	ButtonType int
+	AssignedTo string
+	OriginIP   string
+	SenderIP   string
+	Event      int
+}
+
+type ElevatorBackupMessage struct {
+	AskerIP     string
+	ResponderIP string
+	Event       int
+	State       ElevatorState
+	//ExternalOrderMatrix
 }
 
 // Console colors
@@ -112,3 +129,17 @@ const (
 	ColorWhite   = "\x1b[37;1m"
 	ColorNeutral = "\x1b[0m"
 )
+
+// functions
+
+func ResolveElevator(state ElevatorState) *Elevator {
+	return &Elevator{state, time.Now()}
+}
+
+func ResolveWatchdogKickMessage(elevator *Elevator) ElevatorBackupMessage {
+	return ElevatorBackupMessage{
+		ResponderIP: elevator.State.LocalIP,
+		Event:       EvIAmAlive,
+		State:       elevator.State}
+
+}

@@ -10,7 +10,6 @@ import (
 )
 
 func InitElevatorControl() {
-	log.Println("From init")
 
 }
 
@@ -76,13 +75,8 @@ func FSM(buttonChannel chan ElevatorButton,
 				os.Exit(1)
 			}
 
-		case f := <-floorChannel:
-			if f != -1 {
-				motorChannel <- MotorStop
-			}
-
-		case b := <-executeOrderChannel:
-			printDebug("Recieved an " + EventType[b.Event] + " from " + b.SenderIP + " with OriginIP " + b.OriginIP)
+		case <-executeOrderChannel:
+			//printDebug("Recieved an " + EventType[b.Event] + " from " + b.SenderIP + " with OriginIP " + b.OriginIP)
 			// EvNewOrder
 			//EvAckNewOrder
 			//EvOrderConfirmed
@@ -90,28 +84,25 @@ func FSM(buttonChannel chan ElevatorButton,
 			//EvOrderDone
 			//EvAckOrderDone
 			//EvReasignOrder
+			/*
+				if b.Floor == Floor1 && b.ButtonType == ButtonCallUp {
+					motorChannel <- MotorDown
+					//log.Println("Button", "Floor:", b.Floor, "ButtonType:", b.ButtonType)
+					lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.ButtonType, Active: true}
+				}
 
-			//add order to matrix
-			//			var externalOrderMatrix [NumFloors][NumButtons]ElevatorOrder
-			externalOrderMatrix[b.Floor][b.ButtonType].Status = 2
+				if b.Floor == Floor2 && b.ButtonType == ButtonCallUp {
+					motorChannel <- MotorStop
+					//log.Println("Button", "Floor:", b.Floor, "ButtonType:", b.ButtonType)
+					lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.ButtonType, Active: true}
+				}
 
-			if b.Floor == Floor1 && b.ButtonType == ButtonCallUp {
-				motorChannel <- MotorDown
-				//log.Println("Button", "Floor:", b.Floor, "ButtonType:", b.ButtonType)
-				lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.ButtonType, Active: true}
-			}
-
-			if b.Floor == Floor2 && b.ButtonType == ButtonCallUp {
-				motorChannel <- MotorStop
-				//log.Println("Button", "Floor:", b.Floor, "ButtonType:", b.ButtonType)
-				lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.ButtonType, Active: true}
-			}
-
-			if b.Floor == Floor3 && b.ButtonType == ButtonCallUp {
-				motorChannel <- MotorUp
-				//log.Println("Button", "Floor:", b.Floor, "ButtonType:", b.ButtonType)
-				lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.ButtonType, Active: true}
-			}
+				if b.Floor == Floor3 && b.ButtonType == ButtonCallUp {
+					motorChannel <- MotorUp
+					//log.Println("Button", "Floor:", b.Floor, "ButtonType:", b.ButtonType)
+					lightChannel <- ElevatorLight{Floor: b.Floor, Kind: b.ButtonType, Active: true}
+				}
+			*/
 
 		}
 	}

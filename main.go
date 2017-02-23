@@ -43,7 +43,7 @@ func main() {
 	go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
 	go control.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 
-	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
+	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, buttonChannel, lightChannel, motorChannel, floorChannel, localIP)
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
@@ -56,7 +56,7 @@ func main() {
 	sendBackupChannel <- ElevatorBackupMessage{
 		AskerIP: localIP,
 		State:   ElevatorState{},
-		Event:   EvRequestState,
+		Event:   EvRequestBackupState,
 	}
 
 	select {}
