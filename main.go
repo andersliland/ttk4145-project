@@ -41,33 +41,21 @@ func main() {
 	//IOInit() //Simulator init
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
 
-	control.InitElevatorControl()
-	//go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
-	//go control.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
-
 	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, buttonChannel, lightChannel, motorChannel, floorChannel, localIP)
+	go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go safeKill(safeKillChannel, motorChannel)
 
 	log.Println("[main] SUCCESS Elevator ready with IP:", localIP)
-
-	// initialise this elevator
-	// send out request for previous state
-	sendBackupChannel <- ElevatorBackupMessage{
-		AskerIP: localIP,
-		State:   ElevatorState{},
-		Event:   EvRequestBackupState,
-	}
-
-	select {}
+	select {} // Block main loop indefinetly
 
 }
 
 func safeKill(safeKillChannel <-chan os.Signal, motorChannel chan int) {
 	<-safeKillChannel
-	motorChannel <- MotorStop
+	//motorChannel <- MotorStop
 	time.Sleep(10 * time.Millisecond) // wait for motor stop too be processed
 	log.Fatal(ColorWhite, "\nUser terminated program\nMOTOR STOPPED\n", ColorNeutral)
 	os.Exit(1)

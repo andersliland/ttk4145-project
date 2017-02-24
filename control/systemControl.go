@@ -51,11 +51,14 @@ func SystemControl(
 	goToFloorBelow(motorChannel, floorChannel)
 
 	// init states
+
 	sendBackupChannel <- ElevatorBackupMessage{
-		AskerIP: localIP,
-		State:   ElevatorState{},
-		Event:   EvRequestBackupState,
+		AskerIP:     localIP,
+		Event:       EvRequestBackupState,
+		ResponderIP: "",
+		State:       ElevatorState{},
 	}
+
 	knownElevators[localIP] = ResolveElevator(ElevatorState{LocalIP: localIP, LastFloor: 2})
 	updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
 
@@ -85,15 +88,16 @@ func SystemControl(
 
 				// inncomming backup state,
 			case EvBackupState:
+				log.Printf("[systemControl] Received an EvBackupState from %v", msg.AskerIP)
 
 				// send out 'ElevatorBackupMessage' when receiving msg
 			case EvRequestBackupState:
+				log.Printf("[systemControl] Received an EvRequestBackupState from %v", msg.AskerIP)
 				if msg.AskerIP == localIP {
-					log.Printf("[systemControl] Received an EvRequestBackupState from %v", msg.AskerIP)
 					sendBackupChannel <- ElevatorBackupMessage{
 						AskerIP:     msg.AskerIP,
 						ResponderIP: localIP,
-						Event:       EvBackupStateReturned,
+						Event:       EvBackupState,
 						State:       ElevatorState{},
 					}
 
@@ -103,10 +107,10 @@ func SystemControl(
 
 			case EvBackupStateReturned:
 				if msg.AskerIP == localIP {
-					log.Printf("[systemControl] Received EvBackupStateReturned requested by me", localIP)
+					log.Printf("[systemControl] Received EvBackupStateReturned requested by me @ %v", localIP)
 
 				} else {
-					log.Printf("[systemControl] REceived EvBackupStateReturned not requested by me")
+					log.Printf("[systemControl] Received EvBackupStateReturned not requested by me")
 
 				}
 
@@ -123,6 +127,8 @@ func SystemControl(
 			// assign order to self if AssignedTo == localIP
 			switch order.Event {
 			case EvNewOrder:
+				log.Printf("[systemControl] Received a new order from %v", order.OriginIP)
+
 				switch externalOrderMatrix[order.Floor][order.ButtonType].Status {
 				case NotActive:
 
