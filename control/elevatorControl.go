@@ -13,6 +13,9 @@ import (
 const watchdogTimeoutInterval = time.Second * 1
 const watchdogKickInterval = watchdogTimeoutInterval / 3
 
+func InitElevatorControl() {
+
+}
 func MessageLoop(
 	buttonChannel chan ElevatorButton,
 	lightChannel chan ElevatorLight,
@@ -158,7 +161,7 @@ func FSM(buttonChannel chan ElevatorButton,
 			}
 
 		case order := <-receiveOrderChannel:
-			//log.Println("[fsm] Received event", order.Event)
+			//log.Println("[fsm] Recieved event", order.Event)
 			switch order.Event {
 			case EvNewOrder:
 				log.Println("[udp]", order)

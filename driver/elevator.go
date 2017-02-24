@@ -7,6 +7,8 @@ import (
 	. "../utilities"
 )
 
+var debug = false
+
 var lampMatrix = [NumFloors][NumButtons]int{
 	{LIGHT_UP1, LIGHT_DOWN1, LIGHT_COMMAND1},
 	{LIGHT_UP2, LIGHT_DOWN2, LIGHT_COMMAND2},
@@ -21,23 +23,11 @@ var buttonMatrix = [NumFloors][NumButtons]int{
 	{BUTTON_UP4, BUTTON_DOWN4, BUTTON_COMMAND4},
 }
 
-type ElevatorButton struct {
-	Floor int
-	Kind  int
-}
 
-type ElevatorLight struct {
-	Floor  int
-	Kind   int
-	Active bool
-}
 
 const motorSpeed = 2800
 
-/* 	<-chan : accepts a channel for SENDING values
-chan<- : accepts a channel for RECEIVING values
-chan : bidirectional
-*/
+
 func Init(buttonChannel chan<- ElevatorButton,
 	lightChannel <-chan ElevatorLight,
 	motorChannel chan int,
@@ -50,7 +40,7 @@ func Init(buttonChannel chan<- ElevatorButton,
 	go motorController(motorChannel)
 	go floorSensorPoller(floorChannel, pollDelay)
 	go buttonPoller(buttonChannel, pollDelay)
-	log.Println("SUCCESS [driver] Initialization")
+	printDebug("[elevator] Initialization successful")
 }
 
 func resetAllLights() {
@@ -119,10 +109,11 @@ func floorSensorPoller(floorChannel chan<- int, pollDelay time.Duration) {
 	prevFloor := FloorInvalid
 	for {
 		f := readFloorSensor()
-		if f != prevFloor && f != -1 {
+		if f != prevFloor && f != FloorInvalid {
+			prevFloor = f
+			SetFloorIndicator(f) // Move to fsm
 			floorChannel <- f
 		}
-		prevFloor = f
 		time.Sleep(pollDelay)
 	}
 }
@@ -196,3 +187,9 @@ func GoToFloorBelow(motorChannel chan int, pollDelay time.Duration) int {
 	}
 	return readFloorSensor()
 }
+
+
+func printDebug(s string) {
+	if debug {
+		log.Println("[driver]", s)
+	}

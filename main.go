@@ -10,6 +10,7 @@ import (
 
 	"./control"
 	"./driver"
+	// . "./simulator/simulatorCore"
 	"./network"
 	. "./utilities"
 )
@@ -30,22 +31,36 @@ func main() {
 
 	safeKillChannel := make(chan os.Signal, 10)
 
+	executeOrderChannel := make(chan ElevatorOrderMessage, 10)
+
 	var localIP string
 	var err error
 	localIP, err = network.Init(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel)
 	CheckError("ERROR [main]: Could not initiate network", err)
 
-	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay)
+	//IOInit() //Simulator init
+	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
 
-	go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
+	control.InitElevatorControl()
+	//go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
+	//go control.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 
-	//go control.FSM(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
+	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, buttonChannel, lightChannel, motorChannel, floorChannel, localIP)
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go safeKill(safeKillChannel, motorChannel)
 
-	log.Println("SUCCESS [main]: Elevator ready!")
+	log.Println("[main] SUCCESS Elevator ready with IP:", localIP)
+
+	// initialise this elevator
+	// send out request for previous state
+	sendBackupChannel <- ElevatorBackupMessage{
+		AskerIP: localIP,
+		State:   ElevatorState{},
+		Event:   EvRequestBackupState,
+	}
+
 	select {}
 
 }
