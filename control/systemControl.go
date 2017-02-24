@@ -33,8 +33,7 @@ func SystemControl(
 	floorChannel chan int,
 	localIP string) {
 
-	var externalOrderMatrix[NumFloor][NumButtons] ElevatorOrder
-
+	var externalOrderMatrix [NumFloors][NumButtons]ElevatorOrder
 
 	const watchdogKickTime = 100 * time.Millisecond
 	const watchdogLimit = 3*watchdogKickTime + 10*time.Millisecond
@@ -102,13 +101,15 @@ func SystemControl(
 			// sort incomming answer, wait for all elevator to reply
 			// assign order to self if AssignedTo == localIP
 			switch order.Event {
+			case EvNewOrder:
 				switch externalOrderMatrix[order.Floor][order.ButtonType].Status {
 				case NotActive:
+
 				case Awaiting:
+
 				case UnderExecution:
 
 				}
-			case EvNewOrder:
 			case EvAckNewOrder:
 			case EvOrderConfirmed:
 			case EvAckOrderConfirmed:
@@ -116,8 +117,7 @@ func SystemControl(
 			case EvAckOrderDone:
 			case EvReassignOrder:
 			default:
-				printDebug("Received an invalid ElevatorOrderMessage from", order.SenderIP )
-
+				printDebug("Received an invalid ElevatorOrderMessage from" + order.SenderIP)
 
 			}
 
@@ -132,16 +132,18 @@ func SystemControl(
 // checks
 func updateActiveElevators(knownElevators map[string]*Elevator, activeElevators map[string]bool, localIP string, watchdogLimit time.Duration) {
 	for k := range knownElevators {
-		//log.Println(time.Since(knownElevators[localIP].Time), watchdogLimit)
-		if time.Since(knownElevators[localIP].Time) > watchdogLimit { //watchdog timeout
-			if activeElevators[localIP] == true {
-				log.Printf("[systemControl] Removed elevator %s in activeElevators\n", knownElevators[k].State.LocalIP)
+		if time.Since(knownElevators[k].Time) > watchdogLimit { //watchdog timeout
+			if activeElevators[k] == true {
 				delete(activeElevators, k)
+				log.Printf("[systemControl] Removed elevator %s in activeElevators\n", knownElevators[k].State.LocalIP)
+				log.Printf("[systemControl] All active elevators %v", activeElevators)
+
 			}
 		} else { // watchdog not timed out
 			if activeElevators[k] != true {
 				activeElevators[k] = true
-				log.Printf("[systemControll] Added elevator %s in active elevators", knownElevators[k].State.LocalIP)
+				log.Printf("[systemControl] Added elevator %s in active elevators", knownElevators[k].State.LocalIP)
+				log.Printf("[systemControl] All active elevators %v", activeElevators)
 			}
 		}
 	}
