@@ -15,25 +15,22 @@ import (
 	. "../utilities"
 )
 
-var debug = true
+var debugSystemControl = true
 
 func InitSystemControl() {
 
 }
 
 func SystemControl(
-	sendMessageChannel chan ElevatorOrderMessage,
-	receiveOrderChannel chan ElevatorOrderMessage,
-	sendBackupChannel chan ElevatorBackupMessage,
-	receiveBackupChannel chan ElevatorBackupMessage,
-	executeOrderChannel chan ElevatorOrderMessage,
-	buttonChannel chan ElevatorButton,
-	lightChannel chan ElevatorLight,
-	motorChannel chan int,
-	floorChannel chan int,
+	sendMessageChannel chan<- ElevatorOrderMessage,
+	receiveOrderChannel <-chan ElevatorOrderMessage,
+	sendBackupChannel chan<- ElevatorBackupMessage,
+	receiveBackupChannel <-chan ElevatorBackupMessage,
+	executeOrderChannel chan<- ElevatorOrderMessage,
 	localIP string) {
 
-	var externalOrderMatrix [NumFloors][NumButtons]ElevatorOrder
+	var HallOrderMatrix [NumFloors][NumButtons - 1]ElevatorOrder
+	//var CabOrderMatrix [NumFloors]ElevatorOrder
 
 	const watchdogKickTime = 100 * time.Millisecond
 	const watchdogLimit = 3*watchdogKickTime + 10*time.Millisecond
@@ -48,13 +45,19 @@ func SystemControl(
 	watchdogKickTimer := time.NewTicker(watchdogKickTime)
 	defer watchdogKickTimer.Stop()
 
-	goToFloorBelow(motorChannel, floorChannel)
-
 	// init states
-
+	log.Println("test1")
 	sendBackupChannel <- ElevatorBackupMessage{
 		AskerIP:     localIP,
 		Event:       EvRequestBackupState,
+		ResponderIP: "",
+		State:       ElevatorState{},
+	}
+	log.Println("test2")
+
+	sendBackupChannel <- ElevatorBackupMessage{
+		AskerIP:     localIP,
+		Event:       EvCabOrder,
 		ResponderIP: "",
 		State:       ElevatorState{},
 	}
@@ -66,15 +69,16 @@ func SystemControl(
 		select {
 		// Watchdog
 		case <-watchdogKickTimer.C:
-			sendBackupChannel <- ResolveWatchdogKickMessage(knownElevators[localIP])
+			//sendBackupChannel <- ResolveWatchdogKickMessage(knownElevators[localIP])
 			//log.Printf("[systemControl] Watchdog send IAmAlive from %v \n", localIP)
 
 		case <-watchdogTimer.C:
-			updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
+			//updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
 			//log.Println("[systemControl] Active Elevators", activeElevators)
 
 			// Network
 		case msg := <-receiveBackupChannel:
+			//log.Printf("[systemControl] receivedBackupChannel with event %v from %v]", EventType[msg.Event], msg.AskerIP)
 			switch msg.Event {
 			// resolved incomming alive, if timeout remove elevator
 			case EvIAmAlive:
@@ -93,26 +97,39 @@ func SystemControl(
 				// send out 'ElevatorBackupMessage' when receiving msg
 			case EvRequestBackupState:
 				log.Printf("[systemControl] Received an EvRequestBackupState from %v", msg.AskerIP)
-				if msg.AskerIP == localIP {
+				if msg.AskerIP != localIP {
 					sendBackupChannel <- ElevatorBackupMessage{
 						AskerIP:     msg.AskerIP,
 						ResponderIP: localIP,
-						Event:       EvBackupState,
+						Event:       EvBackupStateReturned,
 						State:       ElevatorState{},
 					}
 
 				} else {
-					log.Println("[systemControl] No stored state for elevator ", localIP)
+					log.Println("[systemControl] No stored state for elevator at selv ", localIP)
+					/*
+						sendBackupChannel <- ElevatorBackupMessage{
+							AskerIP:     msg.AskerIP,
+							ResponderIP: localIP,
+							Event:       EvBackupStateReturned,
+							State:       ElevatorState{},
+						}
+					*/
+					log.Println("[systemControl] Debug Sending backup still ", localIP)
+
 				}
 
 			case EvBackupStateReturned:
+				log.Printf("[systemControl] Received EvBackupStateReturned requested by me @ %v", localIP)
+
 				if msg.AskerIP == localIP {
-					log.Printf("[systemControl] Received EvBackupStateReturned requested by me @ %v", localIP)
 
 				} else {
 					log.Printf("[systemControl] Received EvBackupStateReturned not requested by me")
 
 				}
+			case EvCabOrder:
+				log.Printf("[systemControl] Received EvCabOrder from %v", msg.AskerIP)
 
 			default:
 				log.Println("Received invalid ElevatorBackupMessage from", msg.ResponderIP)
@@ -120,7 +137,8 @@ func SystemControl(
 
 		// Order
 		case order := <-receiveOrderChannel:
-			//printDebug("Recieved an " + EventType[order.Event] + " from " + order.SenderIP + " with OriginIP " + order.OriginIP)
+			//log.Printf("[systemControl] receivedBackupChannel with event %v from %v]", EventType[msg.Event], msg.AskerIP)
+			printDebug("Recieved an " + EventType[order.Event] + " from " + order.SenderIP + " with OriginIP " + order.OriginIP)
 			// calculate cost
 			// broadcast answer
 			// sort incomming answer, wait for all elevator to reply
@@ -129,7 +147,7 @@ func SystemControl(
 			case EvNewOrder:
 				log.Printf("[systemControl] Received a new order from %v", order.OriginIP)
 
-				switch externalOrderMatrix[order.Floor][order.ButtonType].Status {
+				switch HallOrderMatrix[order.Floor][order.ButtonType].Status {
 				case NotActive:
 
 				case Awaiting:
@@ -148,15 +166,12 @@ func SystemControl(
 
 			}
 
-			order.AssignedTo = localIP
-			order.Event = EvNewOrder
-			executeOrderChannel <- order
-			//log.Println("Execute order: AssignedTo", order.AssignedTo, " OriginIP:", order.OriginIP)
-		}
-	}
-}
+		} // select
+	} // for
+} //function
 
-// checks
+// removes elevator from 'activeElevators' if watchdog timeout
+// adds elevator to 'activeElevators' if watchdog not timeout
 func updateActiveElevators(knownElevators map[string]*Elevator, activeElevators map[string]bool, localIP string, watchdogLimit time.Duration) {
 	for k := range knownElevators {
 		if time.Since(knownElevators[k].Time) > watchdogLimit { //watchdog timeout
@@ -175,17 +190,12 @@ func updateActiveElevators(knownElevators map[string]*Elevator, activeElevators 
 		}
 	}
 }
-
-func goToFloorBelow(motorChannel chan int, floorChannel chan int) {
-
-	motorChannel <- MotorDown
-	if <-floorChannel != FloorInvalid {
-		motorChannel <- MotorStop
-	}
-}
-
 func printDebug(s string) {
-	if debug {
+	if debugSystemControl {
 		log.Println("[systemControl]", s)
 	}
+	if debugElevatorControl {
+		log.Println("[elevatorControl]", s)
+	}
+
 }

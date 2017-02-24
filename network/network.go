@@ -7,7 +7,7 @@ import (
 	. "../utilities"
 )
 
-const debug = false
+const debugNetwork = true
 
 func Init(sendMessageChannel <-chan ElevatorOrderMessage,
 	receiveOrderChannel chan<- ElevatorOrderMessage,
@@ -66,15 +66,18 @@ func receiveMessageHandler(
 			var f interface{}
 			err := json.Unmarshal(msg.Data[:msg.Length], &f)
 			if err != nil {
-				log.Println("ERROR [network]: Unmarshal failed", err)
+				log.Println("[network] First Unmarshal failed", err)
 			} else {
+				printDebug("[network] New UDP datagram received, first Unmarshal sucess")
+
 				// TODO: revrite two next lines, probably go build in reflect package
 				m := f.(map[string]interface{})
 				event := int(m["Event"].(float64)) // type assertion, float64 because
 
-				if event <= 3 && event >= 0 {
+				if event <= 4 && event >= 0 {
 					var backupMessage = ElevatorBackupMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &backupMessage); err == nil { //unmarshal into correct message struct
+						printDebug("[network] ElevatorBackupMessage Unmarshal sucess")
 						if backupMessage.IsValid() {
 							receiveBackupChannel <- backupMessage
 							printDebug("Recived an ElevatorBackupMessage with Event " + EventType[backupMessage.Event])
@@ -82,28 +85,35 @@ func receiveMessageHandler(
 							printDebug("Rejected an ElevatorBackupMessage with Event " + EventType[backupMessage.Event])
 						}
 					} else {
-						log.Println("[network] Error unmarshaling BackupMessage")
+						log.Print("[network] ElevatorBackupMessage Unmarshal failed", err)
 					}
-				} else if event >= 4 && event <= 10 {
+				} else if event >= 5 && event <= 11 {
 					var orderMessage = ElevatorOrderMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &orderMessage); err == nil { //unmarshal into correct message struct
+						printDebug("[network] ElevatorOrderMessage Unmarshal sucess")
 						if orderMessage.IsValid() {
 							receiveOrderChannel <- orderMessage
 							printDebug("Recived an ElevatorOrderMessage with Event " + EventType[orderMessage.Event])
 						} else {
 							printDebug("Rejected an ElevatorOrderMessage with Event " + EventType[orderMessage.Event])
 						}
+					} else {
+						log.Print("[network] ElevatorOrderMessage Unmarshal failed")
 					}
 				} else {
-					printDebug("Recived an unknown message type")
+					log.Println("[network] Recived an unknown message type")
 				}
 			}
+
 		}
 	}
 }
 
 func printDebug(s string) {
-	if debug {
+	if debugNetwork {
 		log.Println("[network]", s)
+	}
+	if debugUDP {
+		log.Println("[udp]", s)
 	}
 }

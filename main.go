@@ -37,18 +37,35 @@ func main() {
 	var err error
 	localIP, err = network.Init(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel)
 	CheckError("ERROR [main]: Could not initiate network", err)
-
 	//IOInit() //Simulator init
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
+	log.Println("[main] SUCCESS Elevator ready with IP:", localIP)
 
-	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, buttonChannel, lightChannel, motorChannel, floorChannel, localIP)
+	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
+
 	go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go safeKill(safeKillChannel, motorChannel)
 
-	log.Println("[main] SUCCESS Elevator ready with IP:", localIP)
+	/*
+		for {
+			sendMessageChannel <- ElevatorOrderMessage{
+				Time:       time.Now(),
+				Floor:      1,
+				ButtonType: 2,
+				AssignedTo: "none",
+				OriginIP:   "none",
+				SenderIP:   "none",
+				Event:      EvNewOrder,
+			}
+			time.Sleep(2 * time.Second)
+			log.Println("[main] send loop")
+
+		}
+	*/
+
 	select {} // Block main loop indefinetly
 
 }

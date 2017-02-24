@@ -13,6 +13,8 @@ var EventType = []string{
 	"EvBackupState",
 	"EvRequestBackupState",
 	"EvBackupStateReturned",
+	"EvCabOrder",
+
 	// OrderMessage Events
 
 	"EvNewOrder",
@@ -30,6 +32,7 @@ const (
 	EvBackupState
 	EvRequestBackupState
 	EvBackupStateReturned
+	EvCabOrder
 	// OrderMessage Events
 	EvNewOrder
 	EvAckNewOrder
@@ -121,7 +124,8 @@ type ElevatorBackupMessage struct {
 	ResponderIP string
 	Event       int
 	State       ElevatorState
-	//ExternalOrderMatrix
+	// key map
+	//map[ipaddr]bool // cab button set or not
 }
 
 type ElevatorButton struct {
@@ -149,6 +153,7 @@ func ResolveElevator(state ElevatorState) *Elevator {
 
 func ResolveWatchdogKickMessage(elevator *Elevator) ElevatorBackupMessage {
 	return ElevatorBackupMessage{
+		AskerIP:     "",
 		ResponderIP: elevator.State.LocalIP,
 		Event:       EvIAmAlive,
 		State:       elevator.State}
@@ -159,7 +164,7 @@ func (m ElevatorBackupMessage) IsValid() bool {
 	if m.AskerIP == m.ResponderIP {
 		return false
 	}
-	if m.Event > 3 || m.Event < 0 {
+	if m.Event > 4 || m.Event < 0 {
 		return false
 	}
 	return true
@@ -172,7 +177,7 @@ func (m ElevatorOrderMessage) IsValid() bool {
 	if m.ButtonType > 2 || m.ButtonType < 0 {
 		return false
 	}
-	if m.Event > 10 || m.Event < 4 {
+	if m.Event > 10 || m.Event < 5 {
 		return false
 	}
 	return true

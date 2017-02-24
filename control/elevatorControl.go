@@ -4,10 +4,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/andersliland/ttk4145-project/queue"
-
 	. "../utilities/"
 )
+
+const debugElevatorControl = false
 
 func MessageLoop(
 	buttonChannel chan ElevatorButton,
@@ -32,9 +32,9 @@ func MessageLoop(
 		//	newOrder <- true
 		//case message := <-timeOutChannel: // Timeout
 		case button := <-buttonChannel: // Hardware
-			log.Println("[elevatorControl] Received new button push")
-			buttonHandler(button, sendMessageChannel, lightChannel, motorChannel, localIP)
-			newOrder <- true
+			//log.Println("[elevatorControl] Received new button push")
+			buttonHandler(button, sendMessageChannel, sendBackupChannel, lightChannel, motorChannel, localIP)
+			//newOrder <- true
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)
 			floorReached <- floor
@@ -43,10 +43,12 @@ func MessageLoop(
 	}
 }
 
-func buttonHandler(button ElevatorButton, sendMessageChannel chan<- ElevatorOrderMessage,
+func buttonHandler(button ElevatorButton, sendMessageChannel chan<- ElevatorOrderMessage, sendBackupChannel chan<- ElevatorBackupMessage,
 	lightChannel chan<- ElevatorLight, motorChannel chan<- int, localIP string) {
 	switch button.Kind {
 	case ButtonCallUp, ButtonCallDown:
+		log.Println("[elevatorControl] Received HallButton push")
+
 		newOrder := ElevatorOrderMessage{
 			Time:       time.Now(),
 			Floor:      button.Floor,
@@ -56,18 +58,27 @@ func buttonHandler(button ElevatorButton, sendMessageChannel chan<- ElevatorOrde
 			SenderIP:   localIP,
 			Event:      EvNewOrder,
 		}
-
-		log.Println("[elevatorControl] Create new order", newOrder)
 		sendMessageChannel <- newOrder
 
 	case ButtonCommand:
-		queue.AddLocalOrder(button)
+		log.Println("[elevatorControl] Received CabButton push")
+		//queue.AddLocalOrder(button)
 		// AddLocalOrder + SaveOrderToFile
+		// broadcast cabButton
+		sendBackupChannel <- ElevatorBackupMessage{
+			AskerIP:     localIP,
+			ResponderIP: "",
+			Event:       EvCabOrder,
+			State:       ElevatorState{},
+		}
+
+		log.Println("[elevatorControl] Send CabButton sync message")
+
 	case ButtonStop:
 		motorChannel <- MotorStop
 		lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
 		log.Println("Stop button pressed. Elevator will come to a halt.")
-		time.Sleep(time.Second)
+		time.Sleep(1 * time.Second)
 		lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
 		//os.Exit(1)
 	}

@@ -8,6 +8,8 @@ import (
 	. "../utilities"
 )
 
+const debugUDP = false
+
 // Maximum allowed UDP datagram size in bytes: 65,507 (imposed by the IPv4 protocol)
 const messageSize = 4 * 1024
 const broadcastSendPort = 44033 // SendTo and ListenFrom port
@@ -35,7 +37,10 @@ func InitUDP(
 	// Get local IP address
 	localIP, err = resolveLocalIP(broadcastAddr)
 	CheckError("ERROR [udp]: Failed to get local addr", err)
-	printDebug("[udp] LocalIP:" + localIP)
+	if debugUDP {
+		log.Println("[udp] LocalIP:" + localIP)
+
+	}
 
 	// Broadcast broadcastlocalListenConnConnection
 	broadcastSendConn, err := net.DialUDP("udp4", nil, broadcastAddr)
@@ -70,14 +75,16 @@ func udpTransmit(conn *net.UDPConn, udpSendDatagramChannel <-chan UDPMessage) {
 	for {
 		select {
 		case message := <-udpSendDatagramChannel:
-			if debug {
+			if debugUDP {
 				//log.Println("[udp] UDP Send: \t", string(message.Data))
 			}
 			n, err := conn.Write(message.Data)
-			if (err != nil || n < 0) && debug {
+			if (err != nil || n < 0) && debugUDP {
 				log.Println("[udp] Sending UDP broadcast failed", err)
 			} else {
-				printDebug("[udp] UDP Sent number of bytes:" + strconv.Itoa(n))
+				if debugUDP {
+					log.Println("[udp] UDP Sent number of bytes:" + strconv.Itoa(n))
+				}
 			}
 		}
 	}
@@ -99,14 +106,14 @@ func udpReceive(conn *net.UDPConn, udpReceiveDatagramChannel chan<- UDPMessage) 
 func udpConnectionReader(conn *net.UDPConn, bconn_rcv_ch chan<- UDPMessage) {
 	buf := make([]byte, messageSize)
 	for {
-		if debug {
+		if debugUDP {
 			log.Printf("[udp] UDPConnectionReader:\t Waiting on data from UDPConn %s\n", localIP)
 		}
 		n, raddr, err := conn.ReadFromUDP(buf)
 		if err != nil || n < 0 || n > messageSize {
 			log.Println("[udp]  Error in ReadFromUDP:", err)
 		} else {
-			if debug {
+			if debugUDP {
 				log.Printf("[udp] udpReceive Received packet from: %v ", raddr.String())
 				log.Printf("[udp] udpReceive: \t %v", string(buf[:]))
 			}
