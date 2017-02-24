@@ -23,9 +23,10 @@ else
 fi
 
 # Send RSA key to remote conputer
-cat ~/.ssh/id_rsa.pub | ssh $user@129.241.187.$IP 'cat >> .ssh/authorized_keys'
+#cat ~/.ssh/id_rsa.pub | ssh $user@129.241.187.$IP 'cat >> .ssh/authorized_keys'
 
 echo "Connecting to Workstation" $workstationNumber "at 129.241.187."$IP
+ssh-copy-id $user@129.241.187.$IP
 echo "Delete old files and folder"
 ssh $user@129.241.187.$IP 'rm -rf ~/work/src/github.com/andersliland/ttk4145-project/'
 echo "Create new folder path"

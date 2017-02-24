@@ -71,26 +71,47 @@ func SystemControl(
 			//log.Println("[systemControl] Active Elevators", activeElevators)
 
 			// Network
-		case f := <-receiveBackupChannel:
-			switch f.Event {
+		case msg := <-receiveBackupChannel:
+			switch msg.Event {
+			// resolved incomming alive, if timeout remove elevator
 			case EvIAmAlive:
-				if _, ok := knownElevators[f.ResponderIP]; ok { // check if a value exsist for ResponderIP
-					knownElevators[f.ResponderIP].Time = time.Now() //update time for known elevator
+				if _, ok := knownElevators[msg.ResponderIP]; ok { // check if a value exsist for ResponderIP
+					knownElevators[msg.ResponderIP].Time = time.Now() //update time for known elevator
 				} else {
-					log.Println("[systemControl] Received EvIAmAlive from a new elevator with IP ", f.ResponderIP)
-					knownElevators[f.ResponderIP] = ResolveElevator(f.State)
+					log.Println("[systemControl] Received EvIAmAlive from a new elevator with IP ", msg.ResponderIP)
+					knownElevators[msg.ResponderIP] = ResolveElevator(msg.State)
 				}
 				updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
 
+				// inncomming backup state,
 			case EvBackupState:
 
+				// send out 'ElevatorBackupMessage' when receiving msg
 			case EvRequestBackupState:
-				log.Println("[systemControl] From EvRequestBackupState")
+				if msg.AskerIP == localIP {
+					log.Printf("[systemControl] Received an EvRequestBackupState from %v", msg.AskerIP)
+					sendBackupChannel <- ElevatorBackupMessage{
+						AskerIP:     msg.AskerIP,
+						ResponderIP: localIP,
+						Event:       EvBackupStateReturned,
+						State:       ElevatorState{},
+					}
+
+				} else {
+					log.Println("[systemControl] No stored state for elevator ", localIP)
+				}
 
 			case EvBackupStateReturned:
+				if msg.AskerIP == localIP {
+					log.Printf("[systemControl] Received EvBackupStateReturned requested by me", localIP)
+
+				} else {
+					log.Printf("[systemControl] REceived EvBackupStateReturned not requested by me")
+
+				}
 
 			default:
-				log.Println("Received invalid ElevatorBackupMessage from", f.ResponderIP)
+				log.Println("Received invalid ElevatorBackupMessage from", msg.ResponderIP)
 			}
 
 		// Order

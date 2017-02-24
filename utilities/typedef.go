@@ -135,7 +135,6 @@ type ElevatorLight struct {
 	Active bool
 }
 
-
 // Console colors
 const (
 	ColorWhite   = "\x1b[37;1m"
