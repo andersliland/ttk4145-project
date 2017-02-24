@@ -33,6 +33,9 @@ func SystemControl(
 	floorChannel chan int,
 	localIP string) {
 
+	var externalOrderMatrix[NumFloor][NumButtons] ElevatorOrder
+
+
 	const watchdogKickTime = 100 * time.Millisecond
 	const watchdogLimit = 3*watchdogKickTime + 10*time.Millisecond
 
@@ -62,11 +65,11 @@ func SystemControl(
 		// Watchdog
 		case <-watchdogKickTimer.C:
 			sendBackupChannel <- ResolveWatchdogKickMessage(knownElevators[localIP])
-			log.Printf("[systemControl] Watchdog send IAmAlive from %v \n", localIP)
+			//log.Printf("[systemControl] Watchdog send IAmAlive from %v \n", localIP)
 
 		case <-watchdogTimer.C:
 			updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
-			log.Println("[systemControl] Active Elevators", activeElevators)
+			//log.Println("[systemControl] Active Elevators", activeElevators)
 
 			// Network
 		case f := <-receiveBackupChannel:
@@ -98,6 +101,25 @@ func SystemControl(
 			// broadcast answer
 			// sort incomming answer, wait for all elevator to reply
 			// assign order to self if AssignedTo == localIP
+			switch order.Event {
+				switch externalOrderMatrix[order.Floor][order.ButtonType].Status {
+				case NotActive:
+				case Awaiting:
+				case UnderExecution:
+
+				}
+			case EvNewOrder:
+			case EvAckNewOrder:
+			case EvOrderConfirmed:
+			case EvAckOrderConfirmed:
+			case EvOrderDone:
+			case EvAckOrderDone:
+			case EvReassignOrder:
+			default:
+				printDebug("Received an invalid ElevatorOrderMessage from", order.SenderIP )
+
+
+			}
 
 			order.AssignedTo = localIP
 			order.Event = EvNewOrder
@@ -112,7 +134,6 @@ func updateActiveElevators(knownElevators map[string]*Elevator, activeElevators 
 	for k := range knownElevators {
 		//log.Println(time.Since(knownElevators[localIP].Time), watchdogLimit)
 		if time.Since(knownElevators[localIP].Time) > watchdogLimit { //watchdog timeout
-			log.Println("[systemControl] watchdog timeout")
 			if activeElevators[localIP] == true {
 				log.Printf("[systemControl] Removed elevator %s in activeElevators\n", knownElevators[k].State.LocalIP)
 				delete(activeElevators, k)

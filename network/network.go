@@ -7,7 +7,7 @@ import (
 	. "../utilities"
 )
 
-const debug = true
+const debug = false
 
 func Init(sendMessageChannel <-chan ElevatorOrderMessage,
 	receiveOrderChannel chan<- ElevatorOrderMessage,
@@ -87,7 +87,7 @@ func receiveMessageHandler(
 				} else if event >= 4 && event <= 10 {
 					var orderMessage = ElevatorOrderMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &orderMessage); err == nil { //unmarshal into correct message struct
-						if orderMessage.IsValid(){
+						if orderMessage.IsValid() {
 							receiveOrderChannel <- orderMessage
 							printDebug("Recived an ElevatorOrderMessage with Event " + EventType[orderMessage.Event])
 						} else {
@@ -102,7 +102,7 @@ func receiveMessageHandler(
 	}
 }
 
-func printDebug(s string){
+func printDebug(s string) {
 	if debug {
 		log.Println("[network]", s)
 	}
