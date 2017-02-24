@@ -3,7 +3,6 @@ package queue
 import (
 	"time"
 
-	. "../driver"
 	. "../utilities"
 )
 

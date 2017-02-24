@@ -24,8 +24,8 @@ func main() {
 	sendBackupChannel := make(chan ElevatorBackupMessage, 5)
 	receiveBackupChannel := make(chan ElevatorBackupMessage, 5)
 
-	buttonChannel := make(chan driver.ElevatorButton, 10)
-	lightChannel := make(chan driver.ElevatorLight, 10)
+	buttonChannel := make(chan ElevatorButton, 10)
+	lightChannel := make(chan ElevatorLight, 10)
 	motorChannel := make(chan int, 10)
 	floorChannel := make(chan int, 10)
 

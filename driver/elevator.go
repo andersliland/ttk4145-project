@@ -23,10 +23,7 @@ var buttonMatrix = [NumFloors][NumButtons]int{
 	{BUTTON_UP4, BUTTON_DOWN4, BUTTON_COMMAND4},
 }
 
-
-
 const motorSpeed = 2800
-
 
 func Init(buttonChannel chan<- ElevatorButton,
 	lightChannel <-chan ElevatorLight,
@@ -188,8 +185,8 @@ func GoToFloorBelow(motorChannel chan int, pollDelay time.Duration) int {
 	return readFloorSensor()
 }
 
-
 func printDebug(s string) {
 	if debug {
 		log.Println("[driver]", s)
 	}
+}
