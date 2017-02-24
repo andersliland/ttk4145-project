@@ -63,7 +63,7 @@ func SystemControl(
 	}
 
 	knownElevators[localIP] = ResolveElevator(ElevatorState{LocalIP: localIP, LastFloor: 2})
-	updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
+	updateactiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
 
 	for {
 		select {
@@ -73,7 +73,7 @@ func SystemControl(
 			//log.Printf("[systemControl] Watchdog send IAmAlive from %v \n", localIP)
 
 		case <-watchdogTimer.C:
-			//updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
+			//updateactiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
 			//log.Println("[systemControl] Active Elevators", activeElevators)
 
 			// Network
@@ -88,7 +88,7 @@ func SystemControl(
 					log.Println("[systemControl] Received EvIAmAlive from a new elevator with IP ", msg.ResponderIP)
 					knownElevators[msg.ResponderIP] = ResolveElevator(msg.State)
 				}
-				updateActiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
+				updateactiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
 
 				// inncomming backup state,
 			case EvBackupState:
@@ -131,6 +131,8 @@ func SystemControl(
 			case EvCabOrder:
 				log.Printf("[systemControl] Received EvCabOrder from %v", msg.AskerIP)
 
+				//save order in map map[string] bool
+
 			default:
 				log.Println("Received invalid ElevatorBackupMessage from", msg.ResponderIP)
 			}
@@ -172,7 +174,7 @@ func SystemControl(
 
 // removes elevator from 'activeElevators' if watchdog timeout
 // adds elevator to 'activeElevators' if watchdog not timeout
-func updateActiveElevators(knownElevators map[string]*Elevator, activeElevators map[string]bool, localIP string, watchdogLimit time.Duration) {
+func updateactiveElevators(knownElevators map[string]*Elevator, activeElevators map[string]bool, localIP string, watchdogLimit time.Duration) {
 	for k := range knownElevators {
 		if time.Since(knownElevators[k].Time) > watchdogLimit { //watchdog timeout
 			if activeElevators[k] == true {

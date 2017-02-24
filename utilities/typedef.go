@@ -93,15 +93,17 @@ type ElevatorOrder struct {
 	Status      int
 	AssignedTo  string
 	ConfirmedBy map[string]bool
-	Timer       time.Timer
+	Timer       time.Timer // *time.Timer 'json:"-"'
 }
 
 type ElevatorState struct {
-	LocalIP    string
-	LastFloor  int
-	Direction  int
-	IsMoving   int
-	DoorStatus int
+	LocalIP     string
+	LastFloor   int
+	Direction   int
+	IsMoving    bool
+	DoorStatus  bool
+	CabOrderInt int
+	CabOrders   [NumFloors]bool
 }
 
 type Elevator struct {
@@ -124,8 +126,7 @@ type ElevatorBackupMessage struct {
 	ResponderIP string
 	Event       int
 	State       ElevatorState
-	// key map
-	//map[ipaddr]bool // cab button set or not
+	//HallOrderMatrix [NumFloors][NumButtons - 1]Elevator // -1 to remove cab buttons
 }
 
 type ElevatorButton struct {
@@ -147,8 +148,16 @@ const (
 
 // functions
 
+//set internal order for ElevatorOrder
+
 func ResolveElevator(state ElevatorState) *Elevator {
-	return &Elevator{state, time.Now()}
+	return &Elevator{State: state, Time: time.Now()}
+}
+
+func ResolveElevatorState(state ElevatorState) *ElevatorState {
+	return &ElevatorState{
+		LocalIP: state.LocalIP,
+	}
 }
 
 func ResolveWatchdogKickMessage(elevator *Elevator) ElevatorBackupMessage {
@@ -158,6 +167,18 @@ func ResolveWatchdogKickMessage(elevator *Elevator) ElevatorBackupMessage {
 		Event:       EvIAmAlive,
 		State:       elevator.State}
 
+}
+
+func ResolveBackupState(elevator *Elevator) ElevatorBackupMessage {
+	return ElevatorBackupMessage{
+		ResponderIP: elevator.State.LocalIP,
+		State:       elevator.State,
+		Event:       EvBackupState,
+	}
+}
+
+func (state *ElevatorState) SetCabOrder(floor int) {
+	state.CabOrders[floor] = true
 }
 
 func (m ElevatorBackupMessage) IsValid() bool {

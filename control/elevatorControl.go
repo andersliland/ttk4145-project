@@ -35,6 +35,7 @@ func MessageLoop(
 			//log.Println("[elevatorControl] Received new button push")
 			buttonHandler(button, sendMessageChannel, sendBackupChannel, lightChannel, motorChannel, localIP)
 			//newOrder <- true
+
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)
 			floorReached <- floor
@@ -45,6 +46,10 @@ func MessageLoop(
 
 func buttonHandler(button ElevatorButton, sendMessageChannel chan<- ElevatorOrderMessage, sendBackupChannel chan<- ElevatorBackupMessage,
 	lightChannel chan<- ElevatorLight, motorChannel chan<- int, localIP string) {
+
+	//var cabOrderMaps = make(map[string]*Elevator) // containing last known state
+	//cabOrderMaps[localIP] = ResolveElevatorState(ElevatorState{LocalIP: localIP})
+
 	switch button.Kind {
 	case ButtonCallUp, ButtonCallDown:
 		log.Println("[elevatorControl] Received HallButton push")
@@ -62,14 +67,28 @@ func buttonHandler(button ElevatorButton, sendMessageChannel chan<- ElevatorOrde
 
 	case ButtonCommand:
 		log.Println("[elevatorControl] Received CabButton push")
+
+		// if elevator is not moving && last floor == current floor
+		// else
+		// add cabOrder to local map
+
 		//queue.AddLocalOrder(button)
 		// AddLocalOrder + SaveOrderToFile
-		// broadcast cabButton
+		//	log.Printf("cabOrder type %T ", cabOrdersMap[localIP])
+
 		sendBackupChannel <- ElevatorBackupMessage{
 			AskerIP:     localIP,
-			ResponderIP: "",
-			Event:       EvCabOrder,
-			State:       ElevatorState{},
+			ResponderIP: string(button.Floor),
+			Event:       EvBackupState,
+			State: ElevatorState{
+				LocalIP: localIP,
+				//LastFloor: ,
+				//	Direction: ,
+				//	IsMoving: ,
+				//	DoorStatus: ,
+				//CabOrders[button.Floor]: true, // why does this not work
+				CabOrderInt: button.Floor,
+			},
 		}
 
 		log.Println("[elevatorControl] Send CabButton sync message")
