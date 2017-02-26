@@ -7,7 +7,7 @@ import (
 	. "../utilities"
 )
 
-const debugNetwork = true
+const debugNetwork = false
 
 func Init(sendMessageChannel <-chan ElevatorOrderMessage,
 	receiveOrderChannel chan<- ElevatorOrderMessage,
@@ -68,7 +68,7 @@ func receiveMessageHandler(
 			if err != nil {
 				log.Println("[network] First Unmarshal failed", err)
 			} else {
-				printDebug("[network] New UDP datagram received, first Unmarshal sucess")
+				printDebug(" New UDP datagram received, first Unmarshal sucess")
 
 				// TODO: revrite two next lines, probably go build in reflect package
 				m := f.(map[string]interface{})
@@ -77,7 +77,7 @@ func receiveMessageHandler(
 				if event <= 4 && event >= 0 {
 					var backupMessage = ElevatorBackupMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &backupMessage); err == nil { //unmarshal into correct message struct
-						printDebug("[network] ElevatorBackupMessage Unmarshal sucess")
+						printDebug("ElevatorBackupMessage Unmarshal sucess")
 						if backupMessage.IsValid() {
 							receiveBackupChannel <- backupMessage
 							printDebug("Recived an ElevatorBackupMessage with Event " + EventType[backupMessage.Event])

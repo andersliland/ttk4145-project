@@ -54,6 +54,8 @@ func buttonHandler(button ElevatorButton, sendMessageChannel chan<- ElevatorOrde
 	case ButtonCallUp, ButtonCallDown:
 		log.Println("[elevatorControl] Received HallButton push")
 
+		// do cost calculation here, and then broadcast new order
+
 		newOrder := ElevatorOrderMessage{
 			Time:       time.Now(),
 			Floor:      button.Floor,

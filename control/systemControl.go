@@ -55,13 +55,6 @@ func SystemControl(
 	}
 	log.Println("test2")
 
-	sendBackupChannel <- ElevatorBackupMessage{
-		AskerIP:     localIP,
-		Event:       EvCabOrder,
-		ResponderIP: "",
-		State:       ElevatorState{},
-	}
-
 	knownElevators[localIP] = ResolveElevator(ElevatorState{LocalIP: localIP, LastFloor: 2})
 	updateactiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
 
@@ -69,11 +62,11 @@ func SystemControl(
 		select {
 		// Watchdog
 		case <-watchdogKickTimer.C:
-			//sendBackupChannel <- ResolveWatchdogKickMessage(knownElevators[localIP])
+			sendBackupChannel <- ResolveWatchdogKickMessage(knownElevators[localIP])
 			//log.Printf("[systemControl] Watchdog send IAmAlive from %v \n", localIP)
 
 		case <-watchdogTimer.C:
-			//updateactiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
+			updateactiveElevators(knownElevators, activeElevators, localIP, watchdogLimit)
 			//log.Println("[systemControl] Active Elevators", activeElevators)
 
 			// Network
@@ -115,7 +108,6 @@ func SystemControl(
 							State:       ElevatorState{},
 						}
 					*/
-					log.Println("[systemControl] Debug Sending backup still ", localIP)
 
 				}
 
@@ -130,7 +122,6 @@ func SystemControl(
 				}
 			case EvCabOrder:
 				log.Printf("[systemControl] Received EvCabOrder from %v", msg.AskerIP)
-
 				//save order in map map[string] bool
 
 			default:
@@ -151,18 +142,31 @@ func SystemControl(
 
 				switch HallOrderMatrix[order.Floor][order.ButtonType].Status {
 				case NotActive:
+					HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = order.AssignedTo
+					HallOrderMatrix[order.Floor][order.ButtonType].Status = Awaiting
 
 				case Awaiting:
+					//empty
 
 				case UnderExecution:
-
+					//empty
 				}
 			case EvAckNewOrder:
+				// received AckNewOrder, send out final assigned order
+
 			case EvOrderConfirmed:
+				// the order is confirmed, start executing
+
 			case EvAckOrderConfirmed:
+
 			case EvOrderDone:
+
 			case EvAckOrderDone:
+				// delete order from matrix and timer functions
+
 			case EvReassignOrder:
+				// error handling, if a order timer timeout, give the order to someone else
+
 			default:
 				printDebug("Received an invalid ElevatorOrderMessage from" + order.SenderIP)
 
