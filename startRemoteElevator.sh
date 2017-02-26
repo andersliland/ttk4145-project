@@ -17,13 +17,20 @@ elif [ $workstationNumber == "14" ]; then
   IP=142
 elif [ $workstationNumber == "15" ]; then
   IP=148
+elif [ $workstationNumber == "22" ]; then
+  IP=38
+elif [ $workstationNumber == "23" ]; then
+  IP=48
 else
   echo "Not a valid workstation"
   exit 1
 fi
 
+# Create new rsa key
+#ssh-keygen -t rsa # uncomment when starting from a new computer
+
 # Send RSA key to remote conputer
-#cat ~/.ssh/id_rsa.pub | ssh $user@129.241.187.$IP 'cat >> .ssh/authorized_keys'
+cat ~/.ssh/id_rsa.pub | ssh $user@129.241.187.$IP 'cat >> .ssh/authorized_keys'
 
 echo "Connecting to Workstation" $workstationNumber "at 129.241.187."$IP
 ssh-copy-id $user@129.241.187.$IP
