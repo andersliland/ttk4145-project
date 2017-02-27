@@ -7,6 +7,12 @@ const debug = false
 const NumButtons = 3
 const NumFloors = 4
 
+var HallOrderMatrix [NumFloors][2]ElevatorOrder
+
+// key = IPaddr
+var RegisteredElevators = make(map[string]*Elevator) // containing last known state
+var WorkingElevators = make(map[string]bool)
+
 var EventType = []string{
 	// BackupMessage Events
 	"EvIAmAlive",
