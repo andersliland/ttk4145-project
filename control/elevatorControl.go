@@ -74,7 +74,7 @@ func buttonHandler(button ElevatorButton,
 			AssignedTo: orderAssignedTo,
 			OriginIP:   localIP,
 			SenderIP:   localIP,
-			Event:      EvNewOrder,
+			Event:      EventNewOrder,
 		}
 		sendMessageChannel <- newOrder
 
@@ -92,17 +92,17 @@ func buttonHandler(button ElevatorButton,
 		//	log.Printf("cabOrder type %T ", cabOrdersMap[localIP])
 
 		sendBackupChannel <- ElevatorBackupMessage{
-			AskerIP:     localIP,
-			ResponderIP: string(button.Floor),
-			Event:       EvBackupState,
+			AskerIP: localIP,
+			Event:   EventCabOrder,
 			State: ElevatorState{
 				LocalIP: localIP,
-				//LastFloor: ,
+				// LastFloor: ,
 				//	Direction: ,
 				//	IsMoving: ,
 				//	DoorStatus: ,
-				//CabOrders[button.Floor]: true, // why does this not work
-				CabOrderInt: button.Floor,
+				// CabOrders[button.Floor]: true, // why does this not work
+				//CabButtonFloor:       button.Floor,
+				//CabOrderMap[localIP]: button.Floor,
 			},
 		}
 

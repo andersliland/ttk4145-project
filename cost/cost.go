@@ -25,6 +25,7 @@ func AssignOrderToElevator(Floor int, Kind int,
 	WorkingElevators map[string]bool,
 	RegisteredElevators map[string]*Elevator,
 	HallOrderMatrix [NumFloors][2]ElevatorOrder) (ip string, err error) {
+
 	numWorkingElevators := len(WorkingElevators)
 	if numWorkingElevators == 0 {
 		return "", errors.New("[cost] Cannot Assign new order with zero active elevators")
@@ -32,7 +33,7 @@ func AssignOrderToElevator(Floor int, Kind int,
 	cost := orderCosts{} // initialize slice with empty interface
 
 	for ip, _ := range WorkingElevators { // key,value
-		floorCount, stopCount := calculateOrderCost(Floor, Kind, WorkingElevators, RegisteredElevators, HallOrderMatrix)
+		floorCount, stopCount := calculateOrderCost(ip, Floor, Kind, WorkingElevators, RegisteredElevators, HallOrderMatrix)
 		cost_num := floorCount*timeBetweenFloor + stopCount*timeAtFloor
 		cost = append(cost, orderCost{cost_num, ip})
 		printDebug(" Cost of order is " + string(cost_num) + " for IP: " + ip)
@@ -45,19 +46,20 @@ func AssignOrderToElevator(Floor int, Kind int,
 
 // for each floor: loop each button, increment floorNum end of each loop
 // for each button: figure out if there exsist order below, increment button end of each loop
-func calculateOrderCost(Floor int, ButtonKind int,
+func calculateOrderCost(ip string,
+	Floor int,
+	ButtonKind int,
 	WorkingElevators map[string]bool,
 	RegisteredElevators map[string]*Elevator,
 	HallOrderMatrix [NumFloors][2]ElevatorOrder) (floorCount, stopCount int) {
 
-	// elevator is idle at correct floor
-	if HallOrderMatrix[Floor][ButtonKind].Status == UnderExecution {
-		return 0, 0
-	}
+	for f := 0; f > NumFloors; f++ {
 
-	for k := 0; k > NumFloors; k++ {
+		for b := 0; b > (NumButtons - 1); b++ {
 
-		//for b := 0; b == NumButtons ||
+		}
+
+		floorCount++
 	}
 
 	return floorCount, stopCount
@@ -65,7 +67,6 @@ func calculateOrderCost(Floor int, ButtonKind int,
 
 // Implement sort.Interface - Len, Less and Swap of type orderCost
 // so we can use the sort packages generic Sort function
-
 // Number of elements in collection
 func (s orderCosts) Len() int {
 	return len(s)

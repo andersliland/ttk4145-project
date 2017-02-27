@@ -74,7 +74,7 @@ func receiveMessageHandler(
 				m := f.(map[string]interface{})
 				event := int(m["Event"].(float64)) // type assertion, float64 because
 
-				if event <= 4 && event >= 0 {
+				if event <= 5 && event >= 0 {
 					var backupMessage = ElevatorBackupMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &backupMessage); err == nil { //unmarshal into correct message struct
 						printDebug("ElevatorBackupMessage Unmarshal sucess")
@@ -87,7 +87,7 @@ func receiveMessageHandler(
 					} else {
 						log.Print("[network] ElevatorBackupMessage Unmarshal failed", err)
 					}
-				} else if event >= 5 && event <= 11 {
+				} else if event >= 6 && event <= 12 {
 					var orderMessage = ElevatorOrderMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &orderMessage); err == nil { //unmarshal into correct message struct
 						printDebug("[network] ElevatorOrderMessage Unmarshal sucess")

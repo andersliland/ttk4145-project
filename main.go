@@ -42,7 +42,7 @@ func main() {
 
 	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 
-	go control.MessageLoop(buttonChannel,
+	/*	go control.MessageLoop(buttonChannel,
 		lightChannel,
 		motorChannel,
 		floorChannel,
@@ -54,6 +54,8 @@ func main() {
 		RegisteredElevators,
 		HallOrderMatrix,
 		localIP)
+
+	*/
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
