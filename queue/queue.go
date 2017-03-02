@@ -52,4 +52,22 @@ func RemoveOrder(floor, direction int) {
 	cabOrders[floor] = false
 }
 
-//RemoveRemoteOrderAt
+// --- //
+
+func anyRequestsAbove() {
+	for f := 0; f < NumFloors; f++ {
+		if CabOrderMatrix[f].status == Awaiting {
+			return true
+		}
+		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
+			if HallOrderMatrix[f][k] == Awaiting {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func anyRequestsBelow() {
+
+}
