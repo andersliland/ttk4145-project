@@ -4,43 +4,51 @@ import "time"
 
 const debug = false
 
+const NumElevators = 3
 const NumButtons = 3
 const NumFloors = 4
 
+var OrderMatrix [NumFloors][2]ElevatorOrder
+
+// key = IPaddr
+var RegisteredElevators = make(map[string]*Elevator) // containing last known state
+var WorkingElevators = make(map[string]bool)
+
 var EventType = []string{
 	// BackupMessage Events
-	"EvIAmAlive",
-	"EvBackupState",
-	"EvRequestBackupState",
-	"EvBackupStateReturned",
-	"EvCabOrder",
+	"EventElevatorAlive",
+	"EventElevatorBackup",
+	"EventRequestBackup",
+	"EventElevatorBackupReturned",
+	"EventCabOrder",
+	"EventAckCabOrder",
 
 	// OrderMessage Events
 
-	"EvNewOrder",
-	"EvAckNewOrder",
-	"EvOrderConfirmed",
-	"EvAckOrderConfirmed",
-	"EvOrderDone",
-	"EvAckOrderDone",
-	"EvReassignOrder",
+	"EventNewOrder",
+	"EventAckNewOrder",
+	"EventOrderConfirmed",
+	"EventAckOrderConfirmed",
+	"EventOrderDone",
+	"EventAckOrderDone",
 }
 
+// TODO: UPDATE network module if any changes in events
 const (
 	// BackupMessage Events
-	EvIAmAlive = iota //  = 0
-	EvBackupState
-	EvRequestBackupState
-	EvBackupStateReturned
-	EvCabOrder
+	EventElevatorAlive = iota //  = 0
+	EventElevatorBackup
+	EventRequestBackup
+	EventElevatorBackupReturned
+	EventCabOrder
+	EventAckCabOrder
 	// OrderMessage Events
-	EvNewOrder
-	EvAckNewOrder
-	EvOrderConfirmed
-	EvAckOrderConfirmed
-	EvOrderDone
-	EvAckOrderDone
-	EvReassignOrder
+	EventNewOrder
+	EventAckNewOrder
+	EventOrderConfirmed
+	EventAckOrderConfirmed
+	EventOrderDone
+	EventAckOrderDone
 )
 
 var ButtonType = []string{
@@ -69,6 +77,7 @@ var OrderStatus = []string{
 	"UnderExecution",
 }
 
+// Order states
 const (
 	NotActive = iota
 	Awaiting
@@ -89,6 +98,21 @@ const (
 	MotorDown
 )
 
+type Elevator struct { // TODO: remove
+	State ElevatorState
+	Time  time.Time
+}
+
+var CabOrderMatrix [NumFloors]CabOrder
+
+type CabOrder struct {
+	Status      int
+	OriginIP    string
+	Floor       int
+	ConfirmedBy map[string]bool
+	Timer       time.Timer
+}
+
 type ElevatorOrder struct {
 	Status      int
 	AssignedTo  string
@@ -102,13 +126,8 @@ type ElevatorState struct {
 	Direction   int
 	IsMoving    bool
 	DoorStatus  bool
-	CabOrderInt int
-	CabOrders   [NumFloors]bool
-}
-
-type Elevator struct {
-	State ElevatorState
-	Time  time.Time
+	CabOrderMap [NumElevators]int
+	Time        time.Time
 }
 
 type ElevatorOrderMessage struct {
@@ -164,7 +183,7 @@ func ResolveWatchdogKickMessage(elevator *Elevator) ElevatorBackupMessage {
 	return ElevatorBackupMessage{
 		AskerIP:     "",
 		ResponderIP: elevator.State.LocalIP,
-		Event:       EvIAmAlive,
+		Event:       EventElevatorAlive,
 		State:       elevator.State}
 
 }
@@ -173,14 +192,11 @@ func ResolveBackupState(elevator *Elevator) ElevatorBackupMessage {
 	return ElevatorBackupMessage{
 		ResponderIP: elevator.State.LocalIP,
 		State:       elevator.State,
-		Event:       EvBackupState,
+		Event:       EventElevatorBackup,
 	}
 }
 
-func (state *ElevatorState) SetCabOrder(floor int) {
-	state.CabOrders[floor] = true
-}
-
+// ----Type: ElevatorBackupMessage ----
 func (m ElevatorBackupMessage) IsValid() bool {
 	if m.AskerIP == m.ResponderIP {
 		return false

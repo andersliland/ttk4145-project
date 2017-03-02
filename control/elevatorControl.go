@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"../cost"
 	. "../utilities/"
 )
 
@@ -18,12 +19,15 @@ func MessageLoop(
 	receiveOrderChannel chan ElevatorOrderMessage,
 	sendBackupChannel chan ElevatorBackupMessage,
 	receiveBackupChannel chan ElevatorBackupMessage,
+	WorkingElevators map[string]bool,
+	RegisteredElevators map[string]*Elevator,
+	HallOrderMatrix [NumFloors][2]ElevatorOrder,
 	localIP string) {
 
 	newOrder := make(chan bool)
 	floorReached := make(chan int)
 	go eventManager(newOrder, floorReached, lightChannel, motorChannel)
-	log.Println("SUCCESS [elevatorControl]: Initialization") // remove
+	printDebug(" Succesfull initialization") // remove
 
 	for {
 		select {
@@ -33,7 +37,7 @@ func MessageLoop(
 		//case message := <-timeOutChannel: // Timeout
 		case button := <-buttonChannel: // Hardware
 			//log.Println("[elevatorControl] Received new button push")
-			buttonHandler(button, sendMessageChannel, sendBackupChannel, lightChannel, motorChannel, localIP)
+			buttonHandler(button, sendMessageChannel, sendBackupChannel, lightChannel, motorChannel, WorkingElevators, RegisteredElevators, HallOrderMatrix, localIP)
 			//newOrder <- true
 
 		case floor := <-floorChannel: // Hardware
@@ -44,29 +48,38 @@ func MessageLoop(
 	}
 }
 
-func buttonHandler(button ElevatorButton, sendMessageChannel chan<- ElevatorOrderMessage, sendBackupChannel chan<- ElevatorBackupMessage,
-	lightChannel chan<- ElevatorLight, motorChannel chan<- int, localIP string) {
+func buttonHandler(button ElevatorButton,
+	sendMessageChannel chan<- ElevatorOrderMessage,
+	sendBackupChannel chan<- ElevatorBackupMessage,
+	lightChannel chan<- ElevatorLight,
+	motorChannel chan<- int,
+	WorkingElevators map[string]bool,
+	RegisteredElevators map[string]*Elevator,
+	HallOrderMatrix [NumFloors][2]ElevatorOrder,
+	localIP string) {
 
 	//var cabOrderMaps = make(map[string]*Elevator) // containing last known state
 	//cabOrderMaps[localIP] = ResolveElevatorState(ElevatorState{LocalIP: localIP})
 
 	switch button.Kind {
+	// Do cost calculation and broadcast new order
 	case ButtonCallUp, ButtonCallDown:
 		log.Println("[elevatorControl] Received HallButton push")
-
-		// do cost calculation here, and then broadcast new order
-
+		orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, WorkingElevators, RegisteredElevators, HallOrderMatrix)
+		CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
 		newOrder := ElevatorOrderMessage{
 			Time:       time.Now(),
 			Floor:      button.Floor,
 			ButtonType: button.Kind,
-			AssignedTo: "none",
+			AssignedTo: orderAssignedTo,
 			OriginIP:   localIP,
 			SenderIP:   localIP,
-			Event:      EvNewOrder,
+			Event:      EventNewOrder,
 		}
 		sendMessageChannel <- newOrder
 
+	// Broadcast CabOrder as BackupMessage
+	// Add LocalOrder to Execution
 	case ButtonCommand:
 		log.Println("[elevatorControl] Received CabButton push")
 
@@ -79,17 +92,17 @@ func buttonHandler(button ElevatorButton, sendMessageChannel chan<- ElevatorOrde
 		//	log.Printf("cabOrder type %T ", cabOrdersMap[localIP])
 
 		sendBackupChannel <- ElevatorBackupMessage{
-			AskerIP:     localIP,
-			ResponderIP: string(button.Floor),
-			Event:       EvBackupState,
+			AskerIP: localIP,
+			Event:   EventCabOrder,
 			State: ElevatorState{
 				LocalIP: localIP,
-				//LastFloor: ,
+				// LastFloor: ,
 				//	Direction: ,
 				//	IsMoving: ,
 				//	DoorStatus: ,
-				//CabOrders[button.Floor]: true, // why does this not work
-				CabOrderInt: button.Floor,
+				// CabOrders[button.Floor]: true, // why does this not work
+				//CabButtonFloor:       button.Floor,
+				//CabOrderMap[localIP]: button.Floor,
 			},
 		}
 

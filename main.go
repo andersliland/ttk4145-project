@@ -30,7 +30,6 @@ func main() {
 	floorChannel := make(chan int)
 
 	safeKillChannel := make(chan os.Signal, 10)
-
 	executeOrderChannel := make(chan ElevatorOrderMessage, 10)
 
 	var localIP string
@@ -39,11 +38,24 @@ func main() {
 	CheckError("ERROR [main]: Could not initiate network", err)
 	//IOInit() //Simulator init
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
-	log.Println("[main] SUCCESS Elevator ready with IP:", localIP)
+	log.Println("[main] Ready with IP:", localIP)
 
 	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 
-	go control.MessageLoop(buttonChannel, lightChannel, motorChannel, floorChannel, sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, localIP)
+	/*	go control.MessageLoop(buttonChannel,
+		lightChannel,
+		motorChannel,
+		floorChannel,
+		sendMessageChannel,
+		receiveOrderChannel,
+		sendBackupChannel,
+		receiveBackupChannel,
+		WorkingElevators,
+		RegisteredElevators,
+		HallOrderMatrix,
+		localIP)
+
+	*/
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)

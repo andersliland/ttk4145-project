@@ -39,6 +39,6 @@ ssh $user@129.241.187.$IP 'rm -rf ~/work/src/github.com/andersliland/ttk4145-pro
 echo "Create new folder path"
 ssh $user@129.241.187.$IP 'mkdir -p ~/work/src/github.com/andersliland/ttk4145-project' # create directory path if it does not exsist
 echo "Copy project content"
-scp -rq $GOPATH/src/github.com/andersliland/ttk4145-project/. $user@129.241.187.$IP:~/work/src/github.com/andersliland/ttk4145-project &>/dev/null
+scp -rq ~/work/src/github.com/andersliland/ttk4145-project/. $user@129.241.187.$IP:~/work/src/github.com/andersliland/ttk4145-project &>/dev/null
 echo 'SSH into remote and execute go run main.go'
 ssh -t $user@129.241.187.$IP "cd /home/student/work/src/github.com/andersliland/ttk4145-project/ && ./setupRemote.sh ; bash"
