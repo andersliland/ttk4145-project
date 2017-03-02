@@ -77,13 +77,10 @@ func buttonHandler(button ElevatorButton,
 	// Broadcast CabOrder as BackupMessage
 	// Add LocalOrder to Execution
 	case ButtonCommand:
-		// if elevator is not moving && last floor == current floor
-		// else
-		// add cabOrder to local map
-
 		//queue.AddLocalOrder(button)
 		// AddLocalOrder + SaveOrderToFile
-		//	log.Printf("cabOrder type %T ", cabOrdersMap[localIP])
+
+		//RegisteredElevators[localIP].AddInternalOrder(button.Floor)
 
 		sendBackupChannel <- ElevatorBackupMessage{
 			AskerIP: localIP,

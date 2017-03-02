@@ -11,6 +11,8 @@ const NumFloors = 4
 var OrderMatrix [NumFloors][2]ElevatorOrder
 var CabOrderMatrix [NumFloors]CabOrder
 
+type CabOrderList map[string][NumFloors]CabOrder
+
 // key = IPaddr
 var RegisteredElevators = make(map[string]*Elevator) // containing last known state
 var WorkingElevators = make(map[string]bool)
@@ -118,12 +120,13 @@ type ElevatorOrder struct {
 }
 
 type ElevatorState struct {
-	LocalIP    string
-	LastFloor  int
-	Direction  int
-	IsMoving   bool
-	DoorStatus bool
-	Time       time.Time
+	LocalIP        string
+	LastFloor      int
+	Direction      int
+	IsMoving       bool
+	DoorStatus     bool
+	Time           time.Time
+	InternalOrders [NumFloors]bool
 }
 
 type ElevatorOrderMessage struct {
@@ -214,4 +217,13 @@ func (m ElevatorOrderMessage) IsValid() bool {
 		return false
 	}
 	return true
+}
+
+func (e *Elevator) AddCabOrder(Floor int) {
+	e.State.InternalOrders[Floor] = true
+}
+
+func (e *Elevator) RemoveCabOrder(Floor int) {
+	e.State.InternalOrders[Floor] = false
+
 }

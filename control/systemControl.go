@@ -77,8 +77,6 @@ func SystemControl(
 			case EventElevatorBackup:
 				printSystemControl(" Received an EventElevatorBackup from" + backup.AskerIP)
 
-				//CabOrderMatrix[backup.Floor].
-
 			case EventRequestBackup:
 				printSystemControl("Received an EventRequestBackup from" + backup.AskerIP)
 				if backup.AskerIP != localIP {
