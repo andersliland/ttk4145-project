@@ -9,6 +9,7 @@ const NumButtons = 3
 const NumFloors = 4
 
 var OrderMatrix [NumFloors][2]ElevatorOrder
+var CabOrderMatrix [NumFloors]CabOrder
 
 // key = IPaddr
 var RegisteredElevators = make(map[string]*Elevator) // containing last known state
@@ -77,7 +78,6 @@ var OrderStatus = []string{
 	"UnderExecution",
 }
 
-// Order states
 const (
 	NotActive = iota
 	Awaiting
@@ -102,15 +102,12 @@ type Elevator struct { // TODO: remove
 	State ElevatorState
 	Time  time.Time
 }
-
-var CabOrderMatrix [NumFloors]CabOrder
-
 type CabOrder struct {
-	Status      int
+	LocalIP     string
 	OriginIP    string
 	Floor       int
 	ConfirmedBy map[string]bool
-	Timer       time.Timer
+	Timer       time.Time
 }
 
 type ElevatorOrder struct {
@@ -121,13 +118,12 @@ type ElevatorOrder struct {
 }
 
 type ElevatorState struct {
-	LocalIP     string
-	LastFloor   int
-	Direction   int
-	IsMoving    bool
-	DoorStatus  bool
-	CabOrderMap [NumElevators]int
-	Time        time.Time
+	LocalIP    string
+	LastFloor  int
+	Direction  int
+	IsMoving   bool
+	DoorStatus bool
+	Time       time.Time
 }
 
 type ElevatorOrderMessage struct {
@@ -145,7 +141,7 @@ type ElevatorBackupMessage struct {
 	ResponderIP string
 	Event       int
 	State       ElevatorState
-	//HallOrderMatrix [NumFloors][NumButtons - 1]Elevator // -1 to remove cab buttons
+	Cab         CabOrder
 }
 
 type ElevatorButton struct {

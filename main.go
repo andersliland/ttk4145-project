@@ -42,7 +42,7 @@ func main() {
 
 	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 
-	/*	go control.MessageLoop(buttonChannel,
+	go control.MessageLoop(buttonChannel,
 		lightChannel,
 		motorChannel,
 		floorChannel,
@@ -52,31 +52,12 @@ func main() {
 		receiveBackupChannel,
 		WorkingElevators,
 		RegisteredElevators,
-		HallOrderMatrix,
+		OrderMatrix,
 		localIP)
-
-	*/
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go safeKill(safeKillChannel, motorChannel)
-
-	/*
-		for {
-			sendMessageChannel <- ElevatorOrderMessage{
-				Time:       time.Now(),
-				Floor:      1,
-				ButtonType: 2,
-				AssignedTo: "none",
-				OriginIP:   "none",
-				SenderIP:   "none",
-				Event:      EvNewOrder,
-			}
-			time.Sleep(2 * time.Second)
-			log.Println("[main] send loop")
-
-		}
-	*/
 
 	select {} // Block main loop indefinetly
 

@@ -39,7 +39,7 @@ func sendMessageHandler(sendMessageChannel <-chan ElevatorOrderMessage,
 				log.Println("ERROR [network]: sendMessage marshal failed", err)
 			} else {
 				UDPSendChannel <- UDPMessage{Data: data}
-				printDebug("Sent an ElevatorOrderMessage with " + EventType[message.Event])
+				printNetwork("Sent an ElevatorOrderMessage with " + EventType[message.Event])
 
 			}
 		case message := <-sendBackupChannel:
@@ -48,7 +48,7 @@ func sendMessageHandler(sendMessageChannel <-chan ElevatorOrderMessage,
 				log.Println("ERROR [network]: sendBackup marshal failed", err)
 			} else {
 				UDPSendChannel <- UDPMessage{Data: data}
-				printDebug("Sent an ElevatorBackupMessage " + EventType[message.Event])
+				printNetwork("Sent an ElevatorBackupMessage " + EventType[message.Event])
 			}
 		}
 	}
@@ -68,7 +68,7 @@ func receiveMessageHandler(
 			if err != nil {
 				log.Println("[network] First Unmarshal failed", err)
 			} else {
-				printDebug(" New UDP datagram received, first Unmarshal sucess")
+				printNetwork(" New UDP datagram received, first Unmarshal sucess")
 
 				// TODO: revrite two next lines, probably go build in reflect package
 				m := f.(map[string]interface{})
@@ -77,12 +77,12 @@ func receiveMessageHandler(
 				if event <= 5 && event >= 0 {
 					var backupMessage = ElevatorBackupMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &backupMessage); err == nil { //unmarshal into correct message struct
-						printDebug("ElevatorBackupMessage Unmarshal sucess")
+						printNetwork("ElevatorBackupMessage Unmarshal sucess")
 						if backupMessage.IsValid() {
 							receiveBackupChannel <- backupMessage
-							printDebug("Recived an ElevatorBackupMessage with Event " + EventType[backupMessage.Event])
+							printNetwork("Recived an ElevatorBackupMessage with Event " + EventType[backupMessage.Event])
 						} else {
-							printDebug("Rejected an ElevatorBackupMessage with Event " + EventType[backupMessage.Event])
+							printNetwork("Rejected an ElevatorBackupMessage with Event " + EventType[backupMessage.Event])
 						}
 					} else {
 						log.Print("[network] ElevatorBackupMessage Unmarshal failed", err)
@@ -90,12 +90,12 @@ func receiveMessageHandler(
 				} else if event >= 6 && event <= 12 {
 					var orderMessage = ElevatorOrderMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &orderMessage); err == nil { //unmarshal into correct message struct
-						printDebug("[network] ElevatorOrderMessage Unmarshal sucess")
+						printNetwork("[network] ElevatorOrderMessage Unmarshal sucess")
 						if orderMessage.IsValid() {
 							receiveOrderChannel <- orderMessage
-							printDebug("Recived an ElevatorOrderMessage with Event " + EventType[orderMessage.Event])
+							printNetwork("Recived an ElevatorOrderMessage with Event " + EventType[orderMessage.Event])
 						} else {
-							printDebug("Rejected an ElevatorOrderMessage with Event " + EventType[orderMessage.Event])
+							printNetwork("Rejected an ElevatorOrderMessage with Event " + EventType[orderMessage.Event])
 						}
 					} else {
 						log.Print("[network] ElevatorOrderMessage Unmarshal failed")
@@ -109,11 +109,8 @@ func receiveMessageHandler(
 	}
 }
 
-func printDebug(s string) {
+func printNetwork(s string) {
 	if debugNetwork {
 		log.Println("[network]", s)
-	}
-	if debugUDP {
-		log.Println("[udp]", s)
 	}
 }

@@ -122,3 +122,9 @@ func udpConnectionReader(conn *net.UDPConn, bconn_rcv_ch chan<- UDPMessage) {
 	}
 
 }
+
+func printUDP(s string) {
+	if debugUDP {
+		log.Println("[udp]", s)
+	}
+}
