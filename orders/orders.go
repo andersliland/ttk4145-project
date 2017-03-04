@@ -73,6 +73,7 @@ func ChooseDirection(floor, direction int, localIP string) int {
 	}
 }
 
+// Does this function also need to send a message on the sendMessageChannel to notify that it has removed an order?
 func RemoveFloorOrders(floor, direction int, localIP string) {
 	RegisteredElevators[localIP].State.CabOrders[floor] = false
 	switch direction {

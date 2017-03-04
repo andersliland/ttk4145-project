@@ -26,7 +26,7 @@ func MessageLoop(
 
 	//newOrder := make(chan bool)
 	floorReached := make(chan int)
-	//go eventManager(newOrder, floorReached, lightChannel, motorChannel)
+	//go eventManager(newOrder, floorReached, lightChannel, motorChannel, localIP)
 
 	for {
 		select {
