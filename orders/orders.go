@@ -47,33 +47,22 @@ func ShouldStop(floor, direction int, localIP string) bool {
 
 func ChooseDirection(floor, direction int) int {
 	// For cabOrders: choose a direction based on
+	for f := 0; f < NumFloors; f++ {
+		if RegisteredElevators[localIP].State.InternalOrders[f] == true {
+			return true
+		}
+	}
 
 	// For hallOrders: is THERE A floor assigned to me?
 
-	// NOT THE WAY TO GO:
-	// return floor from cost function -- determine direction based on this
-
-	var nextFloor int
-	for index, active := range cabOrders {
-		if active == true {
-			nextFloor = index
-			break
-		}
-	}
-	log.Println(nextFloor)
+	// No orders assigned to this elevator:
+	nextFloor = floor
 
 	// nextFloor is now found, choose a direction based on that and the current floor the elevator is at
+	// Implement algorithm from example project at github.
 
-	// THIS IS WRONG! Implement algorithm from example project at github.
-	switch direction {
-	case MotorDown:
-		return MotorStop
-	case MotorUp:
-	case MotorStop:
-	default:
-		// Error handling
-		return MotorStop
-	}
+	// NOT THE WAY TO GO:
+	// return floor from cost function -- determine direction based on this
 }
 
 func RemoveFloorOrders(floor, direction int, localIP string) {
