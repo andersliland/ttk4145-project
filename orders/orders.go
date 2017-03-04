@@ -19,25 +19,33 @@ func AddCabOrder(button ElevatorButton, localIP string) {
 }
 
 func ShouldStop(floor, direction int, localIP string) bool {
-	// For cabOrders: stop if it exists
+	// cabOrders are checked first, do not depend on direction
 	if RegisteredElevators[localIP].State.CabOrders[floor] == true {
 		return true
 	}
 
-	// For hallOrders: Is THIS floor assigned to me?
-	// Notice that it does not differentiate on the motor direction here,
-	// that logic must be implemented in the cost function (if implemented)
-	for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-		if OrderMatrix[floor][k].AssignedTo == localIP {
+	// Check both hallOrders, and for special cases (top floor, bottom floor, no more orders in direction)
+	switch direction {
+	case MotorStop:
+		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
+			if OrderMatrix[floor][k].AssignedTo == localIP {
+				return true
+			}
+		}
+	case MotorUp:
+		if OrderMatrix[floor][ButtonCallUp].AssignedTo == localIP {
 			return true
 		}
+		return floor == NumFloors-1 || !anyRequestsAbove(floor, localIP)
+	case MotorDown:
+		if OrderMatrix[floor][ButtonCallDown].AssignedTo == localIP {
+			return true
+		}
+		return floor == 0 || !anyRequestsBelow(floor, localIP)
+	default:
+		// Insert error handling here
 	}
-
 	return false
-
-	// NOT THE WAY TO GO:
-	// run cost function -- determine whether the elevator should stop based on this
-	// cost function returns next floor
 }
 
 func ChooseDirection(floor, direction int, localIP string) int {
@@ -71,6 +79,7 @@ func ChooseDirection(floor, direction int, localIP string) int {
 		// Insert error handling here
 		return MotorStop
 	}
+	// Might be stuck in a loop (between say 2 floors), depends on implementation in eventManager.go
 }
 
 // Does this function also need to send a message on the sendMessageChannel to notify that it has removed an order?
