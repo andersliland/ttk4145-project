@@ -77,7 +77,7 @@ func buttonHandler(button ElevatorButton,
 	// Broadcast CabOrder as BackupMessage
 	// Add LocalOrder to Execution
 	case ButtonCommand:
-		//queue.AddLocalOrder(button)
+		AddLocalOrder(button)
 		// AddLocalOrder + SaveOrderToFile
 
 		//RegisteredElevators[localIP].AddInternalOrder(button.Floor)

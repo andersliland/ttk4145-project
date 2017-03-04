@@ -54,7 +54,7 @@ func eventNewOrder(lightChannel chan ElevatorLight, motorChannel chan int, doorT
 		direction = queue.ChooseDirection(floor, direction)
 		if queue.ShouldStop(floor, direction) {
 			doorTimerReset <- true
-			queue.RemoveOrder(floor, direction)
+			queue.RemoveFloorOrders(floor, direction)
 			//queue.RemoveOrdersAt(floor, sendMessageChannel) // change the above function with this later
 			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 			state = doorOpen
@@ -66,7 +66,7 @@ func eventNewOrder(lightChannel chan ElevatorLight, motorChannel chan int, doorT
 	case doorOpen:
 		if queue.ShouldStop(floor, direction) {
 			doorTimerReset <- true
-			queue.RemoveOrder(floor, direction)
+			queue.RemoveFloorOrders(floor, direction)
 			//queue.RemoveOrdersAt(floor, sendMessageChannel)
 		}
 	default:
@@ -80,7 +80,7 @@ func eventFloorReached(lightChannel chan ElevatorLight, motorChannel chan int, d
 	case moving:
 		if queue.ShouldStop(floor, direction) { // not implemented yet
 			doorTimerReset <- true
-			queue.RemoveOrder(floor, direction)
+			queue.RemoveFloorOrders(floor, direction)
 			//queue.RemoveOrdersAt()
 			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 			direction = MotorStop
