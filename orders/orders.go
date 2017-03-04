@@ -7,25 +7,20 @@ import (
 	. "../utilities"
 )
 
-var cabOrders [NumFloors]bool
-
+// TO BE REMOVED? What is this? [comment by: Sondre]
 type orderStatus struct {
 	active bool
 	ip     string
 	timer  time.Timer
 }
 
-//func (q queue) setOrder(floor, button int, status orderStatus){
-//
-//}
-
-func AddLocalOrder(button ElevatorButton, localIP string) {
-	RegisteredElevators[localIP].State.InternalOrders[button.Floor] = true
+func AddCabOrder(button ElevatorButton, localIP string) {
+	RegisteredElevators[localIP].State.CabOrders[button.Floor] = true
 }
 
 func ShouldStop(floor, direction int, localIP string) bool {
 	// For cabOrders: stop if it exists
-	if RegisteredElevators[localIP].State.InternalOrders[floor] == true {
+	if RegisteredElevators[localIP].State.CabOrders[floor] == true {
 		return true
 	}
 
@@ -45,28 +40,41 @@ func ShouldStop(floor, direction int, localIP string) bool {
 	// cost function returns next floor
 }
 
-func ChooseDirection(floor, direction int) int {
-	// For cabOrders: choose a direction based on
-	for f := 0; f < NumFloors; f++ {
-		if RegisteredElevators[localIP].State.InternalOrders[f] == true {
-			return true
+func ChooseDirection(floor, direction int, localIP string) int {
+	switch direction {
+	case MotorStop:
+		// For MotorStop, a "closestOrderedFloor" could possibly be used for further optimization
+		if anyRequestsAbove(floor, localIP) {
+			return MotorUp
+		} else if anyRequestsBelow(floor, localIP) {
+			return MotorDown
+		} else {
+			return MotorUp
 		}
+	case MotorUp:
+		if anyRequestsAbove(floor, localIP) {
+			return MotorUp
+		} else if anyRequestsBelow(floor, localIP) {
+			return MotorDown
+		} else {
+			return MotorUp
+		}
+	case MotorDown:
+		if anyRequestsBelow(floor, localIP) {
+			return MotorDown
+		} else if anyRequestsAbove(floor, localIP) {
+			return MotorUp
+		} else {
+			return MotorStop
+		}
+	default:
+		// Insert error handling here
+		return MotorStop
 	}
-
-	// For hallOrders: is THERE A floor assigned to me?
-
-	// No orders assigned to this elevator:
-	nextFloor = floor
-
-	// nextFloor is now found, choose a direction based on that and the current floor the elevator is at
-	// Implement algorithm from example project at github.
-
-	// NOT THE WAY TO GO:
-	// return floor from cost function -- determine direction based on this
 }
 
 func RemoveFloorOrders(floor, direction int, localIP string) {
-	RegisteredElevators[localIP].State.InternalOrders[floor] = false
+	RegisteredElevators[localIP].State.CabOrders[floor] = false
 	switch direction {
 	case MotorUp:
 		OrderMatrix[floor][ButtonCallUp].Status = NotActive
@@ -81,11 +89,11 @@ func RemoveFloorOrders(floor, direction int, localIP string) {
 
 func anyRequestsAbove(floor int, localIP string) bool {
 	for f := floor + 1; f < NumFloors; f++ {
-		if RegisteredElevators[localIP].State.InternalOrders[f] {
+		if RegisteredElevators[localIP].State.CabOrders[f] {
 			return true
 		}
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-			if OrderMatrix[f][k].Status > 0 {
+			if OrderMatrix[floor][k].AssignedTo == localIP {
 				return true
 			}
 		}
@@ -95,11 +103,11 @@ func anyRequestsAbove(floor int, localIP string) bool {
 
 func anyRequestsBelow(floor int, localIP string) bool {
 	for f := 0; f < floor; f++ {
-		if RegisteredElevators[localIP].State.InternalOrders[f] {
+		if RegisteredElevators[localIP].State.CabOrders[f] {
 			return true
 		}
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-			if OrderMatrix[f][k].Status > 0 {
+			if OrderMatrix[floor][k].AssignedTo == localIP {
 				return true
 			}
 		}

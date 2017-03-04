@@ -7,7 +7,7 @@ import (
 	. "../utilities"
 
 	. "../driver"
-	"../queue"
+	"../orders"
 )
 
 const (
@@ -20,7 +20,7 @@ var state int = idle
 var floor int = FloorInvalid // to initialize or not to initialize?
 var direction int
 
-// Need three functions in a queue.go file to work:
+// Need three functions in an orders.go file to work:
 // ShouldStop(floor, direction)
 // ChooseDirection(floor, direction)
 // RemoveOrdersAt(floor)

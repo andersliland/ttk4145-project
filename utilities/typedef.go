@@ -120,13 +120,13 @@ type ElevatorOrder struct {
 }
 
 type ElevatorState struct {
-	LocalIP        string
-	LastFloor      int
-	Direction      int
-	IsMoving       bool
-	DoorStatus     bool
-	Time           time.Time
-	InternalOrders [NumFloors]bool
+	LocalIP    string
+	LastFloor  int
+	Direction  int
+	IsMoving   bool
+	DoorStatus bool
+	Time       time.Time
+	CabOrders  [NumFloors]bool
 }
 
 type ElevatorOrderMessage struct {
@@ -220,10 +220,10 @@ func (m ElevatorOrderMessage) IsValid() bool {
 }
 
 func (e *Elevator) AddCabOrder(Floor int) {
-	e.State.InternalOrders[Floor] = true
+	e.State.CabOrders[Floor] = true
 }
 
 func (e *Elevator) RemoveCabOrder(Floor int) {
-	e.State.InternalOrders[Floor] = false
+	e.State.CabOrders[Floor] = false
 
 }
