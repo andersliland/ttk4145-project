@@ -131,7 +131,7 @@ func SystemControl(
 		// Order
 		case order := <-receiveOrderChannel:
 			//log.Printf("[systemControl] receivedBackupChannel with event %v from %v]", EventType[order.Event], order.AskerIP)
-			printSystemControl("Recieved an " + EventType[order.Event] + " from " + order.SenderIP + " with OriginIP " + order.OriginIP)
+			printSystemControl("Received an " + EventType[order.Event] + " from " + order.SenderIP + " with OriginIP " + order.OriginIP)
 			// calculate cost
 			// broadcast answer
 			// sort incomming answer, wait for all elevator to reply

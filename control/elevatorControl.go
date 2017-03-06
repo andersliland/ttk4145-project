@@ -5,6 +5,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ttk4145-project/cost"
+
+	"../orders/"
 	. "../utilities/"
 )
 
@@ -24,20 +27,26 @@ func MessageLoop(
 	HallOrderMatrix [NumFloors][2]ElevatorOrder,
 	localIP string) {
 
-	//newOrder := make(chan bool)
+	newOrder := make(chan bool)
 	floorReached := make(chan int)
-	//go eventManager(newOrder, floorReached, lightChannel, motorChannel, localIP)
+	go eventManager(newOrder, floorReached, lightChannel, motorChannel, localIP)
 
 	for {
 		select {
+		// Foreslår at kun buttonChannel og floorChannel er i denne filen
+		// (det er kun det som er uavhengig av de andre heisene)
+
 		//case message := <-receiveBackupChannel: // Network
 		//case message := <-receiveOrderChannel: // Orders
 		//	newOrder <- true
 		//case message := <-timeOutChannel: // Timeout
 		case button := <-buttonChannel: // Hardware
+
 			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor))
 			buttonHandler(button, sendMessageChannel, sendBackupChannel, lightChannel, motorChannel, WorkingElevators, RegisteredElevators, HallOrderMatrix, localIP)
-
+			// Include in buttonHandler:
+			// backup (sendBackupChannel)
+			// cost
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)
 			floorReached <- floor
@@ -59,28 +68,23 @@ func buttonHandler(button ElevatorButton,
 	//newOrder <- true
 	switch button.Kind {
 	case ButtonCallUp, ButtonCallDown:
-		//orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, WorkingElevators, RegisteredElevators, HallOrderMatrix)
-		//CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
-		/*
-			newOrder := ElevatorOrderMessage{
-				Time:       time.Now(),
-				Floor:      button.Floor,
-				ButtonType: button.Kind,
-				AssignedTo: orderAssignedTo,
-				OriginIP:   localIP,
-				SenderIP:   localIP,
-				Event:      EventNewOrder,
-			}
-		*/
-		//sendMessageChannel <- newOrder
+		orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, WorkingElevators, RegisteredElevators, HallOrderMatrix)
+		CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
+		order := ElevatorOrderMessage{
+			Time:       time.Now(),
+			Floor:      button.Floor,
+			ButtonType: button.Kind,
+			AssignedTo: orderAssignedTo,
+			OriginIP:   localIP,
+			SenderIP:   localIP,
+			Event:      EventNewOrder,
+		}
+		sendMessageChannel <- order
 
 	// Broadcast CabOrder as BackupMessage
 	// Add LocalOrder to Execution
 	case ButtonCommand:
-		AddLocalOrder(button)
-		// AddLocalOrder + SaveOrderToFile
-
-		//RegisteredElevators[localIP].AddInternalOrder(button.Floor)
+		orders.AddCabOrder(button, localIP)
 
 		sendBackupChannel <- ElevatorBackupMessage{
 			AskerIP: localIP,

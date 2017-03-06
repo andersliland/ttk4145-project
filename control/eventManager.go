@@ -51,10 +51,10 @@ func eventManager(newOrder chan bool, floorReached chan int,
 func eventNewOrder(lightChannel chan ElevatorLight, motorChannel chan int, doorTimerReset chan bool, localIP string) {
 	switch state {
 	case idle:
-		direction = queue.ChooseDirection(floor, direction, localIP)
-		if queue.ShouldStop(floor, direction, localIP) {
+		direction = orders.ChooseDirection(floor, direction, localIP)
+		if orders.ShouldStop(floor, direction, localIP) {
 			doorTimerReset <- true
-			queue.RemoveFloorOrders(floor, direction, localIP)
+			orders.RemoveFloorOrders(floor, direction, localIP)
 			//queue.RemoveFloorOrders(floor, direction, localIP sendMessageChannel) // change the above function with this later
 			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 			state = doorOpen
@@ -64,9 +64,9 @@ func eventNewOrder(lightChannel chan ElevatorLight, motorChannel chan int, doorT
 		}
 	case moving: // Ignore
 	case doorOpen:
-		if queue.ShouldStop(floor, direction, localIP) {
+		if orders.ShouldStop(floor, direction, localIP) {
 			doorTimerReset <- true
-			queue.RemoveFloorOrders(floor, direction, localIP)
+			orders.RemoveFloorOrders(floor, direction, localIP)
 		}
 	default:
 		// Insert error handling
@@ -77,9 +77,9 @@ func eventFloorReached(lightChannel chan ElevatorLight, motorChannel chan int, d
 	SetFloorIndicator(floor)
 	switch state {
 	case moving:
-		if queue.ShouldStop(floor, direction, localIP) {
+		if orders.ShouldStop(floor, direction, localIP) {
 			doorTimerReset <- true
-			queue.RemoveFloorOrders(floor, direction, localIP)
+			orders.RemoveFloorOrders(floor, direction, localIP)
 			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 			direction = MotorStop
 			motorChannel <- MotorStop
@@ -94,7 +94,7 @@ func eventDoorTimeout(lightChannel chan ElevatorLight, motorChannel chan int, lo
 	switch state {
 	case doorOpen:
 		lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
-		direction = queue.ChooseDirection(floor, direction, localIP)
+		direction = orders.ChooseDirection(floor, direction, localIP)
 		if direction == MotorStop {
 			state = idle
 		} else {

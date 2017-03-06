@@ -1,26 +1,18 @@
-package queue
+package orders
 
 import (
 	"log"
-	"time"
 
 	. "../utilities"
 )
 
-// TO BE REMOVED? What is this? [comment by: Sondre]
-type orderStatus struct {
-	active bool
-	ip     string
-	timer  time.Timer
-}
-
 func AddCabOrder(button ElevatorButton, localIP string) {
-	RegisteredElevators[localIP].State.CabOrders[button.Floor] = true
+	RegisteredElevators[localIP].CabOrders[button.Floor] = true
 }
 
 func ShouldStop(floor, direction int, localIP string) bool {
 	// cabOrders are checked first, do not depend on direction
-	if RegisteredElevators[localIP].State.CabOrders[floor] == true {
+	if RegisteredElevators[localIP].CabOrders[floor] == true {
 		return true
 	}
 
@@ -84,7 +76,7 @@ func ChooseDirection(floor, direction int, localIP string) int {
 
 // Does this function also need to send a message on the sendMessageChannel to notify that it has removed an order?
 func RemoveFloorOrders(floor, direction int, localIP string) {
-	RegisteredElevators[localIP].State.CabOrders[floor] = false
+	RegisteredElevators[localIP].CabOrders[floor] = false
 	switch direction {
 	case MotorUp:
 		OrderMatrix[floor][ButtonCallUp].Status = NotActive
@@ -99,7 +91,7 @@ func RemoveFloorOrders(floor, direction int, localIP string) {
 
 func anyRequestsAbove(floor int, localIP string) bool {
 	for f := floor + 1; f < NumFloors; f++ {
-		if RegisteredElevators[localIP].State.CabOrders[f] {
+		if RegisteredElevators[localIP].CabOrders[f] {
 			return true
 		}
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
@@ -113,7 +105,7 @@ func anyRequestsAbove(floor int, localIP string) bool {
 
 func anyRequestsBelow(floor int, localIP string) bool {
 	for f := 0; f < floor; f++ {
-		if RegisteredElevators[localIP].State.CabOrders[f] {
+		if RegisteredElevators[localIP].CabOrders[f] {
 			return true
 		}
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {

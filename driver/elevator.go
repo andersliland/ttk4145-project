@@ -1,3 +1,4 @@
+// Package driver provides an interface to controlling core functionality of the elevator
 package driver
 
 import (

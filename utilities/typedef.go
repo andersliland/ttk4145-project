@@ -100,10 +100,6 @@ const (
 	MotorDown
 )
 
-type Elevator struct { // TODO: remove
-	State ElevatorState
-	Time  time.Time
-}
 type CabOrder struct {
 	LocalIP     string
 	OriginIP    string
@@ -119,7 +115,7 @@ type ElevatorOrder struct {
 	Timer       time.Timer // *time.Timer 'json:"-"'
 }
 
-type ElevatorState struct {
+type Elevator struct {
 	LocalIP    string
 	LastFloor  int
 	Direction  int
