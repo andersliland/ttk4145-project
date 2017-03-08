@@ -124,10 +124,10 @@ func buttonPoller(buttonChannel chan<- ElevatorButton, pollDelay time.Duration) 
 		for f := 0; f < NumFloors; f++ {
 			for k := ButtonCallUp; k <= ButtonCommand; k++ {
 				b := ioReadBit(buttonMatrix[f][k])
-				log.Println("[elevator] buttonPoller ioReadBit:", b)
+				//log.Println("[elevator] buttonPoller ioReadBit:", b)
 				if b && inputMatrix[f][k] != b {
 					buttonChannel <- ElevatorButton{f, k}
-					log.Println("[elevator] send buttonChannel:", ElevatorButton{f, k})
+					//log.Println("[elevator] send buttonChannel:", ElevatorButton{f, k})
 
 				}
 				inputMatrix[f][k] = b

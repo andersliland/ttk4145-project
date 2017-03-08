@@ -17,7 +17,7 @@ import (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	const elevatorPollDelay = 5 * time.Millisecond // Move to config?
+	const elevatorPollDelay = 50 * time.Millisecond // Move to config?
 
 	sendMessageChannel := make(chan ElevatorOrderMessage, 5)
 	receiveOrderChannel := make(chan ElevatorOrderMessage, 5)

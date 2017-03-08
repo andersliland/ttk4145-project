@@ -7,7 +7,7 @@ import (
 	. "../utilities"
 )
 
-const debugNetwork = true
+const debugNetwork = false
 
 func Init(sendMessageChannel <-chan ElevatorOrderMessage,
 	receiveOrderChannel chan<- ElevatorOrderMessage,

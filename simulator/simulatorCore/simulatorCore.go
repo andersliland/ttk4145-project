@@ -12,7 +12,7 @@ import (
 	. "../../utilities"
 )
 
-const debugSimulatorCore = true
+const debugSimulatorCore = false
 
 type motorCommand struct {
 	Speed     int
