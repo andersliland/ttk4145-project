@@ -12,6 +12,11 @@ import (
 
 const debugElevatorControl = true
 
+func new(newOrder chan bool) {
+	time.Sleep(1 * time.Second)
+	newOrder <- true
+}
+
 func MessageLoop(
 	buttonChannel chan ElevatorButton,
 	lightChannel chan ElevatorLight,
@@ -26,21 +31,19 @@ func MessageLoop(
 	HallOrderMatrix [NumFloors][2]ElevatorOrder,
 	localIP string) {
 
-	//newOrder := make(chan bool)
+	newOrder := make(chan bool)
 	floorReached := make(chan int)
-	//go eventManager(newOrder, floorReached, lightChannel, motorChannel, localIP)
+	go eventManager(newOrder, floorReached, lightChannel, motorChannel, localIP)
 
 	for {
 		select {
 		// Foreslår at kun buttonChannel og floorChannel er i denne filen
 		// (det er kun det som er uavhengig av de andre heisene)
 
-		//	newOrder <- true
 		case button := <-buttonChannel: // Hardware
-
 			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor))
 			buttonHandler(button, sendMessageChannel, sendBackupChannel, lightChannel, motorChannel, WorkingElevators, RegisteredElevators, HallOrderMatrix, localIP)
-
+			newOrder <- true
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)
 			floorReached <- floor

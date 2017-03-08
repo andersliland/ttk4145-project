@@ -12,8 +12,6 @@ import (
 	"log"
 	"time"
 
-	"../cost"
-
 	. "../utilities"
 )
 
@@ -47,20 +45,6 @@ func SystemControl(
 		//ResponderIP: "",
 		//State:       ElevatorState{},
 	}
-
-	orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, WorkingElevators, RegisteredElevators, HallOrderMatrix)
-	log.Println("Local assign order to ", orderAssignedTo)
-	CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
-	order := ElevatorOrderMessage{
-		Time:       time.Now(),
-		Floor:      button.Floor,
-		ButtonType: button.Kind,
-		AssignedTo: orderAssignedTo,
-		OriginIP:   localIP,
-		SenderIP:   localIP,
-		Event:      EventNewOrder,
-	}
-	sendMessageChannel <- order
 
 	RegisteredElevators[localIP] = ResolveElevator(Elevator{LocalIP: localIP, LastFloor: 2})
 	updateWorkingElevators(RegisteredElevators, WorkingElevators, localIP, watchdogLimit)
