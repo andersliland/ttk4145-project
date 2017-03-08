@@ -33,7 +33,7 @@ func AssignOrderToElevator(Floor int, Kind int,
 	cost := orderCosts{} // initialize slice with empty interface
 
 	for ip, _ := range WorkingElevators { // key, value
-		floorCount, stopCount := calculateOrderCost(Floor, Kind, RegisteredElevators[ip], HallOrderMatrix)
+		floorCount, stopCount := calculateOrderCost(ip, Floor, Kind, RegisteredElevators[ip], HallOrderMatrix)
 		cost_num := floorCount*timeBetweenFloor + stopCount*timeAtFloor
 		cost = append(cost, orderCost{cost_num, ip})
 		printDebug(" Cost of order is " + string(cost_num) + " for IP: " + ip)

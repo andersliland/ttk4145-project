@@ -5,8 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ttk4145-project/cost"
-
+	"../cost"
 	"../orders/"
 	. "../utilities/"
 )
@@ -27,26 +26,21 @@ func MessageLoop(
 	HallOrderMatrix [NumFloors][2]ElevatorOrder,
 	localIP string) {
 
-	newOrder := make(chan bool)
+	//newOrder := make(chan bool)
 	floorReached := make(chan int)
-	go eventManager(newOrder, floorReached, lightChannel, motorChannel, localIP)
+	//go eventManager(newOrder, floorReached, lightChannel, motorChannel, localIP)
 
 	for {
 		select {
 		// Foreslår at kun buttonChannel og floorChannel er i denne filen
 		// (det er kun det som er uavhengig av de andre heisene)
 
-		//case message := <-receiveBackupChannel: // Network
-		//case message := <-receiveOrderChannel: // Orders
 		//	newOrder <- true
-		//case message := <-timeOutChannel: // Timeout
 		case button := <-buttonChannel: // Hardware
 
 			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor))
 			buttonHandler(button, sendMessageChannel, sendBackupChannel, lightChannel, motorChannel, WorkingElevators, RegisteredElevators, HallOrderMatrix, localIP)
-			// Include in buttonHandler:
-			// backup (sendBackupChannel)
-			// cost
+
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)
 			floorReached <- floor
@@ -69,6 +63,7 @@ func buttonHandler(button ElevatorButton,
 	switch button.Kind {
 	case ButtonCallUp, ButtonCallDown:
 		orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, WorkingElevators, RegisteredElevators, HallOrderMatrix)
+		log.Println("Local assign order to ", orderAssignedTo)
 		CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
 		order := ElevatorOrderMessage{
 			Time:       time.Now(),
@@ -86,27 +81,29 @@ func buttonHandler(button ElevatorButton,
 	case ButtonCommand:
 		orders.AddCabOrder(button, localIP)
 
-		sendBackupChannel <- ElevatorBackupMessage{
-			AskerIP: localIP,
-			Event:   EventElevatorBackup,
-			State: ElevatorState{
-				LocalIP: localIP,
-				// LastFloor: ,
-				//	Direction: ,
-				//	IsMoving: ,
-				//	DoorStatus: ,
-				// CabOrders[button.Floor]: true, // why does this not work
-				//CabButtonFloor:       button.Floor,
-				//CabOrderMap[localIP]: button.Floor,
-			},
-			Cab: CabOrder{
-				LocalIP:  localIP,
-				OriginIP: localIP,
-				Floor:    button.Floor,
-				//ConfirmedBy: ,
-				Timer: time.Now(),
-			},
-		}
+		/*
+			sendBackupChannel <- ElevatorBackupMessage{
+				AskerIP: localIP,
+				Event:   EventElevatorBackup,
+				State: Elevator{
+					LocalIP: localIP,
+					// LastFloor: ,
+					//	Direction: ,
+					//	IsMoving: ,
+					//	DoorStatus: ,
+					// CabOrders[button.Floor]: true, // why does this not work
+					//CabButtonFloor:       button.Floor,
+					//CabOrderMap[localIP]: button.Floor,
+				},
+				Cab: CabOrder{
+					LocalIP:  localIP,
+					OriginIP: localIP,
+					Floor:    button.Floor,
+					//ConfirmedBy: ,
+					Timer: time.Now(),
+				},
+			}
+		*/
 
 	case ButtonStop:
 		motorChannel <- MotorStop

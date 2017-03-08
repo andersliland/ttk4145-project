@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"./control"
-	"./driver"
-	// . "./simulator/simulatorCore"
+	//"./driver"
 	"./network"
+	// . "./simulator/simulatorCore"
 	. "./utilities"
 )
 
@@ -36,9 +36,10 @@ func main() {
 	var err error
 	localIP, err = network.Init(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel)
 	CheckError("ERROR [main]: Could not initiate network", err)
+
 	//IOInit() //Simulator init
-	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
-	log.Println("[main] Ready with IP:", localIP)
+	//driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
+	//log.Println("[main] Ready with IP:", localIP)
 
 	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 
@@ -55,12 +56,9 @@ func main() {
 		OrderMatrix,
 		localIP)
 
-
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go safeKill(safeKillChannel, motorChannel)
-
-
 
 	select {} // Block main loop indefinitely
 

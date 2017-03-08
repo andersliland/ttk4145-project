@@ -12,6 +12,8 @@ import (
 	"log"
 	"time"
 
+	"../cost"
+
 	. "../utilities"
 )
 
@@ -46,7 +48,21 @@ func SystemControl(
 		//State:       ElevatorState{},
 	}
 
-	RegisteredElevators[localIP] = ResolveElevator(ElevatorState{LocalIP: localIP, LastFloor: 2})
+	orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, WorkingElevators, RegisteredElevators, HallOrderMatrix)
+	log.Println("Local assign order to ", orderAssignedTo)
+	CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
+	order := ElevatorOrderMessage{
+		Time:       time.Now(),
+		Floor:      button.Floor,
+		ButtonType: button.Kind,
+		AssignedTo: orderAssignedTo,
+		OriginIP:   localIP,
+		SenderIP:   localIP,
+		Event:      EventNewOrder,
+	}
+	sendMessageChannel <- order
+
+	RegisteredElevators[localIP] = ResolveElevator(Elevator{LocalIP: localIP, LastFloor: 2})
 	updateWorkingElevators(RegisteredElevators, WorkingElevators, localIP, watchdogLimit)
 
 	for {
@@ -70,7 +86,8 @@ func SystemControl(
 					RegisteredElevators[backup.ResponderIP].Time = time.Now() //update time for known elevator
 				} else {
 					printSystemControl(" Received EventElevatorAlive from a new elevator with IP" + backup.ResponderIP)
-					RegisteredElevators[backup.ResponderIP] = ResolveElevator(backup.State)
+					RegisteredElevators[backup.ResponderIP] =
+						ResolveElevator(backup.State)
 				}
 				updateWorkingElevators(RegisteredElevators, WorkingElevators, localIP, watchdogLimit)
 
@@ -84,7 +101,7 @@ func SystemControl(
 						AskerIP:     backup.AskerIP,
 						ResponderIP: localIP,
 						Event:       EventElevatorBackupReturned,
-						State:       ElevatorState{},
+						State:       Elevator{},
 					}
 
 				} else {
@@ -180,14 +197,14 @@ func updateWorkingElevators(RegisteredElevators map[string]*Elevator, WorkingEle
 		if time.Since(RegisteredElevators[k].Time) > watchdogLimit { //watchdog timeout
 			if WorkingElevators[k] == true {
 				delete(WorkingElevators, k)
-				printSystemControl("[systemControl] Removed elevator " + RegisteredElevators[k].State.LocalIP + "in WorkingElevators")
+				printSystemControl("[systemControl] Removed elevator " + RegisteredElevators[k].LocalIP + " in WorkingElevators")
 				log.Printf("[systemControl] All Working elevators %v", WorkingElevators)
 
 			}
 		} else { // watchdog not timed out
 			if WorkingElevators[k] != true {
 				WorkingElevators[k] = true
-				printSystemControl("[systemControl] Added elevator " + RegisteredElevators[k].State.LocalIP + "in WorkingElevators")
+				printSystemControl("[systemControl] Added elevator " + RegisteredElevators[k].LocalIP + " in WorkingElevators")
 				log.Printf("[systemControl] All WorkingElevators %v", WorkingElevators)
 			}
 		}

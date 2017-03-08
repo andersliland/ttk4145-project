@@ -6,7 +6,6 @@ import (
 
 	. "../utilities"
 
-	. "../driver"
 	"../orders"
 )
 
@@ -29,7 +28,7 @@ func eventManager(newOrder chan bool, floorReached chan int,
 	lightChannel chan ElevatorLight, motorChannel chan int, localIP string) {
 	// if restore order from file do ..., else:
 	const pollDelay = 5 * time.Millisecond
-	floor = GoToFloorBelow(motorChannel, pollDelay)
+	//floor = GoToFloorBelow(motorChannel, pollDelay)
 
 	doorTimeout := make(chan bool)
 	doorTimerReset := make(chan bool)
@@ -74,7 +73,7 @@ func eventNewOrder(lightChannel chan ElevatorLight, motorChannel chan int, doorT
 }
 
 func eventFloorReached(lightChannel chan ElevatorLight, motorChannel chan int, doorTimerReset chan bool, localIP string) {
-	SetFloorIndicator(floor)
+	//SetFloorIndicator(floor)
 	switch state {
 	case moving:
 		if orders.ShouldStop(floor, direction, localIP) {

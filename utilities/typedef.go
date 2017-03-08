@@ -139,7 +139,7 @@ type ElevatorBackupMessage struct {
 	AskerIP     string
 	ResponderIP string
 	Event       int
-	State       ElevatorState
+	State       Elevator
 	Cab         CabOrder
 }
 
@@ -160,34 +160,33 @@ const (
 	ColorNeutral = "\x1b[0m"
 )
 
-// functions
-
-//set internal order for ElevatorOrder
-
-func ResolveElevator(state ElevatorState) *Elevator {
-	return &Elevator{State: state, Time: time.Now()}
-}
-
-func ResolveElevatorState(state ElevatorState) *ElevatorState {
-	return &ElevatorState{
-		LocalIP: state.LocalIP,
+func ResolveElevator(e Elevator) *Elevator {
+	return &Elevator{
+		LocalIP:    e.LocalIP,
+		LastFloor:  e.LastFloor,
+		Direction:  e.Direction,
+		IsMoving:   e.IsMoving,
+		DoorStatus: e.DoorStatus,
+		Time:       time.Now(),
+		CabOrders:  e.CabOrders,
 	}
 }
 
-func ResolveWatchdogKickMessage(elevator *Elevator) ElevatorBackupMessage {
+func ResolveWatchdogKickMessage(e *Elevator) ElevatorBackupMessage {
 	return ElevatorBackupMessage{
-		AskerIP:     "",
-		ResponderIP: elevator.State.LocalIP,
+		//AskerIP:     "",
+		ResponderIP: e.LocalIP,
 		Event:       EventElevatorAlive,
-		State:       elevator.State}
+		State:       *e,
+	}
 
 }
 
-func ResolveBackupState(elevator *Elevator) ElevatorBackupMessage {
+func ResolveBackupState(e *Elevator) ElevatorBackupMessage {
 	return ElevatorBackupMessage{
-		ResponderIP: elevator.State.LocalIP,
-		State:       elevator.State,
+		ResponderIP: e.LocalIP,
 		Event:       EventElevatorBackup,
+		State:       *e,
 	}
 }
 
@@ -216,10 +215,10 @@ func (m ElevatorOrderMessage) IsValid() bool {
 }
 
 func (e *Elevator) AddCabOrder(Floor int) {
-	e.State.CabOrders[Floor] = true
+	e.CabOrders[Floor] = true
 }
 
 func (e *Elevator) RemoveCabOrder(Floor int) {
-	e.State.CabOrders[Floor] = false
+	e.CabOrders[Floor] = false
 
 }
