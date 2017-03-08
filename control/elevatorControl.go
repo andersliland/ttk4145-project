@@ -37,7 +37,7 @@ func MessageLoop(
 
 		//	newOrder <- true
 		case button := <-buttonChannel: // Hardware
-
+			log.Println("button received")
 			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor))
 			buttonHandler(button, sendMessageChannel, sendBackupChannel, lightChannel, motorChannel, WorkingElevators, RegisteredElevators, HallOrderMatrix, localIP)
 
@@ -65,16 +65,18 @@ func buttonHandler(button ElevatorButton,
 		orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, WorkingElevators, RegisteredElevators, HallOrderMatrix)
 		log.Println("Local assign order to ", orderAssignedTo)
 		CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
-		order := ElevatorOrderMessage{
-			Time:       time.Now(),
-			Floor:      button.Floor,
-			ButtonType: button.Kind,
-			AssignedTo: orderAssignedTo,
-			OriginIP:   localIP,
-			SenderIP:   localIP,
-			Event:      EventNewOrder,
-		}
-		sendMessageChannel <- order
+		/*
+			order := ElevatorOrderMessage{
+				Time:       time.Now(),
+				Floor:      button.Floor,
+				ButtonType: button.Kind,
+				AssignedTo: orderAssignedTo,
+				OriginIP:   localIP,
+				SenderIP:   localIP,
+				Event:      EventNewOrder,
+			}
+			sendMessageChannel <- order
+		*/
 
 	// Broadcast CabOrder as BackupMessage
 	// Add LocalOrder to Execution
@@ -117,7 +119,7 @@ func buttonHandler(button ElevatorButton,
 }
 
 func printElevatorControl(s string) {
-	if debugSystemControl {
+	if debugElevatorControl {
 		log.Println("[elevatorControl]", s)
 	}
 }

@@ -1,11 +1,12 @@
 package simulatorCore
 
-const N_FLOORS int = 4
+//const NumFloors = 4
+//const NumButtons = 3
 
 //Motor commands
-const UP = 1
-const STOP = 0
-const DOWN = -1
+//const MotorUp = 1
+//const MotorStop = 0
+//const MotorDown = 2
 
 //---------------SIMULATOR CONFIGURATION PARAMETERS--------------
 const DistancePassingFloors = 1820000
@@ -13,7 +14,8 @@ const DistanceBetweenFloors = 4200000
 const TravelTimeBetweenFloors_ms = 1500 * 2
 const TravelTimePassingFloor_ms = 1000
 const BtnDepressedTime_ms = 200
-const PortToInterface int = 44044
+
+//const PortToInterface int = 44044
 const PortFromInterface int = 44033
 
 const (

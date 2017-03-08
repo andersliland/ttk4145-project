@@ -8,9 +8,11 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	. "../../utilities"
 )
 
-const debug = false
+const debugSimulatorCore = true
 
 type motorCommand struct {
 	Speed     int
@@ -24,7 +26,7 @@ var simulatedMotorChannel = make(chan motorCommand, 3)
 //INITIALISATION
 func IOInit() error {
 	log.Println("SIMULATOR:\t Starting simulator")
-	if N_FLOORS != 4 {
+	if NumFloors != 4 {
 		log.Println("SIMULATOR:\t Can´t run the simulator with other than four floors.")
 		return errors.New("Could not initialise Simulator with other than 4 floors!")
 	}
@@ -33,7 +35,7 @@ func IOInit() error {
 	elevator.FloorSensor[elevator.LastFloor] = true
 	elevator_mutex.Unlock()
 	//Generating localhost adress
-	laddr, err := net.ResolveUDPAddr("udp4", "localhost:"+strconv.Itoa(PortFromInterface))
+	laddr, err := net.ResolveUDPAddr("udp4", ":"+strconv.Itoa(PortFromInterface))
 	if err != nil {
 		log.Println("SIMULATOR:\t Can not resolve localhost on port: ", PortFromInterface)
 		return err
@@ -64,13 +66,13 @@ func simulatedMotor() {
 	for {
 		select {
 		case command := <-simulatedMotorChannel:
-			if debug {
+			if debugSimulatorCore {
 				log.Println("MOTOR:\t Got motor command; speed, dir: ", elevator.MotorSpeed, elevator.Direction)
 				log.Println("MOTOR:\t Previus motorstate =", MotorStates[motorState])
 				log.Println("MOTOR:\t Waiting on mutex")
 			}
 			elevator_mutex.Lock()
-			if debug {
+			if debugSimulatorCore {
 				log.Println("MOTOR:\t Got mutex")
 			}
 			switch motorState {
@@ -83,26 +85,26 @@ func simulatedMotor() {
 						startedMoving = time.Now().Add(-(TravelTimeBetweenFloors_ms - timeTraveledFromLastFloor))
 						timer.Reset(timeTraveledFromLastFloor * time.Millisecond)
 					}
-					if command.Direction == UP {
+					if command.Direction == MotorUp {
 						motorState = S_movingUp
 					} else {
 						motorState = S_movingDown
 					}
-				} else if debug {
+				} else if debugSimulatorCore {
 					log.Println("MOTOR:\t Did nothing")
 				}
 			case S_stoppedAtFloor:
 				if command.Speed != 0 && command.Direction != 0 {
 					timer.Reset((TravelTimePassingFloor_ms / 2) * time.Millisecond)
 					startedMoving = time.Now()
-					if elevator.Direction == UP {
+					if elevator.Direction == MotorUp {
 						motorState = S_movingUpInsideSensor
-						unfinishedDirection = UP
+						unfinishedDirection = MotorUp
 					} else {
 						motorState = S_movingDownInsideSensor
-						unfinishedDirection = DOWN
+						unfinishedDirection = MotorDown
 					}
-				} else if debug {
+				} else if debugSimulatorCore {
 					log.Println("MOTOR:\t Did nothing")
 				}
 			case S_movingUp, S_movingDown:
@@ -114,12 +116,12 @@ func simulatedMotor() {
 					timeTraveledFromLastFloor = time.Since(startedMoving)
 					timer.Reset(timeTraveledFromLastFloor * time.Millisecond)
 					startedMoving = time.Now().Add(timeTraveledFromLastFloor - TravelTimeBetweenFloors_ms)
-					if command.Direction == UP {
+					if command.Direction == MotorUp {
 						motorState = S_movingUp
 					} else {
 						motorState = S_movingDown
 					}
-				} else if debug {
+				} else if debugSimulatorCore {
 					log.Println("MOTOR:\t Did nothing")
 				}
 			case S_movingUpInsideSensor, S_movingDownInsideSensor:
@@ -133,30 +135,30 @@ func simulatedMotor() {
 					timeTraveledFromLastFloor = time.Since(startedMoving)
 					timer.Reset(timeTraveledFromLastFloor * time.Millisecond)
 					startedMoving = time.Now().Add(timeTraveledFromLastFloor - TravelTimePassingFloor_ms)
-					if command.Direction == UP {
+					if command.Direction == MotorUp {
 						motorState = S_movingUpInsideSensor
 					} else {
 						motorState = S_movingDownInsideSensor
 					}
-				} else if debug {
+				} else if debugSimulatorCore {
 					log.Println("MOTOR:\t Did nothing")
 				}
 			}
 			elevator_mutex.Unlock()
-			if debug {
+			if debugSimulatorCore {
 				log.Println("MOTOR:\t Released mutex")
 				log.Println("MOTOR:\t New motorstate =", MotorStates[motorState])
 				log.Println("MOTOR:\t Done with motor command")
 			}
 		case <-timer.C:
-			if debug {
+			if debugSimulatorCore {
 				log.Println("MOTOR:\t Timer timed out")
 				log.Println("MOTOR:\t Previus motorstate =", MotorStates[motorState])
 				log.Println("MOTOR:\t Waiting on mutex")
 			}
 			timer.Stop()
 			elevator_mutex.Lock()
-			if debug {
+			if debugSimulatorCore {
 				log.Println("MOTOR:\t Got mutex")
 			}
 			switch motorState {
@@ -174,7 +176,7 @@ func simulatedMotor() {
 				elevator.LastFloor--
 				elevator.FloorSensor[elevator.LastFloor] = true
 			case S_movingUpInsideSensor: //Leaving sensor
-				if elevator.LastFloor < N_FLOORS-1 {
+				if elevator.LastFloor < NumFloors-1 {
 					motorState = S_movingUp
 					startedMoving = time.Now()
 					timer.Reset(TravelTimeBetweenFloors_ms * time.Millisecond)
@@ -198,7 +200,7 @@ func simulatedMotor() {
 				log.Println("MOTOR:\t Invalid state at timer timeout!")
 			}
 			elevator_mutex.Unlock()
-			if debug {
+			if debugSimulatorCore {
 				printFloorSensors()
 				log.Println("MOTOR:\t Released mutex")
 				log.Println("MOTOR:\t Current motorstate =", MotorStates[motorState])
@@ -211,6 +213,7 @@ func listenForIncommingButtons(conn *net.UDPConn) {
 	buf := make([]byte, 1024)
 	for {
 		n, _, err := conn.ReadFromUDP(buf[:])
+		//log.Println("[simulatorCore] ReadFromUDP", addr, "number of bytes", n)
 		if err != nil {
 			log.Println("SIMULATOR:\t Error in UDPConnectionReader")
 			log.Fatal(err)
@@ -221,7 +224,7 @@ func listenForIncommingButtons(conn *net.UDPConn) {
 			log.Println("SIMULATOR:\t Invalid package from Simulator interface")
 			log.Println(err)
 		} else {
-			if debug {
+			if debugSimulatorCore {
 				log.Println("SIMULATOR:\t Received command: ", command)
 			}
 			switch command {
@@ -263,6 +266,7 @@ func simulateButtonPress(button *bool) {
 
 //FUNCTIONS
 func ioSetBit(channel int) {
+	//log.Println("ioSetBit run. Channel: ", channel)
 	elevator_mutex.Lock()
 	switch channel {
 	case LIGHT_UP1:
@@ -290,7 +294,7 @@ func ioSetBit(channel int) {
 	case LIGHT_DOOR_OPEN:
 		elevator.DoorOpen = true
 	case MOTORDIR:
-		elevator.Direction = -1 //Down
+		elevator.Direction = -1 //MotorDown
 		if elevator.MotorSpeed != 0 {
 			simulatedMotorChannel <- motorCommand{elevator.MotorSpeed, elevator.Direction}
 		}
@@ -298,12 +302,13 @@ func ioSetBit(channel int) {
 
 	}
 	elevator_mutex.Unlock()
-	if debug {
+	if debugSimulatorCore {
 		log.Println("SIMULATOR:\t Setting bit on channel: ", channel)
 	}
 }
 
 func ioClearBit(channel int) {
+	//log.Println("ioClearBit run. Channel: ", channel)
 	elevator_mutex.Lock()
 	switch channel {
 	case LIGHT_UP1:
@@ -331,14 +336,14 @@ func ioClearBit(channel int) {
 	case LIGHT_DOOR_OPEN:
 		elevator.DoorOpen = false
 	case MOTORDIR:
-		elevator.Direction = 1 //UP
+		elevator.Direction = 1 //MotorUp
 		if elevator.MotorSpeed != 0 {
 			simulatedMotorChannel <- motorCommand{elevator.MotorSpeed, elevator.Direction}
 		}
 	case LIGHT_FLOOR_IND1, LIGHT_FLOOR_IND2:
 	}
 	elevator_mutex.Unlock()
-	if debug {
+	if debugSimulatorCore {
 		log.Println("SIMULATOR:\t Clearing bit on channel: ", channel)
 	}
 }
@@ -351,8 +356,8 @@ func ioWriteAnalog(channel, value int) {
 		simulatedMotorChannel <- motorCommand{elevator.MotorSpeed, elevator.Direction}
 		elevator_mutex.Unlock()
 	}
-	if debug {
-		log.Printf("Writing %i on channel %i \n", value, channel)
+	if debugSimulatorCore {
+		log.Printf("Writing %v on channel %v \n", value, channel)
 	}
 }
 
@@ -402,7 +407,7 @@ func ioReadBit(channel int) bool {
 		return elevator.ButtonMatrix[2][2]
 	case BUTTON_COMMAND4:
 		return elevator.ButtonMatrix[3][2]
-	case STOP_BUTTON:
+	case STOP:
 		return elevator.StopButton
 	case OBSTRUCTION:
 		return elevator.ObstructionButton
@@ -433,8 +438,8 @@ func ioReadBit(channel int) bool {
 			return false
 		}
 	}
-	if debug {
-		log.Println("SIMULATOR:\t Reading discrete channel: ", channel)
+	if debugSimulatorCore {
+		//log.Println("SIMULATOR:\t Reading discrete channel: ", channel)
 	}
 	return false
 }
@@ -444,7 +449,7 @@ func ioReadAnalog(channel int) int {
 	case MOTOR:
 		return elevator.MotorSpeed
 	}
-	if debug {
+	if debugSimulatorCore {
 		log.Println("SIMULATOR:\t Reading analog channel: ", channel)
 	}
 	return 0

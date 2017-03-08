@@ -12,7 +12,7 @@ const debugUDP = false
 
 // Maximum allowed UDP datagram size in bytes: 65,507 (imposed by the IPv4 protocol)
 const messageSize = 4 * 1024
-const broadcastSendPort = 44033 // SendTo and ListenFrom port
+const broadcastSendPort = 44077 // SendTo and ListenFrom port
 
 type UDPMessage struct {
 	Raddr  string // MsgMessageChannel or MsgBackupChannel

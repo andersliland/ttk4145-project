@@ -11,7 +11,7 @@ import (
 	"./control"
 	//"./driver"
 	"./network"
-	// . "./simulator/simulatorCore"
+	"./simulator/simulatorCore"
 	. "./utilities"
 )
 
@@ -37,7 +37,8 @@ func main() {
 	localIP, err = network.Init(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel)
 	CheckError("ERROR [main]: Could not initiate network", err)
 
-	//IOInit() //Simulator init
+	simulatorCore.IOInit()                                                                         //Simulator init
+	simulatorCore.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // elevator init
 	//driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
 	//log.Println("[main] Ready with IP:", localIP)
 
