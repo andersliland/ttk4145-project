@@ -83,7 +83,7 @@ func RemoveFloorOrders(floor, direction int, localIP string) {
 	case MotorDown:
 		OrderMatrix[floor][ButtonCallDown].Status = NotActive
 	default:
-		log.Println("ERROR [queue]: Undefined direction for RemoveFloorOrders")
+		log.Println("ERROR [order]: Undefined direction for RemoveFloorOrders")
 	}
 }
 

@@ -10,7 +10,7 @@ import (
 	. "../utilities/"
 )
 
-const debugElevatorControl = true
+const debugElevatorControl = false
 
 func MessageLoop(
 	buttonChannel chan ElevatorButton,
@@ -38,7 +38,7 @@ func MessageLoop(
 		//	newOrder <- true
 		case button := <-buttonChannel: // Hardware
 
-			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor))
+			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor+1))
 			buttonHandler(button, sendMessageChannel, sendBackupChannel, lightChannel, motorChannel, WorkingElevators, RegisteredElevators, HallOrderMatrix, localIP)
 			newOrder <- true
 		case floor := <-floorChannel: // Hardware

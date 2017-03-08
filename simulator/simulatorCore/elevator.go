@@ -8,7 +8,7 @@ import (
 	. "../../utilities"
 )
 
-var debug = false
+var debugElevator = false
 
 var lampMatrix = [NumFloors][NumButtons]int{
 	{LIGHT_UP1, LIGHT_DOWN1, LIGHT_COMMAND1},
@@ -127,7 +127,7 @@ func buttonPoller(buttonChannel chan<- ElevatorButton, pollDelay time.Duration) 
 				//log.Println("[elevator] buttonPoller ioReadBit:", b)
 				if b && inputMatrix[f][k] != b {
 					buttonChannel <- ElevatorButton{f, k}
-					//log.Println("[elevator] send buttonChannel:", ElevatorButton{f, k})
+					log.Println("[elevator] send buttonChannel:", ElevatorButton{f, k})
 
 				}
 				inputMatrix[f][k] = b
@@ -191,7 +191,7 @@ func GoToFloorBelow(motorChannel chan int, pollDelay time.Duration) int {
 }
 
 func printDebug(s string) {
-	if debug {
+	if debugElevator {
 		log.Println("[driver]", s)
 	}
 }
