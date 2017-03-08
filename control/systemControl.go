@@ -12,10 +12,12 @@ import (
 	"log"
 	"time"
 
+	"../cost"
+
 	. "../utilities"
 )
 
-var debugSystemControl = false
+var debugSystemControl = true
 
 func InitSystemControl() {
 
@@ -37,30 +39,15 @@ func SystemControl(
 	defer watchdogTimer.Stop()
 	watchdogKickTimer := time.NewTicker(watchdogKickTime)
 	defer watchdogKickTimer.Stop()
-	/*
-		// init states
-		sendBackupChannel <- ElevatorBackupMessage{
-			AskerIP: localIP,
-			Event:   EventRequestBackup,
-			//ResponderIP: "",
-			//State:       ElevatorState{},
-		}
-	*/
-	/*
-		orderAssignedTo, err := cost.AssignOrderToElevator(2, 1, WorkingElevators, RegisteredElevators, HallOrderMatrix)
-		log.Println("Local assign order to ", orderAssignedTo)
-		CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
-		order := ElevatorOrderMessage{
-			Time:       time.Now(),
-			Floor:      button.Floor,
-			ButtonType: button.Kind,
-			AssignedTo: orderAssignedTo,
-			OriginIP:   localIP,
-			SenderIP:   localIP,
-			Event:      EventNewOrder,
-		}
-		sendMessageChannel <- order
-	*/
+
+	// init states
+	sendBackupChannel <- ElevatorBackupMessage{
+		AskerIP: localIP,
+		Event:   EventRequestBackup,
+		//ResponderIP: "",
+		//State:       ElevatorState{},
+	}
+
 	RegisteredElevators[localIP] = ResolveElevator(Elevator{LocalIP: localIP, LastFloor: 2})
 	updateWorkingElevators(RegisteredElevators, WorkingElevators, localIP, watchdogLimit)
 
@@ -96,14 +83,12 @@ func SystemControl(
 			case EventRequestBackup:
 				printSystemControl("Received an EventRequestBackup from" + backup.AskerIP)
 				if backup.AskerIP != localIP {
-					/*
-						sendBackupChannel <- ElevatorBackupMessage{
-							AskerIP:     backup.AskerIP,
-							ResponderIP: localIP,
-							Event:       EventElevatorBackupReturned,
-							State:       Elevator{},
-						}
-					*/
+					sendBackupChannel <- ElevatorBackupMessage{
+						AskerIP:     backup.AskerIP,
+						ResponderIP: localIP,
+						Event:       EventElevatorBackupReturned,
+						State:       Elevator{},
+					}
 
 				} else {
 					printSystemControl(" No stored state for elevator at selv " + localIP)

@@ -26,9 +26,9 @@ func MessageLoop(
 	HallOrderMatrix [NumFloors][2]ElevatorOrder,
 	localIP string) {
 
-	//newOrder := make(chan bool)
+	newOrder := make(chan bool)
 	floorReached := make(chan int)
-	//go eventManager(newOrder, floorReached, lightChannel, motorChannel, localIP)
+	go eventManager(newOrder, floorReached, lightChannel, motorChannel, localIP)
 
 	for {
 		select {
@@ -37,10 +37,10 @@ func MessageLoop(
 
 		//	newOrder <- true
 		case button := <-buttonChannel: // Hardware
-			log.Println("button received")
+
 			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor))
 			buttonHandler(button, sendMessageChannel, sendBackupChannel, lightChannel, motorChannel, WorkingElevators, RegisteredElevators, HallOrderMatrix, localIP)
-
+			newOrder <- true
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)
 			floorReached <- floor
@@ -65,18 +65,16 @@ func buttonHandler(button ElevatorButton,
 		orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, WorkingElevators, RegisteredElevators, HallOrderMatrix)
 		log.Println("Local assign order to ", orderAssignedTo)
 		CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
-		/*
-			order := ElevatorOrderMessage{
-				Time:       time.Now(),
-				Floor:      button.Floor,
-				ButtonType: button.Kind,
-				AssignedTo: orderAssignedTo,
-				OriginIP:   localIP,
-				SenderIP:   localIP,
-				Event:      EventNewOrder,
-			}
-			sendMessageChannel <- order
-		*/
+		order := ElevatorOrderMessage{
+			Time:       time.Now(),
+			Floor:      button.Floor,
+			ButtonType: button.Kind,
+			AssignedTo: orderAssignedTo,
+			OriginIP:   localIP,
+			SenderIP:   localIP,
+			Event:      EventNewOrder,
+		}
+		sendMessageChannel <- order
 
 	// Broadcast CabOrder as BackupMessage
 	// Add LocalOrder to Execution
@@ -119,7 +117,7 @@ func buttonHandler(button ElevatorButton,
 }
 
 func printElevatorControl(s string) {
-	if debugElevatorControl {
+	if debugSystemControl {
 		log.Println("[elevatorControl]", s)
 	}
 }

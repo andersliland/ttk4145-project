@@ -1,7 +1,6 @@
 package control
 
 import (
-	"log"
 	"time"
 
 	. "../utilities"
@@ -33,7 +32,6 @@ func eventManager(newOrder chan bool, floorReached chan int,
 	doorTimeout := make(chan bool)
 	doorTimerReset := make(chan bool)
 	go doorTimer(doorTimeout, doorTimerReset)
-	go stateIndicator() // use for debug purpose only - remove later?
 
 	for {
 		select {
@@ -117,23 +115,6 @@ func doorTimer(timeout chan<- bool, reset <-chan bool) {
 		case <-timer.C:
 			timer.Stop()
 			timeout <- true
-		}
-	}
-}
-
-func stateIndicator() {
-	prevState := idle
-	for {
-		if state != prevState {
-			switch state {
-			case idle:
-				log.Println("STATE [eventManager]: idle")
-			case moving:
-				log.Println("STATE [eventManager]: moving")
-			case doorOpen:
-				log.Println("STATE [eventManager]: doorOpen")
-			}
-			prevState = state
 		}
 	}
 }
