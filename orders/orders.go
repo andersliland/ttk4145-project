@@ -101,6 +101,9 @@ func RemoveFloorOrders(floor, direction int, localIP string) {
 		if HallOrderMatrix[floor][ButtonCallUp].AssignedTo == localIP {
 			HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
 		}
+		if floor == NumFloors-1 {
+			HallOrderMatrix[floor][ButtonCallDown].Status = NotActive
+		}
 		printOrders("Removed HallOrder at floor " + strconv.Itoa(floor+1) + " for direction " + MotorStatus[direction] + ". Ip " + localIP)
 		// send order done
 		/*
@@ -115,6 +118,9 @@ func RemoveFloorOrders(floor, direction int, localIP string) {
 	case MotorDown:
 		if HallOrderMatrix[floor][ButtonCallDown].AssignedTo == localIP {
 			HallOrderMatrix[floor][ButtonCallDown].Status = NotActive
+		}
+		if floor == Floor1 {
+			HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
 		}
 		printOrders("Removed HallOrder at floor" + strconv.Itoa(floor+1) + " for direction " + MotorStatus[direction] + ". Ip" + localIP)
 
