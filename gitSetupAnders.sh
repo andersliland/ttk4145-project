@@ -1,6 +1,6 @@
 echo "Unset global Git users"
 git config --global --unset-all user.name
-git config --global --unset-all user.email 
+git config --global --unset-all user.email
 
 
 echo "Set Anders as local repo user"
@@ -16,3 +16,4 @@ git config --global diff.guitool meld
 git config --global diff.tool meld
 git config --global difftool.promt false
 
+git config --global push.default simple

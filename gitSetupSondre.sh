@@ -15,3 +15,5 @@ echo "set Meld as default difftool"
 git config --global diff.guitool meld
 git config --global diff.tool meld
 git config --global difftool.promt false
+
+git config --global push.default simple
