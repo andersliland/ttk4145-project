@@ -96,17 +96,20 @@ func MessageLoop(
 }
 
 func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
-	for f := 0; f < NumFloors; f++ {
-		if ElevatorStatus[localIP].CabOrders[f] == true {
-			lightChannel <- ElevatorLight{Kind: ButtonCommand, Active: true}
-		} else {
-			lightChannel <- ElevatorLight{Kind: ButtonCommand, Active: false}
-		}
-		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-			if HallOrderMatrix[f][k].Status == Awaiting || HallOrderMatrix[f][k].Status == UnderExecution {
-				lightChannel <- ElevatorLight{Kind: k, Active: true}
+	for {
+		for f := 0; f < NumFloors; f++ {
+			if ElevatorStatus[localIP].CabOrders[f] == true {
+				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: true}
+				printElevatorControl("Set panelLight for cabOrder " + strconv.Itoa(f+1))
 			} else {
-				lightChannel <- ElevatorLight{Kind: k, Active: false}
+				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: false}
+			}
+			for k := ButtonCallUp; k <= ButtonCallDown; k++ {
+				if HallOrderMatrix[f][k].Status == Awaiting || HallOrderMatrix[f][k].Status == UnderExecution {
+					lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: true}
+				} else {
+					lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: false}
+				}
 			}
 		}
 	}
