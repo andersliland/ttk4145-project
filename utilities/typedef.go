@@ -196,8 +196,6 @@ func ResolveBackupState(e *Elevator) ElevatorBackupMessage {
 	}
 }
 
-
-
 // ----Type: ElevatorBackupMessage ----
 func (m ElevatorBackupMessage) IsValid() bool {
 	if m.AskerIP == m.ResponderIP {

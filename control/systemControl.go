@@ -83,8 +83,6 @@ func SystemControl(
 			case EventElevatorBackup:
 				printSystemControl("Received an EventElevatorBackup from " + backup.AskerIP)
 
-
-
 			case EventRequestBackup:
 				printSystemControl("Received an EventRequestBackup from " + backup.AskerIP)
 				if backup.AskerIP != localIP {
@@ -153,31 +151,31 @@ func SystemControl(
 					// OriginIP is resposnible for order until it is assigned
 					if order.OriginIP == localIP {
 						// timeout handeling error where order is not acked
-						HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(ackTimeLimit, func(){
+						HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(ackTimeLimit, func() {
 							log.Println("Timeout \t A new order was not acked by all ")
 							/*
-							ackTimeout <- ElevatorOrder{
-							 Floor: order.Floor,
-							 Type: order.ButtonType,
-							 Order: ElevatorOrder{
-								 Status: Awaiting,
-								 AssignedTo: order.AssignedTo,
-								 Timer: HallOrderMatrix[order.Floor][order.ButtonType].Timer,
-							 }
-						}
-						*/
+									ackTimeout <- ElevatorOrder{
+									 Floor: order.Floor,
+									 Type: order.ButtonType,
+									 Order: ElevatorOrder{
+										 Status: Awaiting,
+										 AssignedTo: order.AssignedTo,
+										 Timer: HallOrderMatrix[order.Floor][order.ButtonType].Timer,
+									 }
+								}
+							*/
 						})
 
-				}
+					}
 
-				broadcastOrderChannel <- OrderMessage{
-							Floor:      order.Floor,
-							ButtonType: order.ButtonType,
-							AssignedTo: order.AssignedTo,
-							OriginIP:   order.OriginIP,
-							SenderIP: localIP,
-							Event:      EventAckNewOrder,
-						}
+					broadcastOrderChannel <- OrderMessage{
+						Floor:      order.Floor,
+						ButtonType: order.ButtonType,
+						AssignedTo: order.AssignedTo,
+						OriginIP:   order.OriginIP,
+						SenderIP:   localIP,
+						Event:      EventAckNewOrder,
+					}
 				case Awaiting:
 					printSystemControl("Received New order allready awaiting")
 				case UnderExecution:
@@ -196,21 +194,19 @@ func SystemControl(
 
 							newOrder <- true
 
-
-						}else{
+						} else {
 							printSystemControl("Not all elevators acked")
 
 						}
 
 						broadcastOrderChannel <- OrderMessage{
-							Floor: order.Floor,
+							Floor:      order.Floor,
 							ButtonType: order.ButtonType,
 							AssignedTo: order.AssignedTo,
-							OriginIP: order.OriginIP,
-							SenderIP: localIP,
-							Event: EventOrderConfirmed,
+							OriginIP:   order.OriginIP,
+							SenderIP:   localIP,
+							Event:      EventOrderConfirmed,
 						}
-
 
 					case UnderExecution:
 						printSystemControl("Received EventAckNewOrder which is UnderExecution")
@@ -227,7 +223,6 @@ func SystemControl(
 
 			case EventOrderCompleted:
 				//printSystemControl("Received EventAckNewOrder which is NotActive")
-
 
 			case EventAckOrderCompleted:
 				// delete order from matrix and timer functions
@@ -262,7 +257,7 @@ func updateOnlineElevators(ElevatorStatus map[string]*Elevator, OnlineElevators 
 	}
 }
 
-func allElevatorsHaveAcked(OnlineElevators map[string]bool, HallOrderMatrix[NumFloors][2]ElevatorOrder, order OrderMessage) bool{
+func allElevatorsHaveAcked(OnlineElevators map[string]bool, HallOrderMatrix [NumFloors][2]ElevatorOrder, order OrderMessage) bool {
 	for ip, _ := range OnlineElevators {
 		if _, confirmedBy := HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[ip]; !confirmedBy {
 			return false

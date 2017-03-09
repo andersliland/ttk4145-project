@@ -24,18 +24,19 @@ func ShouldStop(floor, direction int, localIP string) bool {
 	// Check both hallOrders, and for special cases (top floor, bottom floor, no more orders in direction)
 	switch direction {
 	case MotorStop:
+
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-			if HallOrderMatrix[floor][k].AssignedTo == localIP {
+			if HallOrderMatrix[floor][k].AssignedTo == localIP && HallOrderMatrix[floor][k].Status == Awaiting {
 				return true
 			}
 		}
 	case MotorUp:
-		if HallOrderMatrix[floor][ButtonCallUp].AssignedTo == localIP {
+		if HallOrderMatrix[floor][ButtonCallUp].AssignedTo == localIP && HallOrderMatrix[floor][ButtonCallUp].Status == Awaiting {
 			return true
 		}
 		return floor == NumFloors-1 || !anyRequestsAbove(floor, localIP)
 	case MotorDown:
-		if HallOrderMatrix[floor][ButtonCallDown].AssignedTo == localIP {
+		if HallOrderMatrix[floor][ButtonCallDown].AssignedTo == localIP && HallOrderMatrix[floor][ButtonCallDown].Status == Awaiting {
 			return true
 		}
 		return floor == 0 || !anyRequestsBelow(floor, localIP)
@@ -82,26 +83,28 @@ func ChooseDirection(floor, direction int, localIP string) int {
 // Does this function also need to send a message on the broadcastOrderChannel to notify that it has removed an order?
 func RemoveFloorOrders(floor, direction int, localIP string) {
 
-	if 	ElevatorStatus[localIP].CabOrders[floor] == true {
-		printOrders("Removed CabOrder at floor " + strconv.Itoa(floor+1) + " for " + localIP )
+	if ElevatorStatus[localIP].CabOrders[floor] == true {
+		printOrders("Removed CabOrder at floor " + strconv.Itoa(floor+1) + " for " + localIP)
 	}
 	ElevatorStatus[localIP].CabOrders[floor] = false
 
 	switch direction {
 	case MotorUp:
 		HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
+		printOrders("Removed HallOrder at floor" + strconv.Itoa(floor) + " for direction " + MotorStatus[direction] + ". Ip" + localIP)
 		// send order done
 		/*
-		broadcastOrderChannel <- ElevatorOrderMessage{
-			Floor: floor,
-			ButtonType: ButtonCallUp,
-			//OriginIP: ,
-			Event: EventOrderCompleted,
-		}
+			broadcastOrderChannel <- ElevatorOrderMessage{
+				Floor: floor,
+				ButtonType: ButtonCallUp,
+				//OriginIP: ,
+				Event: EventOrderCompleted,
+			}
 		*/
 
 	case MotorDown:
 		HallOrderMatrix[floor][ButtonCallDown].Status = NotActive
+		printOrders("Removed HallOrder at floor" + strconv.Itoa(floor) + " for direction " + MotorStatus[direction] + ". Ip" + localIP)
 
 	default:
 		log.Println("ERROR [order]: Undefined direction for RemoveFloorOrders")
@@ -111,32 +114,14 @@ func RemoveFloorOrders(floor, direction int, localIP string) {
 // --- //
 
 func anyRequestsAbove(floor int, localIP string) bool {
-	for f := floor+1 ; f < NumFloors; f++ { // floor+1 : check floor above
+	for f := floor + 1; f < NumFloors; f++ { // floor+1 : check floor above
 		if ElevatorStatus[localIP].CabOrders[f] {
-			printOrders("There is a cabOrder above floor " + strconv.Itoa(floor+1) + " at floor " + strconv.Itoa(f+1)  + " for elevator " + localIP )
+			printOrders("There is a cabOrder above floor " + strconv.Itoa(floor+1) + " at floor " + strconv.Itoa(f+1) + " for elevator " + localIP)
 			return true
 		}
 		for k := 0; k < NumButtons-1; k++ { // -1 to remove Cab buttons
-			if HallOrderMatrix[f][k].AssignedTo == localIP {
-				printOrders("There is a hallOrder above floor " + strconv.Itoa(floor+1) + " at floor " + strconv.Itoa(f+1)  + " for elevator " + localIP )
-				return true
-			}
-	}
-}
-return false
-}
-
-
-
-func anyRequestsBelow(floor int, localIP string) bool {
-	for f := 0; f < floor; f++ {
-		if ElevatorStatus[localIP].CabOrders[f] {
-			printOrders("There is a cabOrder below floor " + strconv.Itoa(floor+1) + " at floor " + strconv.Itoa(f+1)  + " for elevator " + localIP )
-			return true
-		}
-		for k := 0; k < NumButtons-1; k++ {
-			if HallOrderMatrix[f][k].AssignedTo == localIP {
-				printOrders("There is a hallOrder below floor " +  strconv.Itoa(floor+1) + " at floor " + strconv.Itoa(f+1)  + " for elevator " + localIP )
+			if HallOrderMatrix[f][k].AssignedTo == localIP && HallOrderMatrix[f][k].Status == Awaiting {
+				printOrders("There is a hallOrder above floor " + strconv.Itoa(floor+1) + " at floor " + strconv.Itoa(f+1) + " for elevator " + localIP)
 				return true
 			}
 		}
@@ -144,7 +129,23 @@ func anyRequestsBelow(floor int, localIP string) bool {
 	return false
 }
 
-func printOrders(s string){
+func anyRequestsBelow(floor int, localIP string) bool {
+	for f := 0; f < floor; f++ {
+		if ElevatorStatus[localIP].CabOrders[f] {
+			printOrders("There is a cabOrder below floor " + strconv.Itoa(floor+1) + " at floor " + strconv.Itoa(f+1) + " for elevator " + localIP)
+			return true
+		}
+		for k := 0; k < NumButtons-1; k++ {
+			if HallOrderMatrix[f][k].AssignedTo == localIP && HallOrderMatrix[f][k].Status == Awaiting {
+				printOrders("There is a hallOrder below floor " + strconv.Itoa(floor+1) + " at floor " + strconv.Itoa(f+1) + " for elevator " + localIP)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func printOrders(s string) {
 	if debugOrders {
 		log.Println("[orders]\t\t", s)
 	}

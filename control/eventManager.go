@@ -1,8 +1,9 @@
 package control
 
 import (
-	"time"
 	"log"
+	"strconv"
+	"time"
 
 	. "../utilities"
 
@@ -53,11 +54,12 @@ func eventManager(
 func eventNewOrder(broadcastOrderChannel chan OrderMessage, lightChannel chan ElevatorLight, motorChannel chan int, doorTimerReset chan bool, localIP string) {
 	switch state {
 	case idle:
+		printEventManager("Received new order: floor " + strconv.Itoa(floor+1))
 		direction = orders.ChooseDirection(floor, direction, localIP)
 		if orders.ShouldStop(floor, direction, localIP) {
+			printEventManager("Stopeed at floor " + strconv.Itoa(floor+1))
 			doorTimerReset <- true
 			orders.RemoveFloorOrders(floor, direction, localIP)
-
 			//orders.RemoveFloorOrders(floor, direction, localIP broadcastOrderChannel) // change the above function with this later
 			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 			state = doorOpen
@@ -80,17 +82,18 @@ func eventFloorReached(lightChannel chan ElevatorLight, motorChannel chan int, d
 	//SetFloorIndicator(floor)
 	switch state {
 	case idle:
-
+		// not applicable
 	case moving:
 		if orders.ShouldStop(floor, direction, localIP) {
 			doorTimerReset <- true
 			orders.RemoveFloorOrders(floor, direction, localIP)
 			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
-			direction = MotorStop
+			//direction = MotorStop
 			motorChannel <- MotorStop
 			state = doorOpen
 		}
 	case doorOpen:
+		// not applicable
 
 	default:
 		// Insert error handling
@@ -100,11 +103,15 @@ func eventFloorReached(lightChannel chan ElevatorLight, motorChannel chan int, d
 func eventDoorTimeout(lightChannel chan ElevatorLight, motorChannel chan int, localIP string) {
 	switch state {
 	case idle:
+		// not applicable
+
 	case moving:
+		// not applicable
 	case doorOpen:
 		lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
+		printEventManager("eventDoorTimeout, idle: direction: " + MotorStatus[direction])
 		direction = orders.ChooseDirection(floor, direction, localIP)
-		printEventManager("Door closing, new direction is " + MotorStatus[direction]  + ".  Elevator " + localIP )
+		printEventManager("Door closing, new direction is " + MotorStatus[direction] + ".  Elevator " + localIP)
 		if direction == MotorStop {
 			state = idle
 		} else {
@@ -132,7 +139,7 @@ func doorTimer(timeout chan<- bool, reset <-chan bool) {
 	}
 }
 
-func printEventManager(s string){
+func printEventManager(s string) {
 	if debugEventManager {
 		log.Println("[eventManager]\t", s)
 	}
