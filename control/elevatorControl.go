@@ -24,11 +24,12 @@ func MessageLoop(
 	receiveBackupChannel chan BackupMessage,
 	OnlineElevators map[string]bool,
 	ElevatorStatus map[string]*Elevator,
-	HallHallOrderMatrix [NumFloors][2]HallOrder,
+	HallOrderMatrix [NumFloors][2]HallOrder,
 	localIP string) {
 
 	floorReached := make(chan int)
 	go eventManager(newOrder, broadcastOrderChannel, floorReached, lightChannel, motorChannel, localIP)
+	go setPanelLights(lightChannel, localIP)
 
 	for {
 		select {
@@ -36,7 +37,7 @@ func MessageLoop(
 			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor+1))
 			switch button.Kind {
 			case ButtonCallUp, ButtonCallDown:
-				orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus, HallHallOrderMatrix)
+				orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus, HallOrderMatrix)
 				//printElevatorControl("Local assign order to " + orderAssignedTo)
 				CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
 				order := OrderMessage{
@@ -90,6 +91,23 @@ func MessageLoop(
 			floorReached <- floor
 			printElevatorControl("Elevator " + localIP + " reaced floor " + strconv.Itoa(floor+1))
 			// Add cases for tickers
+		}
+	}
+}
+
+func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
+	for f := 0; f < NumFloors; f++ {
+		if ElevatorStatus[localIP].CabOrders[f] == true {
+			lightChannel <- ElevatorLight{Kind: ButtonCommand, Active: true}
+		} else {
+			lightChannel <- ElevatorLight{Kind: ButtonCommand, Active: false}
+		}
+		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
+			if HallOrderMatrix[f][k].Status == Awaiting || HallOrderMatrix[f][k].Status == UnderExecution {
+				lightChannel <- ElevatorLight{Kind: k, Active: true}
+			} else {
+				lightChannel <- ElevatorLight{Kind: k, Active: false}
+			}
 		}
 	}
 }
