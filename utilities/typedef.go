@@ -51,7 +51,7 @@ const (
 	EventOrderConfirmed
 	EventAckOrderConfirmed
 	EventOrderCompleted
-	EventAckOrderDone
+	EventAckOrderCompleted
 )
 
 var ButtonType = []string{
@@ -65,7 +65,7 @@ var ButtonType = []string{
 }
 
 const (
-	ButtonCallUp = iota
+	ButtonCallUp = iota //0
 	ButtonCallDown
 	ButtonCommand
 	ButtonStop
@@ -99,6 +99,12 @@ const (
 	MotorUp
 	MotorDown
 )
+
+var MotorStatus = []string{
+	"MotorStop",
+	"MotorUp",
+	"MotorDown",
+}
 
 type CabOrder struct {
 	LocalIP     string

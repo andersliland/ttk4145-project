@@ -2,11 +2,14 @@ package control
 
 import (
 	"time"
+	"log"
 
 	. "../utilities"
 
 	"../orders"
 )
+
+const debugEventManager = true
 
 const (
 	idle = iota
@@ -23,12 +26,14 @@ var direction int
 // ChooseDirection(floor, direction, localIP)
 // RemoveFloorOrders(floor, localIP)
 
-func eventManager(newOrder chan bool, floorReached chan int,
-	lightChannel chan ElevatorLight, motorChannel chan int, localIP string) {
+func eventManager(
+	newOrder chan bool,
+	broadcastOrderChannel chan OrderMessage,
+	floorReached chan int,
+	lightChannel chan ElevatorLight,
+	motorChannel chan int, localIP string) {
 	// if restore order from file do ..., else:
 	const pollDelay = 5 * time.Millisecond
-	//floor = GoToFloorBelow(motorChannel, pollDelay)
-
 	doorTimeout := make(chan bool)
 	doorTimerReset := make(chan bool)
 	go doorTimer(doorTimeout, doorTimerReset)
@@ -36,7 +41,7 @@ func eventManager(newOrder chan bool, floorReached chan int,
 	for {
 		select {
 		case <-newOrder:
-			eventNewOrder(lightChannel, motorChannel, doorTimerReset, localIP)
+			eventNewOrder(broadcastOrderChannel, lightChannel, motorChannel, doorTimerReset, localIP)
 		case floor = <-floorReached:
 			eventFloorReached(lightChannel, motorChannel, doorTimerReset, localIP)
 		case <-doorTimeout:
@@ -45,14 +50,15 @@ func eventManager(newOrder chan bool, floorReached chan int,
 	}
 }
 
-func eventNewOrder(lightChannel chan ElevatorLight, motorChannel chan int, doorTimerReset chan bool, localIP string) {
+func eventNewOrder(broadcastOrderChannel chan OrderMessage, lightChannel chan ElevatorLight, motorChannel chan int, doorTimerReset chan bool, localIP string) {
 	switch state {
 	case idle:
 		direction = orders.ChooseDirection(floor, direction, localIP)
 		if orders.ShouldStop(floor, direction, localIP) {
 			doorTimerReset <- true
 			orders.RemoveFloorOrders(floor, direction, localIP)
-			//queue.RemoveFloorOrders(floor, direction, localIP sendBroadcastChannel) // change the above function with this later
+
+			//orders.RemoveFloorOrders(floor, direction, localIP broadcastOrderChannel) // change the above function with this later
 			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 			state = doorOpen
 		} else {
@@ -73,6 +79,8 @@ func eventNewOrder(lightChannel chan ElevatorLight, motorChannel chan int, doorT
 func eventFloorReached(lightChannel chan ElevatorLight, motorChannel chan int, doorTimerReset chan bool, localIP string) {
 	//SetFloorIndicator(floor)
 	switch state {
+	case idle:
+
 	case moving:
 		if orders.ShouldStop(floor, direction, localIP) {
 			doorTimerReset <- true
@@ -82,6 +90,8 @@ func eventFloorReached(lightChannel chan ElevatorLight, motorChannel chan int, d
 			motorChannel <- MotorStop
 			state = doorOpen
 		}
+	case doorOpen:
+
 	default:
 		// Insert error handling
 	}
@@ -89,9 +99,12 @@ func eventFloorReached(lightChannel chan ElevatorLight, motorChannel chan int, d
 
 func eventDoorTimeout(lightChannel chan ElevatorLight, motorChannel chan int, localIP string) {
 	switch state {
+	case idle:
+	case moving:
 	case doorOpen:
 		lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
 		direction = orders.ChooseDirection(floor, direction, localIP)
+		printEventManager("Door closing, new direction is " + MotorStatus[direction]  + ".  Elevator " + localIP )
 		if direction == MotorStop {
 			state = idle
 		} else {
@@ -116,5 +129,11 @@ func doorTimer(timeout chan<- bool, reset <-chan bool) {
 			timer.Stop()
 			timeout <- true
 		}
+	}
+}
+
+func printEventManager(s string){
+	if debugEventManager {
+		log.Println("[eventManager]\t", s)
 	}
 }

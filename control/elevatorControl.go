@@ -10,25 +10,25 @@ import (
 	. "../utilities/"
 )
 
-const debugElevatorControl = false
+const debugElevatorControl = true
 
 func MessageLoop(
+	newOrder chan bool,
 	buttonChannel chan ElevatorButton,
 	lightChannel chan ElevatorLight,
 	motorChannel chan int,
 	floorChannel chan int,
-	sendBroadcastChannel chan OrderMessage,
+	broadcastOrderChannel chan OrderMessage,
 	receiveOrderChannel chan OrderMessage,
-	sendBackupChannel chan ElevatorBackupMessage,
+	broadcastBackupChannel chan ElevatorBackupMessage,
 	receiveBackupChannel chan ElevatorBackupMessage,
 	OnlineElevators map[string]bool,
 	ElevatorStatus map[string]*Elevator,
 	HallHallOrderMatrix [NumFloors][2]ElevatorOrder,
 	localIP string) {
 
-	newOrder := make(chan bool)
 	floorReached := make(chan int)
-	go eventManager(newOrder, floorReached, lightChannel, motorChannel, localIP)
+	go eventManager(newOrder, broadcastOrderChannel, floorReached, lightChannel, motorChannel, localIP)
 
 	for {
 		select {
@@ -37,20 +37,20 @@ func MessageLoop(
 
 		case button := <-buttonChannel: // Hardware
 			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor+1))
-			buttonHandler(button, sendBroadcastChannel, sendBackupChannel, lightChannel, motorChannel, OnlineElevators, ElevatorStatus, HallHallOrderMatrix, localIP)
+			buttonHandler(button, broadcastOrderChannel, broadcastBackupChannel, lightChannel, motorChannel, OnlineElevators, ElevatorStatus, HallHallOrderMatrix, localIP)
 			//newOrder <- true
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)
 			floorReached <- floor
-			printElevatorControl("floorChannel floor: " + strconv.Itoa(floor+1))
+			printElevatorControl("Elevator " + localIP + " reaced floor " + strconv.Itoa(floor+1))
 			// Add cases for tickers
 		}
 	}
 }
 
 func buttonHandler(button ElevatorButton,
-	sendBroadcastChannel chan<- OrderMessage,
-	sendBackupChannel chan<- ElevatorBackupMessage,
+	broadcastOrderChannel chan<- OrderMessage,
+	broadcastBackupChannel chan<- ElevatorBackupMessage,
 	lightChannel chan<- ElevatorLight,
 	motorChannel chan<- int,
 	OnlineElevators map[string]bool,
@@ -58,7 +58,6 @@ func buttonHandler(button ElevatorButton,
 	HallHallOrderMatrix [NumFloors][2]ElevatorOrder,
 	localIP string) {
 
-	//newOrder <- true
 	switch button.Kind {
 	case ButtonCallUp, ButtonCallDown:
 		orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus, HallHallOrderMatrix)
@@ -73,12 +72,12 @@ func buttonHandler(button ElevatorButton,
 			SenderIP:   localIP,
 			Event:      EventNewOrder,
 		}
-		sendBroadcastChannel <- order
+		broadcastOrderChannel <- order
 
 	case ButtonCommand:
 		orders.AddCabOrder(button, localIP)
 
-		sendBackupChannel <- ElevatorBackupMessage{
+		broadcastBackupChannel <- ElevatorBackupMessage{
 				AskerIP: localIP,
 				Event:   EventElevatorBackup,
 				State: Elevator{
@@ -100,11 +99,11 @@ func buttonHandler(button ElevatorButton,
 
 
 	case ButtonStop:
-		motorChannel <- MotorStop
-		lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
+		//motorChannel <- MotorStop
+		//lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
 		log.Println("Stop button pressed. Elevator will come to a halt.")
-		time.Sleep(1 * time.Second)
-		lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
+		//time.Sleep(1 * time.Second)
+		//lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
 		//os.Exit(1)
 	}
 

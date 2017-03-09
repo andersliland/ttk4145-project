@@ -18,9 +18,9 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	const elevatorPollDelay = 50 * time.Millisecond // Move to config?
 
-	sendBroadcastChannel := make(chan OrderMessage, 5)
+	broadcastOrderChannel := make(chan OrderMessage, 5)
 	receiveOrderChannel := make(chan OrderMessage, 5)
-	sendBackupChannel := make(chan ElevatorBackupMessage, 5)
+	broadcastBackupChannel := make(chan ElevatorBackupMessage, 5)
 	receiveBackupChannel := make(chan ElevatorBackupMessage, 5)
 
 	buttonChannel := make(chan ElevatorButton)
@@ -31,9 +31,12 @@ func main() {
 	safeKillChannel := make(chan os.Signal, 10)
 	executeOrderChannel := make(chan OrderMessage, 10)
 
+	newOrder := make(chan bool)
+
+
 	var localIP string
 	var err error
-	localIP, err = network.Init(sendBroadcastChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel)
+	localIP, err = network.Init(broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel)
 	CheckError("ERROR [main]: Could not initiate network", err)
 
 	// SIMULATOR Uncomment simulatorCore lines and Comment driver lines
@@ -41,20 +44,33 @@ func main() {
 	//simulatorCore.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // elevator init
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
 
-	log.Println("[main] \t Ready with IP:", localIP)
-	go control.SystemControl(sendBroadcastChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
-	go control.MessageLoop(buttonChannel,
+	log.Println("[main]\t\t Ready with IP:", localIP)
+	go control.SystemControl(newOrder, broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
+	go control.MessageLoop(newOrder,
+		buttonChannel,
 		lightChannel,
 		motorChannel,
 		floorChannel,
-		sendBroadcastChannel,
+		broadcastOrderChannel,
 		receiveOrderChannel,
-		sendBackupChannel,
+		broadcastBackupChannel,
 		receiveBackupChannel,
 		OnlineElevators,
 		ElevatorStatus,
 		HallOrderMatrix,
 		localIP)
+
+
+	floor := driver.GoToFloorBelow(motorChannel, elevatorPollDelay)
+	broadcastBackupChannel <- ElevatorBackupMessage{
+		AskerIP: localIP,
+		Event: EventElevatorBackup,
+		State: Elevator{
+					LocalIP: localIP,
+					LastFloor: floor,
+	},
+}
+
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
@@ -66,7 +82,7 @@ func main() {
 
 func safeKill(safeKillChannel <-chan os.Signal, motorChannel chan int) {
 	<-safeKillChannel
-	//motorChannel <- MotorStop
+	motorChannel <- MotorStop
 	time.Sleep(10 * time.Millisecond) // wait for motor stop too be processed
 	log.Fatal(ColorWhite, "\nUser terminated program\nMOTOR STOPPED\n", ColorNeutral)
 	os.Exit(1)

@@ -9,15 +9,15 @@ import (
 
 const debugNetwork = false
 
-func Init(sendBroadcastChannel <-chan OrderMessage,
+func Init(broadcastOrderChannel <-chan OrderMessage,
 	receiveOrderChannel chan<- OrderMessage,
-	sendBackupChannel <-chan ElevatorBackupMessage,
+	broadcastBackupChannel <-chan ElevatorBackupMessage,
 	receiveBackupChannel chan<- ElevatorBackupMessage) (localIP string, err error) {
 
 	UDPSendChannel := make(chan UDPMessage, 10)
 	UDPReceiveChannel := make(chan UDPMessage)
 
-	go sendMessageHandler(sendBroadcastChannel, sendBackupChannel, UDPSendChannel)
+	go sendMessageHandler(broadcastOrderChannel, broadcastBackupChannel, UDPSendChannel)
 	go receiveMessageHandler(receiveOrderChannel, receiveBackupChannel, UDPReceiveChannel)
 
 	localIP, err = InitUDP(UDPSendChannel, UDPReceiveChannel)
@@ -27,13 +27,13 @@ func Init(sendBroadcastChannel <-chan OrderMessage,
 }
 
 // Receive message from main.go, marshal and send down to udp.go
-func sendMessageHandler(sendBroadcastChannel <-chan OrderMessage,
-	sendBackupChannel <-chan ElevatorBackupMessage,
+func sendMessageHandler(broadcastOrderChannel <-chan OrderMessage,
+	broadcastBackupChannel <-chan ElevatorBackupMessage,
 	UDPSendChannel chan<- UDPMessage) {
 
 	for {
 		select {
-		case message := <-sendBroadcastChannel:
+		case message := <-broadcastOrderChannel:
 			data, err := json.Marshal(message)
 			if err != nil {
 				log.Println("ERROR [network]: sendMessage marshal failed", err)
@@ -42,7 +42,7 @@ func sendMessageHandler(sendBroadcastChannel <-chan OrderMessage,
 				printNetwork("Sent an OrderMessage with " + EventType[message.Event])
 
 			}
-		case message := <-sendBackupChannel:
+		case message := <-broadcastBackupChannel:
 			data, err := json.Marshal(message)
 			if err != nil {
 				log.Println("ERROR [network]: sendBackup marshal failed", err)

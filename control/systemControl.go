@@ -16,16 +16,17 @@ import (
 	. "../utilities"
 )
 
-var debugSystemControl = true
+var debugSystemControl = false
 
 func InitSystemControl() {
 
 }
 
 func SystemControl(
-	sendBroadcastChannel chan<- OrderMessage,
+	newOrder chan bool,
+	broadcastOrderChannel chan<- OrderMessage,
 	receiveOrderChannel <-chan OrderMessage,
-	sendBackupChannel chan<- ElevatorBackupMessage,
+	broadcastBackupChannel chan<- ElevatorBackupMessage,
 	receiveBackupChannel <-chan ElevatorBackupMessage,
 	executeOrderChannel chan<- OrderMessage,
 	localIP string) {
@@ -42,7 +43,7 @@ func SystemControl(
 
 	// init states
 	/*
-		sendBackupChannel <- ElevatorBackupMessage{
+		broadcastBackupChannel <- ElevatorBackupMessage{
 			AskerIP: localIP,
 			Event:   EventRequestBackup,
 			//ResponderIP: "",
@@ -57,7 +58,7 @@ func SystemControl(
 		select {
 		// Watchdog
 		case <-watchdogKickTimer.C:
-			sendBackupChannel <- ResolveWatchdogKickMessage(ElevatorStatus[localIP])
+			broadcastBackupChannel <- ResolveWatchdogKickMessage(ElevatorStatus[localIP])
 			//log.Printf("[systemControl] Watchdog send IAmAlive from %v \n", localIP)
 
 		case <-watchdogTimer.C:
@@ -73,19 +74,21 @@ func SystemControl(
 				if _, ok := ElevatorStatus[backup.ResponderIP]; ok { // check if a value exsist for ResponderIP
 					ElevatorStatus[backup.ResponderIP].Time = time.Now() //update time for known elevator
 				} else {
-					printSystemControl(" Received EventElevatorOnline from a new elevator with IP" + backup.ResponderIP)
+					printSystemControl("Received EventElevatorOnline from a new elevator with IP" + backup.ResponderIP)
 					ElevatorStatus[backup.ResponderIP] =
 						ResolveElevator(backup.State)
 				}
 				updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
 
 			case EventElevatorBackup:
-				printSystemControl(" Received an EventElevatorBackup from " + backup.AskerIP)
+				printSystemControl("Received an EventElevatorBackup from " + backup.AskerIP)
+
+
 
 			case EventRequestBackup:
 				printSystemControl("Received an EventRequestBackup from " + backup.AskerIP)
 				if backup.AskerIP != localIP {
-					sendBackupChannel <- ElevatorBackupMessage{
+					broadcastBackupChannel <- ElevatorBackupMessage{
 						AskerIP:     backup.AskerIP,
 						ResponderIP: localIP,
 						Event:       EventElevatorBackupReturned,
@@ -93,9 +96,9 @@ func SystemControl(
 					}
 
 				} else {
-					printSystemControl(" No stored state for elevator at selv " + localIP)
+					printSystemControl("No stored state for elevator at selv " + localIP)
 					/*
-						sendBackupChannel <- ElevatorBackupMessage{
+						broadcastBackupChannel <- ElevatorBackupMessage{
 							AskerIP:     backup.AskerIP,
 							ResponderIP: localIP,
 							Event:       EventElevatorBackupReturned,
@@ -167,7 +170,7 @@ func SystemControl(
 
 				}
 
-				sendBroadcastChannel <- OrderMessage{
+				broadcastOrderChannel <- OrderMessage{
 							Floor:      order.Floor,
 							ButtonType: order.ButtonType,
 							AssignedTo: order.AssignedTo,
@@ -191,12 +194,15 @@ func SystemControl(
 							HallOrderMatrix[order.Floor][order.ButtonType].Timer.Stop() // stop ackTimeout timer
 							//HallOrderMatrix[order.Floor][order.ButtonType]
 
+							newOrder <- true
+
+
 						}else{
 							printSystemControl("Not all elevators acked")
 
 						}
 
-						sendBroadcastChannel <- OrderMessage{
+						broadcastOrderChannel <- OrderMessage{
 							Floor: order.Floor,
 							ButtonType: order.ButtonType,
 							AssignedTo: order.AssignedTo,
@@ -220,8 +226,10 @@ func SystemControl(
 			case EventAckOrderConfirmed:
 
 			case EventOrderCompleted:
+				//printSystemControl("Received EventAckNewOrder which is NotActive")
 
-			case EventAckOrderDone:
+
+			case EventAckOrderCompleted:
 				// delete order from matrix and timer functions
 
 			default:
