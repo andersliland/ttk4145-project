@@ -9,9 +9,8 @@ import (
 	"time"
 
 	"./control"
-	//"./driver"
+	"./driver"
 	"./network"
-	"./simulator/simulatorCore"
 	. "./utilities"
 )
 
@@ -19,8 +18,8 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	const elevatorPollDelay = 50 * time.Millisecond // Move to config?
 
-	sendMessageChannel := make(chan ElevatorOrderMessage, 5)
-	receiveOrderChannel := make(chan ElevatorOrderMessage, 5)
+	sendBroadcastChannel := make(chan OrderMessage, 5)
+	receiveOrderChannel := make(chan OrderMessage, 5)
 	sendBackupChannel := make(chan ElevatorBackupMessage, 5)
 	receiveBackupChannel := make(chan ElevatorBackupMessage, 5)
 
@@ -30,31 +29,31 @@ func main() {
 	floorChannel := make(chan int)
 
 	safeKillChannel := make(chan os.Signal, 10)
-	executeOrderChannel := make(chan ElevatorOrderMessage, 10)
+	executeOrderChannel := make(chan OrderMessage, 10)
 
 	var localIP string
 	var err error
-	localIP, err = network.Init(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel)
+	localIP, err = network.Init(sendBroadcastChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel)
 	CheckError("ERROR [main]: Could not initiate network", err)
 
-	simulatorCore.IOInit()                                                                         //Simulator init
-	simulatorCore.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // elevator init
-	//driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
-	//log.Println("[main] Ready with IP:", localIP)
+	// SIMULATOR Uncomment simulatorCore lines and Comment driver lines
+	//simulatorCore.IOInit()                                                                         //Simulator init
+	//simulatorCore.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // elevator init
+	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
 
-	go control.SystemControl(sendMessageChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
-
+	log.Println("[main] \t Ready with IP:", localIP)
+	go control.SystemControl(sendBroadcastChannel, receiveOrderChannel, sendBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 	go control.MessageLoop(buttonChannel,
 		lightChannel,
 		motorChannel,
 		floorChannel,
-		sendMessageChannel,
+		sendBroadcastChannel,
 		receiveOrderChannel,
 		sendBackupChannel,
 		receiveBackupChannel,
-		WorkingElevators,
-		RegisteredElevators,
-		OrderMatrix,
+		OnlineElevators,
+		ElevatorStatus,
+		HallOrderMatrix,
 		localIP)
 
 	// Kill motor when user terminates program

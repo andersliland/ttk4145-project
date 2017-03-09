@@ -52,7 +52,7 @@ func eventNewOrder(lightChannel chan ElevatorLight, motorChannel chan int, doorT
 		if orders.ShouldStop(floor, direction, localIP) {
 			doorTimerReset <- true
 			orders.RemoveFloorOrders(floor, direction, localIP)
-			//queue.RemoveFloorOrders(floor, direction, localIP sendMessageChannel) // change the above function with this later
+			//queue.RemoveFloorOrders(floor, direction, localIP sendBroadcastChannel) // change the above function with this later
 			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 			state = doorOpen
 		} else {

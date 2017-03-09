@@ -17,13 +17,13 @@ func MessageLoop(
 	lightChannel chan ElevatorLight,
 	motorChannel chan int,
 	floorChannel chan int,
-	sendMessageChannel chan ElevatorOrderMessage,
-	receiveOrderChannel chan ElevatorOrderMessage,
+	sendBroadcastChannel chan OrderMessage,
+	receiveOrderChannel chan OrderMessage,
 	sendBackupChannel chan ElevatorBackupMessage,
 	receiveBackupChannel chan ElevatorBackupMessage,
-	WorkingElevators map[string]bool,
-	RegisteredElevators map[string]*Elevator,
-	HallOrderMatrix [NumFloors][2]ElevatorOrder,
+	OnlineElevators map[string]bool,
+	ElevatorStatus map[string]*Elevator,
+	HallHallOrderMatrix [NumFloors][2]ElevatorOrder,
 	localIP string) {
 
 	newOrder := make(chan bool)
@@ -35,37 +35,36 @@ func MessageLoop(
 		// Foreslår at kun buttonChannel og floorChannel er i denne filen
 		// (det er kun det som er uavhengig av de andre heisene)
 
-		//	newOrder <- true
 		case button := <-buttonChannel: // Hardware
-
 			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor+1))
-			buttonHandler(button, sendMessageChannel, sendBackupChannel, lightChannel, motorChannel, WorkingElevators, RegisteredElevators, HallOrderMatrix, localIP)
-			newOrder <- true
+			buttonHandler(button, sendBroadcastChannel, sendBackupChannel, lightChannel, motorChannel, OnlineElevators, ElevatorStatus, HallHallOrderMatrix, localIP)
+			//newOrder <- true
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)
 			floorReached <- floor
+			printElevatorControl("floorChannel floor: " + strconv.Itoa(floor+1))
 			// Add cases for tickers
 		}
 	}
 }
 
 func buttonHandler(button ElevatorButton,
-	sendMessageChannel chan<- ElevatorOrderMessage,
+	sendBroadcastChannel chan<- OrderMessage,
 	sendBackupChannel chan<- ElevatorBackupMessage,
 	lightChannel chan<- ElevatorLight,
 	motorChannel chan<- int,
-	WorkingElevators map[string]bool,
-	RegisteredElevators map[string]*Elevator,
-	HallOrderMatrix [NumFloors][2]ElevatorOrder,
+	OnlineElevators map[string]bool,
+	ElevatorStatus map[string]*Elevator,
+	HallHallOrderMatrix [NumFloors][2]ElevatorOrder,
 	localIP string) {
 
 	//newOrder <- true
 	switch button.Kind {
 	case ButtonCallUp, ButtonCallDown:
-		orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, WorkingElevators, RegisteredElevators, HallOrderMatrix)
-		log.Println("Local assign order to ", orderAssignedTo)
+		orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus, HallHallOrderMatrix)
+		//printElevatorControl("Local assign order to " + orderAssignedTo)
 		CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
-		order := ElevatorOrderMessage{
+		order := OrderMessage{
 			Time:       time.Now(),
 			Floor:      button.Floor,
 			ButtonType: button.Kind,
@@ -74,26 +73,21 @@ func buttonHandler(button ElevatorButton,
 			SenderIP:   localIP,
 			Event:      EventNewOrder,
 		}
-		sendMessageChannel <- order
+		sendBroadcastChannel <- order
 
-	// Broadcast CabOrder as BackupMessage
-	// Add LocalOrder to Execution
 	case ButtonCommand:
 		orders.AddCabOrder(button, localIP)
 
-		/*
-			sendBackupChannel <- ElevatorBackupMessage{
+		sendBackupChannel <- ElevatorBackupMessage{
 				AskerIP: localIP,
 				Event:   EventElevatorBackup,
 				State: Elevator{
 					LocalIP: localIP,
-					// LastFloor: ,
+					//LastFloor: <-floorChannel ,
 					//	Direction: ,
 					//	IsMoving: ,
 					//	DoorStatus: ,
 					// CabOrders[button.Floor]: true, // why does this not work
-					//CabButtonFloor:       button.Floor,
-					//CabOrderMap[localIP]: button.Floor,
 				},
 				Cab: CabOrder{
 					LocalIP:  localIP,
@@ -103,7 +97,7 @@ func buttonHandler(button ElevatorButton,
 					Timer: time.Now(),
 				},
 			}
-		*/
+
 
 	case ButtonStop:
 		motorChannel <- MotorStop
@@ -117,7 +111,7 @@ func buttonHandler(button ElevatorButton,
 }
 
 func printElevatorControl(s string) {
-	if debugSystemControl {
-		log.Println("[elevatorControl]", s)
+	if debugElevatorControl {
+		log.Println("[elevatorControl] \t", s)
 	}
 }

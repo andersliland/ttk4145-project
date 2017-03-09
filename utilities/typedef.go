@@ -8,18 +8,18 @@ const NumElevators = 3
 const NumButtons = 3
 const NumFloors = 4
 
-var OrderMatrix [NumFloors][2]ElevatorOrder
-var CabOrderMatrix [NumFloors]CabOrder
+var HallOrderMatrix [NumFloors][2]ElevatorOrder
+var CabHallOrderMatrix [NumFloors]CabOrder
 
 type CabOrderList map[string][NumFloors]CabOrder
 
 // key = IPaddr
-var RegisteredElevators = make(map[string]*Elevator) // containing last known state
-var WorkingElevators = make(map[string]bool)
+var ElevatorStatus = make(map[string]*Elevator) // containing last known state
+var OnlineElevators = make(map[string]bool)
 
 var EventType = []string{
 	// BackupMessage Events
-	"EventElevatorAlive",
+	"EventElevatorOnline",
 	"EventElevatorBackup",
 	"EventRequestBackup",
 	"EventElevatorBackupReturned",
@@ -32,14 +32,14 @@ var EventType = []string{
 	"EventAckNewOrder",
 	"EventOrderConfirmed",
 	"EventAckOrderConfirmed",
-	"EventOrderDone",
-	"EventAckOrderDone",
+	"EventOrderCompleted",
+	"EventAckOrderCompleted",
 }
 
 // TODO: UPDATE network module if any changes in events
 const (
 	// BackupMessage Events
-	EventElevatorAlive = iota //  = 0
+	EventElevatorOnline = iota //  = 0
 	EventElevatorBackup
 	EventRequestBackup
 	EventElevatorBackupReturned
@@ -50,7 +50,7 @@ const (
 	EventAckNewOrder
 	EventOrderConfirmed
 	EventAckOrderConfirmed
-	EventOrderDone
+	EventOrderCompleted
 	EventAckOrderDone
 )
 
@@ -112,7 +112,7 @@ type ElevatorOrder struct {
 	Status      int
 	AssignedTo  string
 	ConfirmedBy map[string]bool
-	Timer       time.Timer // *time.Timer 'json:"-"'
+	Timer       *time.Timer // *time.Timer 'json:"-"'
 }
 
 type Elevator struct {
@@ -125,7 +125,7 @@ type Elevator struct {
 	CabOrders  [NumFloors]bool
 }
 
-type ElevatorOrderMessage struct {
+type OrderMessage struct {
 	Time       time.Time
 	Floor      int
 	ButtonType int
@@ -176,7 +176,7 @@ func ResolveWatchdogKickMessage(e *Elevator) ElevatorBackupMessage {
 	return ElevatorBackupMessage{
 		//AskerIP:     "",
 		ResponderIP: e.LocalIP,
-		Event:       EventElevatorAlive,
+		Event:       EventElevatorOnline,
 		State:       *e,
 	}
 
@@ -190,6 +190,8 @@ func ResolveBackupState(e *Elevator) ElevatorBackupMessage {
 	}
 }
 
+
+
 // ----Type: ElevatorBackupMessage ----
 func (m ElevatorBackupMessage) IsValid() bool {
 	if m.AskerIP == m.ResponderIP {
@@ -201,7 +203,9 @@ func (m ElevatorBackupMessage) IsValid() bool {
 	return true
 }
 
-func (m ElevatorOrderMessage) IsValid() bool {
+// ----Type: OrderMessage ----
+
+func (m OrderMessage) IsValid() bool {
 	if m.Floor > NumFloors || m.Floor < -1 {
 		return false
 	}
@@ -214,11 +218,21 @@ func (m ElevatorOrderMessage) IsValid() bool {
 	return true
 }
 
+// ----Type: Elevator ----
 func (e *Elevator) AddCabOrder(Floor int) {
 	e.CabOrders[Floor] = true
 }
 
 func (e *Elevator) RemoveCabOrder(Floor int) {
 	e.CabOrders[Floor] = false
+
+}
+
+// ----Type: ElevatorOrder ----
+func (order *ElevatorOrder) InitConfirmedBy() {
+	for key := range order.ConfirmedBy {
+		delete(order.ConfirmedBy, key)
+	}
+	order.ConfirmedBy = make(map[string]bool)
 
 }

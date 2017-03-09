@@ -16,7 +16,7 @@ type Driver struct {
 
 type Network struct {
 	sendMessage   chan ElevetorOrderMessage
-	receiveOrder  chan ElevatorOrderMessage
+	receiveOrder  chan OrderMessage
 	sendBackup    chan ElevatorBackupMessage
 	receiveBackup chan ElevatorBackup
 }

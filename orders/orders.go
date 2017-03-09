@@ -7,12 +7,12 @@ import (
 )
 
 func AddCabOrder(button ElevatorButton, localIP string) {
-	RegisteredElevators[localIP].CabOrders[button.Floor] = true
+	ElevatorStatus[localIP].CabOrders[button.Floor] = true
 }
 
 func ShouldStop(floor, direction int, localIP string) bool {
 	// cabOrders are checked first, do not depend on direction
-	if RegisteredElevators[localIP].CabOrders[floor] == true {
+	if ElevatorStatus[localIP].CabOrders[floor] == true {
 		return true
 	}
 
@@ -20,17 +20,17 @@ func ShouldStop(floor, direction int, localIP string) bool {
 	switch direction {
 	case MotorStop:
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-			if OrderMatrix[floor][k].AssignedTo == localIP {
+			if HallOrderMatrix[floor][k].AssignedTo == localIP {
 				return true
 			}
 		}
 	case MotorUp:
-		if OrderMatrix[floor][ButtonCallUp].AssignedTo == localIP {
+		if HallOrderMatrix[floor][ButtonCallUp].AssignedTo == localIP {
 			return true
 		}
 		return floor == NumFloors-1 || !anyRequestsAbove(floor, localIP)
 	case MotorDown:
-		if OrderMatrix[floor][ButtonCallDown].AssignedTo == localIP {
+		if HallOrderMatrix[floor][ButtonCallDown].AssignedTo == localIP {
 			return true
 		}
 		return floor == 0 || !anyRequestsBelow(floor, localIP)
@@ -74,14 +74,14 @@ func ChooseDirection(floor, direction int, localIP string) int {
 	// Might be stuck in a loop (between say 2 floors), depends on implementation in eventManager.go
 }
 
-// Does this function also need to send a message on the sendMessageChannel to notify that it has removed an order?
+// Does this function also need to send a message on the sendBroadcastChannel to notify that it has removed an order?
 func RemoveFloorOrders(floor, direction int, localIP string) {
-	RegisteredElevators[localIP].CabOrders[floor] = false
+	ElevatorStatus[localIP].CabOrders[floor] = false
 	switch direction {
 	case MotorUp:
-		OrderMatrix[floor][ButtonCallUp].Status = NotActive
+		HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
 	case MotorDown:
-		OrderMatrix[floor][ButtonCallDown].Status = NotActive
+		HallOrderMatrix[floor][ButtonCallDown].Status = NotActive
 	default:
 		log.Println("ERROR [order]: Undefined direction for RemoveFloorOrders")
 	}
@@ -91,11 +91,11 @@ func RemoveFloorOrders(floor, direction int, localIP string) {
 
 func anyRequestsAbove(floor int, localIP string) bool {
 	for f := floor + 1; f < NumFloors; f++ {
-		if RegisteredElevators[localIP].CabOrders[f] {
+		if ElevatorStatus[localIP].CabOrders[f] {
 			return true
 		}
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-			if OrderMatrix[floor][k].AssignedTo == localIP {
+			if HallOrderMatrix[floor][k].AssignedTo == localIP {
 				return true
 			}
 		}
@@ -105,11 +105,11 @@ func anyRequestsAbove(floor int, localIP string) bool {
 
 func anyRequestsBelow(floor int, localIP string) bool {
 	for f := 0; f < floor; f++ {
-		if RegisteredElevators[localIP].CabOrders[f] {
+		if ElevatorStatus[localIP].CabOrders[f] {
 			return true
 		}
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-			if OrderMatrix[floor][k].AssignedTo == localIP {
+			if HallOrderMatrix[floor][k].AssignedTo == localIP {
 				return true
 			}
 		}

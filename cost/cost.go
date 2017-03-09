@@ -8,7 +8,7 @@ import (
 	. "../utilities"
 )
 
-const debugCost = true
+const debugCost = false
 
 const timeBetweenFloor = 2 //seconds //TODO: time and test1
 const timeAtFloor = 3      //seconds //TODO: update at the end
@@ -22,18 +22,18 @@ type orderCosts []orderCost
 
 // Calculate cost for each elevator, add to slice, sort for and return IP of elevator with lowest cost
 func AssignOrderToElevator(Floor int, Kind int,
-	WorkingElevators map[string]bool,
-	RegisteredElevators map[string]*Elevator,
-	HallOrderMatrix [NumFloors][2]ElevatorOrder) (ip string, err error) {
+	OnlineElevators map[string]bool,
+	ElevatorStatus map[string]*Elevator,
+	HallHallOrderMatrix [NumFloors][2]ElevatorOrder) (ip string, err error) {
 
-	numWorkingElevators := len(WorkingElevators)
-	if numWorkingElevators == 0 {
+	numOnlineElevators := len(OnlineElevators)
+	if numOnlineElevators == 0 {
 		return "", errors.New("[cost] Cannot Assign new order with zero active elevators")
 	}
 	cost := orderCosts{} // initialize slice with empty interface
 
-	for ip, _ := range WorkingElevators { // key, value
-		floorCount, stopCount := calculateOrderCost(ip, Floor, Kind, RegisteredElevators[ip], HallOrderMatrix)
+	for ip, _ := range OnlineElevators { // key, value
+		floorCount, stopCount := calculateOrderCost(ip, Floor, Kind, ElevatorStatus[ip], HallHallOrderMatrix)
 		cost_num := floorCount*timeBetweenFloor + stopCount*timeAtFloor
 		cost = append(cost, orderCost{cost_num, ip})
 		printDebug(" Cost of order is " + string(cost_num) + " for IP: " + ip)
@@ -50,7 +50,7 @@ func calculateOrderCost(ip string,
 	Floor int,
 	ButtonKind int,
 	elevator *Elevator,
-	HallOrderMatrix [NumFloors][2]ElevatorOrder) (floorCount, stopCount int) {
+	HallHallOrderMatrix [NumFloors][2]ElevatorOrder) (floorCount, stopCount int) {
 
 	for f := 0; f > NumFloors; f++ {
 

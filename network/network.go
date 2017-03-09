@@ -9,15 +9,15 @@ import (
 
 const debugNetwork = false
 
-func Init(sendMessageChannel <-chan ElevatorOrderMessage,
-	receiveOrderChannel chan<- ElevatorOrderMessage,
+func Init(sendBroadcastChannel <-chan OrderMessage,
+	receiveOrderChannel chan<- OrderMessage,
 	sendBackupChannel <-chan ElevatorBackupMessage,
 	receiveBackupChannel chan<- ElevatorBackupMessage) (localIP string, err error) {
 
 	UDPSendChannel := make(chan UDPMessage, 10)
 	UDPReceiveChannel := make(chan UDPMessage)
 
-	go sendMessageHandler(sendMessageChannel, sendBackupChannel, UDPSendChannel)
+	go sendMessageHandler(sendBroadcastChannel, sendBackupChannel, UDPSendChannel)
 	go receiveMessageHandler(receiveOrderChannel, receiveBackupChannel, UDPReceiveChannel)
 
 	localIP, err = InitUDP(UDPSendChannel, UDPReceiveChannel)
@@ -27,19 +27,19 @@ func Init(sendMessageChannel <-chan ElevatorOrderMessage,
 }
 
 // Receive message from main.go, marshal and send down to udp.go
-func sendMessageHandler(sendMessageChannel <-chan ElevatorOrderMessage,
+func sendMessageHandler(sendBroadcastChannel <-chan OrderMessage,
 	sendBackupChannel <-chan ElevatorBackupMessage,
 	UDPSendChannel chan<- UDPMessage) {
 
 	for {
 		select {
-		case message := <-sendMessageChannel:
+		case message := <-sendBroadcastChannel:
 			data, err := json.Marshal(message)
 			if err != nil {
 				log.Println("ERROR [network]: sendMessage marshal failed", err)
 			} else {
 				UDPSendChannel <- UDPMessage{Data: data}
-				printNetwork("Sent an ElevatorOrderMessage with " + EventType[message.Event])
+				printNetwork("Sent an OrderMessage with " + EventType[message.Event])
 
 			}
 		case message := <-sendBackupChannel:
@@ -56,7 +56,7 @@ func sendMessageHandler(sendMessageChannel <-chan ElevatorOrderMessage,
 
 // Receive message from udp.go, unmarshal and send up to main
 func receiveMessageHandler(
-	receiveOrderChannel chan<- ElevatorOrderMessage,
+	receiveOrderChannel chan<- OrderMessage,
 	receiveBackupChannel chan<- ElevatorBackupMessage,
 	UDPReceiveChannel <-chan UDPMessage) {
 
@@ -88,17 +88,17 @@ func receiveMessageHandler(
 						log.Print("[network] ElevatorBackupMessage Unmarshal failed", err)
 					}
 				} else if event >= 6 && event <= 12 {
-					var orderMessage = ElevatorOrderMessage{}
+					var orderMessage = OrderMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &orderMessage); err == nil { //unmarshal into correct message struct
-						printNetwork("[network] ElevatorOrderMessage Unmarshal sucess")
+						printNetwork("[network] OrderMessage Unmarshal sucess")
 						if orderMessage.IsValid() {
 							receiveOrderChannel <- orderMessage
-							printNetwork("Recived an ElevatorOrderMessage with Event " + EventType[orderMessage.Event])
+							printNetwork("Recived an OrderMessage with Event " + EventType[orderMessage.Event])
 						} else {
-							printNetwork("Rejected an ElevatorOrderMessage with Event " + EventType[orderMessage.Event])
+							printNetwork("Rejected an OrderMessage with Event " + EventType[orderMessage.Event])
 						}
 					} else {
-						log.Print("[network] ElevatorOrderMessage Unmarshal failed")
+						log.Print("[network] OrderMessage Unmarshal failed")
 					}
 				} else {
 					log.Println("[network] Recived an unknown message type")
