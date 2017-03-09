@@ -9,10 +9,14 @@ const NumButtons = 3
 const NumFloors = 4
 
 var HallOrderMatrix [NumFloors][2]HallOrder
-var CabHallOrderMatrix [NumFloors]CabOrder
+
+//var CabHallOrderMatrix [NumFloors]CabOrder
 
 // key = IPaddr
 var ElevatorStatus = make(map[string]*Elevator) // containing last known state
+
+//var ElevatorLocalMap = make(map[string]*ElevatorLocal)
+
 var OnlineElevators = make(map[string]bool)
 
 var EventType = []string{
@@ -122,15 +126,22 @@ type HallOrder struct {
 type Elevator struct { // syncronised for all elevators
 	LocalIP         string
 	Time            time.Time
+	State           int //idle, moving, doorOpen
+	Floor           int // current floor for elevator
+	Direction       int // current direction: MotorStop, MotorUp, MotorDown
 	CabOrders       [NumFloors]bool
 	HallOrderMatrix [NumFloors][2]HallOrder
 }
 
+/*
 type ElevatorLocal struct {
-	State     int //idle, moving, doorOpen
-	Floor     int // current floor for elevator
-	Direction int // current direction: MotorStop, MotorUp, MotorDown
+	State           int //idle, moving, doorOpen
+	LastFloor       int // current floor for elevator
+	Direction       int // current direction: MotorStop, MotorUp, MotorDown
+	CabOrders       [NumFloors]bool
+	HallOrderMatrix [NumFloors][2]HallOrder
 }
+*/
 
 type OrderMessage struct {
 	Time       time.Time

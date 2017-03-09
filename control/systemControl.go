@@ -23,7 +23,7 @@ func InitSystemControl() {
 }
 
 func SystemControl(
-	newOrder chan ElevatorLocal,
+	newOrder chan bool,
 	broadcastOrderChannel chan<- OrderMessage,
 	receiveOrderChannel <-chan OrderMessage,
 	broadcastBackupChannel chan<- BackupMessage,
@@ -192,13 +192,8 @@ func SystemControl(
 							HallOrderMatrix[order.Floor][order.ButtonType].Timer.Stop() // stop ackTimeout timer
 							//HallOrderMatrix[order.Floor][order.ButtonType]
 
-							/*newOrder <- ElevatorLocal{
-								State: ,
-								Floor: ,
-								Direction: ,
+							newOrder <- true
 
-							}
-							*/
 						} else {
 							printSystemControl("Not all elevators acked")
 

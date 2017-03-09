@@ -13,7 +13,7 @@ import (
 const debugElevatorControl = true
 
 func MessageLoop(
-	newOrder chan ElevatorLocal,
+	newOrder chan bool,
 	buttonChannel chan ElevatorButton,
 	lightChannel chan ElevatorLight,
 	motorChannel chan int,
@@ -52,27 +52,29 @@ func MessageLoop(
 
 			case ButtonCommand:
 				orders.AddCabOrder(button, localIP)
+				newOrder <- true
 
-				broadcastBackupChannel <- BackupMessage{
-					AskerIP: localIP,
-					Event:   EventElevatorBackup,
-					State: Elevator{
-						LocalIP: localIP,
-						//LastFloor: <-floorChannel ,
-						//	Direction: ,
-						//	IsMoving: ,
-						//	DoorStatus: ,
-						// CabOrders[button.Floor]: true, // why does this not work
-					},
-					Cab: CabOrder{
-						LocalIP:  localIP,
-						OriginIP: localIP,
-						Floor:    button.Floor,
-						//ConfirmedBy: ,
-						Timer: time.Now(),
-					},
-				}
-
+				/*
+					broadcastBackupChannel <- BackupMessage{
+						AskerIP: localIP,
+						Event:   EventElevatorBackup,
+						State: Elevator{
+							LocalIP: localIP,
+							//LastFloor: <-floorChannel ,
+							//	Direction: ,
+							//	IsMoving: ,
+							//	DoorStatus: ,
+							// CabOrders[button.Floor]: true, // why does this not work
+						},
+						Cab: CabOrder{
+							LocalIP:  localIP,
+							OriginIP: localIP,
+							Floor:    button.Floor,
+							//ConfirmedBy: ,
+							Timer: time.Now(),
+						},
+					}
+				*/
 			case ButtonStop:
 				motorChannel <- MotorStop
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}

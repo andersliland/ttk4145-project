@@ -24,7 +24,7 @@ const (
 // RemoveFloorOrders(floor, localIP)
 
 func eventManager(
-	newOrder chan ElevatorLocal,
+	newOrder chan bool,
 	broadcastOrderChannel chan OrderMessage,
 	floorReached chan int,
 	lightChannel chan ElevatorLight,
@@ -48,7 +48,7 @@ func eventManager(
 				printEventManager("Received new order: floor " + strconv.Itoa(floor+1))
 				direction = orders.ChooseDirection(floor, direction, localIP)
 				if orders.ShouldStop(floor, direction, localIP) {
-					printEventManager("Stopeed at floor " + strconv.Itoa(floor+1))
+					printEventManager("Stopped at floor " + strconv.Itoa(floor+1))
 					doorTimerReset <- true
 					orders.RemoveFloorOrders(floor, direction, localIP)
 					//orders.RemoveFloorOrders(floor, direction, localIP broadcastOrderChannel) // change the above function with this later
@@ -69,9 +69,10 @@ func eventManager(
 				// Insert error handling
 			}
 		case floor = <-floorReached:
+			ElevatorStatus[localIP].Floor = floor //  TODO: Confirm functionality of this assignment
 			switch state {
 			case idle:
-				printEventManager("Elevator reached floor " + strconv.Itoa(floor) + " in state IDLE")
+				printEventManager("Elevator reached floor " + strconv.Itoa(floor+1) + " in state IDLE")
 
 			case moving:
 				if orders.ShouldStop(floor, direction, localIP) {

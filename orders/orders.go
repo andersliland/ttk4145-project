@@ -24,19 +24,21 @@ func ShouldStop(floor, direction int, localIP string) bool {
 	// Check both hallOrders, and for special cases (top floor, bottom floor, no more orders in direction)
 	switch direction {
 	case MotorStop:
-
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
 			if HallOrderMatrix[floor][k].AssignedTo == localIP && HallOrderMatrix[floor][k].Status == Awaiting {
+				printOrders("Found order at floor " + strconv.Itoa(floor) + " of type " + ButtonType[k] + " (direction: " + MotorStatus[direction] + ")")
 				return true
 			}
 		}
 	case MotorUp:
 		if HallOrderMatrix[floor][ButtonCallUp].AssignedTo == localIP && HallOrderMatrix[floor][ButtonCallUp].Status == Awaiting {
+			printOrders("Found order at floor " + strconv.Itoa(floor) + " of type " + ButtonType[ButtonCallUp] + " (direction: " + MotorStatus[direction] + ")")
 			return true
 		}
 		return floor == NumFloors-1 || !anyRequestsAbove(floor, localIP)
 	case MotorDown:
 		if HallOrderMatrix[floor][ButtonCallDown].AssignedTo == localIP && HallOrderMatrix[floor][ButtonCallDown].Status == Awaiting {
+			printOrders("Found order at floor " + strconv.Itoa(floor) + " of type " + ButtonType[ButtonCallDown] + " (direction: " + MotorStatus[direction] + ")")
 			return true
 		}
 		return floor == 0 || !anyRequestsBelow(floor, localIP)
@@ -82,16 +84,24 @@ func ChooseDirection(floor, direction int, localIP string) int {
 
 // Does this function also need to send a message on the broadcastOrderChannel to notify that it has removed an order?
 func RemoveFloorOrders(floor, direction int, localIP string) {
-
 	if ElevatorStatus[localIP].CabOrders[floor] == true {
 		printOrders("Removed CabOrder at floor " + strconv.Itoa(floor+1) + " for " + localIP)
 	}
 	ElevatorStatus[localIP].CabOrders[floor] = false
 
 	switch direction {
+	case MotorStop:
+		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
+			if HallOrderMatrix[floor][k].AssignedTo == localIP {
+				HallOrderMatrix[floor][k].Status = NotActive
+				printOrders("Removed HallOrder at floor " + strconv.Itoa(floor+1) + " for direction " + MotorStatus[direction] + ". Ip " + localIP)
+			}
+		}
 	case MotorUp:
-		HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
-		printOrders("Removed HallOrder at floor " + strconv.Itoa(floor) + " for direction " + MotorStatus[direction] + ". Ip " + localIP)
+		if HallOrderMatrix[floor][ButtonCallUp].AssignedTo == localIP {
+			HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
+		}
+		printOrders("Removed HallOrder at floor " + strconv.Itoa(floor+1) + " for direction " + MotorStatus[direction] + ". Ip " + localIP)
 		// send order done
 		/*
 			broadcastOrderChannel <- ElevatorOrderMessage{
@@ -103,8 +113,10 @@ func RemoveFloorOrders(floor, direction int, localIP string) {
 		*/
 
 	case MotorDown:
-		HallOrderMatrix[floor][ButtonCallDown].Status = NotActive
-		printOrders("Removed HallOrder at floor" + strconv.Itoa(floor) + " for direction " + MotorStatus[direction] + ". Ip" + localIP)
+		if HallOrderMatrix[floor][ButtonCallDown].AssignedTo == localIP {
+			HallOrderMatrix[floor][ButtonCallDown].Status = NotActive
+		}
+		printOrders("Removed HallOrder at floor" + strconv.Itoa(floor+1) + " for direction " + MotorStatus[direction] + ". Ip" + localIP)
 
 	default:
 		log.Println("ERROR [order]: Undefined direction for RemoveFloorOrders")

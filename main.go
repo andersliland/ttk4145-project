@@ -28,7 +28,7 @@ func main() {
 	motorChannel := make(chan int)
 	floorChannel := make(chan int)
 
-	newOrder := make(chan ElevatorLocal)
+	newOrder := make(chan bool)
 
 	safeKillChannel := make(chan os.Signal, 10)
 	executeOrderChannel := make(chan OrderMessage, 10)
