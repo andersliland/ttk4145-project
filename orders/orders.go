@@ -91,7 +91,7 @@ func RemoveFloorOrders(floor, direction int, localIP string) {
 	switch direction {
 	case MotorUp:
 		HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
-		printOrders("Removed HallOrder at floor" + strconv.Itoa(floor) + " for direction " + MotorStatus[direction] + ". Ip" + localIP)
+		printOrders("Removed HallOrder at floor " + strconv.Itoa(floor) + " for direction " + MotorStatus[direction] + ". Ip " + localIP)
 		// send order done
 		/*
 			broadcastOrderChannel <- ElevatorOrderMessage{

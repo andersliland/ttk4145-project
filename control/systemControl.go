@@ -23,11 +23,11 @@ func InitSystemControl() {
 }
 
 func SystemControl(
-	newOrder chan bool,
+	newOrder chan ElevatorLocal,
 	broadcastOrderChannel chan<- OrderMessage,
 	receiveOrderChannel <-chan OrderMessage,
-	broadcastBackupChannel chan<- ElevatorBackupMessage,
-	receiveBackupChannel <-chan ElevatorBackupMessage,
+	broadcastBackupChannel chan<- BackupMessage,
+	receiveBackupChannel <-chan BackupMessage,
 	executeOrderChannel chan<- OrderMessage,
 	localIP string) {
 
@@ -43,7 +43,7 @@ func SystemControl(
 
 	// init states
 	/*
-		broadcastBackupChannel <- ElevatorBackupMessage{
+		broadcastBackupChannel <- BackupMessage{
 			AskerIP: localIP,
 			Event:   EventRequestBackup,
 			//ResponderIP: "",
@@ -51,7 +51,7 @@ func SystemControl(
 		}
 	*/
 
-	ElevatorStatus[localIP] = ResolveElevator(Elevator{LocalIP: localIP, LastFloor: 2})
+	ElevatorStatus[localIP] = ResolveElevator(Elevator{LocalIP: localIP})
 	updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
 
 	for {
@@ -86,7 +86,7 @@ func SystemControl(
 			case EventRequestBackup:
 				printSystemControl("Received an EventRequestBackup from " + backup.AskerIP)
 				if backup.AskerIP != localIP {
-					broadcastBackupChannel <- ElevatorBackupMessage{
+					broadcastBackupChannel <- BackupMessage{
 						AskerIP:     backup.AskerIP,
 						ResponderIP: localIP,
 						Event:       EventElevatorBackupReturned,
@@ -96,7 +96,7 @@ func SystemControl(
 				} else {
 					printSystemControl("No stored state for elevator at selv " + localIP)
 					/*
-						broadcastBackupChannel <- ElevatorBackupMessage{
+						broadcastBackupChannel <- BackupMessage{
 							AskerIP:     backup.AskerIP,
 							ResponderIP: localIP,
 							Event:       EventElevatorBackupReturned,
@@ -131,7 +131,7 @@ func SystemControl(
 			case EventAckCabOrder:
 
 			default:
-				log.Println("Received invalid ElevatorBackupMessage from", backup.ResponderIP)
+				log.Println("Received invalid BackupMessage from", backup.ResponderIP)
 			}
 
 		// Order
@@ -154,10 +154,10 @@ func SystemControl(
 						HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(ackTimeLimit, func() {
 							log.Println("Timeout \t A new order was not acked by all ")
 							/*
-									ackTimeout <- ElevatorOrder{
+									ackTimeout <- HallOrder{
 									 Floor: order.Floor,
 									 Type: order.ButtonType,
-									 Order: ElevatorOrder{
+									 Order: HallOrder{
 										 Status: Awaiting,
 										 AssignedTo: order.AssignedTo,
 										 Timer: HallOrderMatrix[order.Floor][order.ButtonType].Timer,
@@ -192,8 +192,13 @@ func SystemControl(
 							HallOrderMatrix[order.Floor][order.ButtonType].Timer.Stop() // stop ackTimeout timer
 							//HallOrderMatrix[order.Floor][order.ButtonType]
 
-							newOrder <- true
+							/*newOrder <- ElevatorLocal{
+								State: ,
+								Floor: ,
+								Direction: ,
 
+							}
+							*/
 						} else {
 							printSystemControl("Not all elevators acked")
 
@@ -257,7 +262,7 @@ func updateOnlineElevators(ElevatorStatus map[string]*Elevator, OnlineElevators 
 	}
 }
 
-func allElevatorsHaveAcked(OnlineElevators map[string]bool, HallOrderMatrix [NumFloors][2]ElevatorOrder, order OrderMessage) bool {
+func allElevatorsHaveAcked(OnlineElevators map[string]bool, HallOrderMatrix [NumFloors][2]HallOrder, order OrderMessage) bool {
 	for ip, _ := range OnlineElevators {
 		if _, confirmedBy := HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[ip]; !confirmedBy {
 			return false

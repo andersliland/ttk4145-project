@@ -11,8 +11,8 @@ const debugNetwork = false
 
 func Init(broadcastOrderChannel <-chan OrderMessage,
 	receiveOrderChannel chan<- OrderMessage,
-	broadcastBackupChannel <-chan ElevatorBackupMessage,
-	receiveBackupChannel chan<- ElevatorBackupMessage) (localIP string, err error) {
+	broadcastBackupChannel <-chan BackupMessage,
+	receiveBackupChannel chan<- BackupMessage) (localIP string, err error) {
 
 	UDPSendChannel := make(chan UDPMessage, 10)
 	UDPReceiveChannel := make(chan UDPMessage)
@@ -28,7 +28,7 @@ func Init(broadcastOrderChannel <-chan OrderMessage,
 
 // Receive message from main.go, marshal and send down to udp.go
 func sendMessageHandler(broadcastOrderChannel <-chan OrderMessage,
-	broadcastBackupChannel <-chan ElevatorBackupMessage,
+	broadcastBackupChannel <-chan BackupMessage,
 	UDPSendChannel chan<- UDPMessage) {
 
 	for {
@@ -48,7 +48,7 @@ func sendMessageHandler(broadcastOrderChannel <-chan OrderMessage,
 				log.Println("ERROR [network]: sendBackup marshal failed", err)
 			} else {
 				UDPSendChannel <- UDPMessage{Data: data}
-				printNetwork("Sent an ElevatorBackupMessage " + EventType[message.Event])
+				printNetwork("Sent an BackupMessage " + EventType[message.Event])
 			}
 		}
 	}
@@ -57,7 +57,7 @@ func sendMessageHandler(broadcastOrderChannel <-chan OrderMessage,
 // Receive message from udp.go, unmarshal and send up to main
 func receiveMessageHandler(
 	receiveOrderChannel chan<- OrderMessage,
-	receiveBackupChannel chan<- ElevatorBackupMessage,
+	receiveBackupChannel chan<- BackupMessage,
 	UDPReceiveChannel <-chan UDPMessage) {
 
 	for {
@@ -75,17 +75,17 @@ func receiveMessageHandler(
 				event := int(m["Event"].(float64)) // type assertion, float64 because
 
 				if event <= 5 && event >= 0 {
-					var backupMessage = ElevatorBackupMessage{}
+					var backupMessage = BackupMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &backupMessage); err == nil { //unmarshal into correct message struct
-						printNetwork("ElevatorBackupMessage Unmarshal sucess")
+						printNetwork("BackupMessage Unmarshal sucess")
 						if backupMessage.IsValid() {
 							receiveBackupChannel <- backupMessage
-							printNetwork("Recived an ElevatorBackupMessage with Event " + EventType[backupMessage.Event])
+							printNetwork("Recived an BackupMessage with Event " + EventType[backupMessage.Event])
 						} else {
-							printNetwork("Rejected an ElevatorBackupMessage with Event " + EventType[backupMessage.Event])
+							printNetwork("Rejected an BackupMessage with Event " + EventType[backupMessage.Event])
 						}
 					} else {
-						log.Print("[network] ElevatorBackupMessage Unmarshal failed", err)
+						log.Print("[network] BackupMessage Unmarshal failed", err)
 					}
 				} else if event >= 6 && event <= 12 {
 					var orderMessage = OrderMessage{}

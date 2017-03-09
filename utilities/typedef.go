@@ -8,10 +8,8 @@ const NumElevators = 3
 const NumButtons = 3
 const NumFloors = 4
 
-var HallOrderMatrix [NumFloors][2]ElevatorOrder
+var HallOrderMatrix [NumFloors][2]HallOrder
 var CabHallOrderMatrix [NumFloors]CabOrder
-
-type CabOrderList map[string][NumFloors]CabOrder
 
 // key = IPaddr
 var ElevatorStatus = make(map[string]*Elevator) // containing last known state
@@ -114,21 +112,24 @@ type CabOrder struct {
 	Timer       time.Time
 }
 
-type ElevatorOrder struct {
+type HallOrder struct {
 	Status      int
 	AssignedTo  string
 	ConfirmedBy map[string]bool
 	Timer       *time.Timer // *time.Timer 'json:"-"'
 }
 
-type Elevator struct {
-	LocalIP    string
-	LastFloor  int
-	Direction  int
-	IsMoving   bool
-	DoorStatus bool
-	Time       time.Time
-	CabOrders  [NumFloors]bool
+type Elevator struct { // syncronised for all elevators
+	LocalIP         string
+	Time            time.Time
+	CabOrders       [NumFloors]bool
+	HallOrderMatrix [NumFloors][2]HallOrder
+}
+
+type ElevatorLocal struct {
+	State     int //idle, moving, doorOpen
+	Floor     int // current floor for elevator
+	Direction int // current direction: MotorStop, MotorUp, MotorDown
 }
 
 type OrderMessage struct {
@@ -141,7 +142,7 @@ type OrderMessage struct {
 	Event      int
 }
 
-type ElevatorBackupMessage struct {
+type BackupMessage struct {
 	AskerIP     string
 	ResponderIP string
 	Event       int
@@ -168,18 +169,14 @@ const (
 
 func ResolveElevator(e Elevator) *Elevator {
 	return &Elevator{
-		LocalIP:    e.LocalIP,
-		LastFloor:  e.LastFloor,
-		Direction:  e.Direction,
-		IsMoving:   e.IsMoving,
-		DoorStatus: e.DoorStatus,
-		Time:       time.Now(),
-		CabOrders:  e.CabOrders,
+		LocalIP:   e.LocalIP,
+		Time:      time.Now(),
+		CabOrders: e.CabOrders,
 	}
 }
 
-func ResolveWatchdogKickMessage(e *Elevator) ElevatorBackupMessage {
-	return ElevatorBackupMessage{
+func ResolveWatchdogKickMessage(e *Elevator) BackupMessage {
+	return BackupMessage{
 		//AskerIP:     "",
 		ResponderIP: e.LocalIP,
 		Event:       EventElevatorOnline,
@@ -188,16 +185,16 @@ func ResolveWatchdogKickMessage(e *Elevator) ElevatorBackupMessage {
 
 }
 
-func ResolveBackupState(e *Elevator) ElevatorBackupMessage {
-	return ElevatorBackupMessage{
+func ResolveBackupState(e *Elevator) BackupMessage {
+	return BackupMessage{
 		ResponderIP: e.LocalIP,
 		Event:       EventElevatorBackup,
 		State:       *e,
 	}
 }
 
-// ----Type: ElevatorBackupMessage ----
-func (m ElevatorBackupMessage) IsValid() bool {
+// ----Type: BackupMessage ----
+func (m BackupMessage) IsValid() bool {
 	if m.AskerIP == m.ResponderIP {
 		return false
 	}
@@ -232,8 +229,8 @@ func (e *Elevator) RemoveCabOrder(Floor int) {
 
 }
 
-// ----Type: ElevatorOrder ----
-func (order *ElevatorOrder) InitConfirmedBy() {
+// ----Type: HallOrder ----
+func (order *HallOrder) InitConfirmedBy() {
 	for key := range order.ConfirmedBy {
 		delete(order.ConfirmedBy, key)
 	}

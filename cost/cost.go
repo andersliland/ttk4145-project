@@ -24,7 +24,7 @@ type orderCosts []orderCost
 func AssignOrderToElevator(Floor int, Kind int,
 	OnlineElevators map[string]bool,
 	ElevatorStatus map[string]*Elevator,
-	HallHallOrderMatrix [NumFloors][2]ElevatorOrder) (ip string, err error) {
+	HallHallOrderMatrix [NumFloors][2]HallOrder) (ip string, err error) {
 
 	numOnlineElevators := len(OnlineElevators)
 	if numOnlineElevators == 0 {
@@ -50,7 +50,7 @@ func calculateOrderCost(ip string,
 	Floor int,
 	ButtonKind int,
 	elevator *Elevator,
-	HallHallOrderMatrix [NumFloors][2]ElevatorOrder) (floorCount, stopCount int) {
+	HallHallOrderMatrix [NumFloors][2]HallOrder) (floorCount, stopCount int) {
 
 	for f := 0; f > NumFloors; f++ {
 

@@ -171,19 +171,19 @@ func SetFloorIndicator(floor int) {
 	}
 }
 
-func  GoToFloorBelow(motorChannel chan int, pollDelay time.Duration) int {
+func GoToFloorBelow(motorChannel chan int, pollDelay time.Duration) {
 	if readFloorSensor() == FloorInvalid {
 		motorChannel <- MotorDown
 		for {
 			if floor := readFloorSensor(); floor != FloorInvalid {
 				motorChannel <- MotorStop
-				return floor
+				//return floor
 			} else {
 				time.Sleep(pollDelay)
 			}
 		}
 	}
-	return readFloorSensor()
+	//return readFloorSensor()
 }
 
 func printDebug(s string) {

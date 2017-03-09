@@ -18,21 +18,22 @@ const (
 	doorOpen
 )
 
-var state int = idle
-var floor int = FloorInvalid // to initialize or not to initialize?
-var direction int
-
 // Need three functions in an orders.go file to work:
 // ShouldStop(floor, direction, localIP)
 // ChooseDirection(floor, direction, localIP)
 // RemoveFloorOrders(floor, localIP)
 
 func eventManager(
-	newOrder chan bool,
+	newOrder chan ElevatorLocal,
 	broadcastOrderChannel chan OrderMessage,
 	floorReached chan int,
 	lightChannel chan ElevatorLight,
 	motorChannel chan int, localIP string) {
+
+	var state int = idle
+	var floor int = FloorInvalid // to initialize or not to initialize?
+	var direction int
+
 	// if restore order from file do ..., else:
 	const pollDelay = 5 * time.Millisecond
 	doorTimeout := make(chan bool)
@@ -42,84 +43,76 @@ func eventManager(
 	for {
 		select {
 		case <-newOrder:
-			eventNewOrder(broadcastOrderChannel, lightChannel, motorChannel, doorTimerReset, localIP)
+			switch state {
+			case idle:
+				printEventManager("Received new order: floor " + strconv.Itoa(floor+1))
+				direction = orders.ChooseDirection(floor, direction, localIP)
+				if orders.ShouldStop(floor, direction, localIP) {
+					printEventManager("Stopeed at floor " + strconv.Itoa(floor+1))
+					doorTimerReset <- true
+					orders.RemoveFloorOrders(floor, direction, localIP)
+					//orders.RemoveFloorOrders(floor, direction, localIP broadcastOrderChannel) // change the above function with this later
+					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
+					state = doorOpen
+				} else {
+					motorChannel <- direction
+					state = moving
+					//newState <- moving
+				}
+			case moving: // Ignore
+			case doorOpen:
+				if orders.ShouldStop(floor, direction, localIP) {
+					doorTimerReset <- true
+					orders.RemoveFloorOrders(floor, direction, localIP)
+				}
+			default:
+				// Insert error handling
+			}
 		case floor = <-floorReached:
-			eventFloorReached(lightChannel, motorChannel, doorTimerReset, localIP)
+			switch state {
+			case idle:
+				printEventManager("Elevator reached floor " + strconv.Itoa(floor) + " in state IDLE")
+
+			case moving:
+				if orders.ShouldStop(floor, direction, localIP) {
+					doorTimerReset <- true
+					orders.RemoveFloorOrders(floor, direction, localIP)
+					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
+					//direction = MotorStop
+					motorChannel <- MotorStop
+					state = doorOpen
+				}
+			case doorOpen:
+				// not applicable
+
+			default:
+				// Insert error handling
+			}
 		case <-doorTimeout:
-			eventDoorTimeout(lightChannel, motorChannel, localIP)
-		}
-	}
-}
+			switch state {
+			case idle:
+				// not applicable
 
-func eventNewOrder(broadcastOrderChannel chan OrderMessage, lightChannel chan ElevatorLight, motorChannel chan int, doorTimerReset chan bool, localIP string) {
-	switch state {
-	case idle:
-		printEventManager("Received new order: floor " + strconv.Itoa(floor+1))
-		direction = orders.ChooseDirection(floor, direction, localIP)
-		if orders.ShouldStop(floor, direction, localIP) {
-			printEventManager("Stopeed at floor " + strconv.Itoa(floor+1))
-			doorTimerReset <- true
-			orders.RemoveFloorOrders(floor, direction, localIP)
-			//orders.RemoveFloorOrders(floor, direction, localIP broadcastOrderChannel) // change the above function with this later
-			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
-			state = doorOpen
-		} else {
-			motorChannel <- direction
-			state = moving
-		}
-	case moving: // Ignore
-	case doorOpen:
-		if orders.ShouldStop(floor, direction, localIP) {
-			doorTimerReset <- true
-			orders.RemoveFloorOrders(floor, direction, localIP)
-		}
-	default:
-		// Insert error handling
-	}
-}
+			case moving:
+				// not applicable
+			case doorOpen:
+				lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
+				printEventManager("eventDoorTimeout, idle: direction: " + MotorStatus[direction])
+				direction = orders.ChooseDirection(floor, direction, localIP)
+				printEventManager("Door closing, new direction is " + MotorStatus[direction] + ".  Elevator " + localIP)
+				if direction == MotorStop {
+					state = idle
+				} else {
+					motorChannel <- direction
+					state = moving
+				}
+			default:
+				// Insert error handling here - elevator might possibly need to be restarted ()
+			}
+			//case <-newState:
+			//broadcastOrderChannel <- OrderMessage{}
 
-func eventFloorReached(lightChannel chan ElevatorLight, motorChannel chan int, doorTimerReset chan bool, localIP string) {
-	//SetFloorIndicator(floor)
-	switch state {
-	case idle:
-		// not applicable
-	case moving:
-		if orders.ShouldStop(floor, direction, localIP) {
-			doorTimerReset <- true
-			orders.RemoveFloorOrders(floor, direction, localIP)
-			lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
-			//direction = MotorStop
-			motorChannel <- MotorStop
-			state = doorOpen
 		}
-	case doorOpen:
-		// not applicable
-
-	default:
-		// Insert error handling
-	}
-}
-
-func eventDoorTimeout(lightChannel chan ElevatorLight, motorChannel chan int, localIP string) {
-	switch state {
-	case idle:
-		// not applicable
-
-	case moving:
-		// not applicable
-	case doorOpen:
-		lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
-		printEventManager("eventDoorTimeout, idle: direction: " + MotorStatus[direction])
-		direction = orders.ChooseDirection(floor, direction, localIP)
-		printEventManager("Door closing, new direction is " + MotorStatus[direction] + ".  Elevator " + localIP)
-		if direction == MotorStop {
-			state = idle
-		} else {
-			motorChannel <- direction
-			state = moving
-		}
-	default:
-		// Insert error handling here - elevator might possibly need to be restarted ()
 	}
 }
 
@@ -127,7 +120,6 @@ func doorTimer(timeout chan<- bool, reset <-chan bool) {
 	const doorOpenTime = 3 * time.Second
 	timer := time.NewTimer(0)
 	timer.Stop()
-
 	for {
 		select {
 		case <-reset:

@@ -20,19 +20,20 @@ func main() {
 
 	broadcastOrderChannel := make(chan OrderMessage, 5)
 	receiveOrderChannel := make(chan OrderMessage, 5)
-	broadcastBackupChannel := make(chan ElevatorBackupMessage, 5)
-	receiveBackupChannel := make(chan ElevatorBackupMessage, 5)
+	broadcastBackupChannel := make(chan BackupMessage, 5)
+	receiveBackupChannel := make(chan BackupMessage, 5)
 
 	buttonChannel := make(chan ElevatorButton)
 	lightChannel := make(chan ElevatorLight)
 	motorChannel := make(chan int)
 	floorChannel := make(chan int)
 
+	newOrder := make(chan ElevatorLocal)
+
 	safeKillChannel := make(chan os.Signal, 10)
 	executeOrderChannel := make(chan OrderMessage, 10)
 
-	newOrder := make(chan bool)
-
+	//newOrder := make(chan bool)
 
 	var localIP string
 	var err error
@@ -60,17 +61,15 @@ func main() {
 		HallOrderMatrix,
 		localIP)
 
+	driver.GoToFloorBelow(motorChannel, elevatorPollDelay)
 
-	floor := driver.GoToFloorBelow(motorChannel, elevatorPollDelay)
-	broadcastBackupChannel <- ElevatorBackupMessage{
+	broadcastBackupChannel <- BackupMessage{
 		AskerIP: localIP,
-		Event: EventElevatorBackup,
+		Event:   EventElevatorBackup,
 		State: Elevator{
-					LocalIP: localIP,
-					LastFloor: floor,
-	},
-}
-
+			LocalIP: localIP,
+		},
+	}
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)
