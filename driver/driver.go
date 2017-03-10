@@ -7,6 +7,7 @@ import (
 	"time"
 
 	. "../utilities"
+	. "../wrapper"
 )
 
 var debugElevator = false
@@ -33,7 +34,7 @@ func Init(buttonChannel chan<- ElevatorButton,
 	floorChannel chan<- int,
 	pollDelay time.Duration) {
 
-	ioInit()
+	IoInit()
 	resetAllLights()
 	go lightController(lightChannel)
 	go motorController(motorChannel)
@@ -44,11 +45,11 @@ func Init(buttonChannel chan<- ElevatorButton,
 func resetAllLights() {
 	for f := 0; f < NumFloors; f++ {
 		for k := ButtonCallUp; k <= ButtonCommand; k++ {
-			ioClearBit(lampMatrix[f][k])
+			IoClearBit(lampMatrix[f][k])
 		}
 	}
-	ioClearBit(LIGHT_DOOR_OPEN)
-	ioClearBit(LIGHT_STOP)
+	IoClearBit(LIGHT_DOOR_OPEN)
+	IoClearBit(LIGHT_STOP)
 }
 
 func lightController(lightChannel <-chan ElevatorLight) {
@@ -59,21 +60,21 @@ func lightController(lightChannel <-chan ElevatorLight) {
 			switch command.Kind {
 			case ButtonStop:
 				if command.Active {
-					ioSetBit(LIGHT_STOP)
+					IoSetBit(LIGHT_STOP)
 				} else {
-					ioClearBit(LIGHT_STOP)
+					IoClearBit(LIGHT_STOP)
 				}
 			case ButtonCallUp, ButtonCallDown, ButtonCommand:
 				if command.Active {
-					ioSetBit(lampMatrix[command.Floor][command.Kind])
+					IoSetBit(lampMatrix[command.Floor][command.Kind])
 				} else {
-					ioClearBit(lampMatrix[command.Floor][command.Kind])
+					IoClearBit(lampMatrix[command.Floor][command.Kind])
 				}
 			case DoorIndicator:
 				if command.Active {
-					ioSetBit(LIGHT_DOOR_OPEN)
+					IoSetBit(LIGHT_DOOR_OPEN)
 				} else {
-					ioClearBit(LIGHT_DOOR_OPEN)
+					IoClearBit(LIGHT_DOOR_OPEN)
 				}
 			default:
 				log.Println("ERROR [driver]: Invalid light command")
@@ -89,13 +90,13 @@ func motorController(motorChannel chan int) {
 		case command = <-motorChannel:
 			switch command {
 			case MotorStop:
-				ioWriteAnalog(MOTOR, 0)
+				IoWriteAnalog(MOTOR, 0)
 			case MotorUp:
-				ioClearBit(MOTORDIR)
-				ioWriteAnalog(MOTOR, motorSpeed)
+				IoClearBit(MOTORDIR)
+				IoWriteAnalog(MOTOR, motorSpeed)
 			case MotorDown:
-				ioSetBit(MOTORDIR)
-				ioWriteAnalog(MOTOR, motorSpeed)
+				IoSetBit(MOTORDIR)
+				IoWriteAnalog(MOTOR, motorSpeed)
 			default:
 				log.Println("ERROR [driver]: Invalid motor command")
 			}
@@ -122,13 +123,13 @@ func buttonPoller(buttonChannel chan<- ElevatorButton, pollDelay time.Duration) 
 	for {
 		for f := 0; f < NumFloors; f++ {
 			for k := ButtonCallUp; k <= ButtonCommand; k++ {
-				b := ioReadBit(buttonMatrix[f][k])
+				b := IoReadBit(buttonMatrix[f][k])
 				if b && inputMatrix[f][k] != b {
 					buttonChannel <- ElevatorButton{f, k}
 				}
 				inputMatrix[f][k] = b
 			}
-			if s := ioReadBit(STOP); s {
+			if s := IoReadBit(STOP); s {
 				if !buttonStopActivated {
 					buttonChannel <- ElevatorButton{Kind: ButtonStop}
 				}
@@ -140,13 +141,13 @@ func buttonPoller(buttonChannel chan<- ElevatorButton, pollDelay time.Duration) 
 }
 
 func readFloorSensor() int {
-	if ioReadBit(SENSOR_FLOOR1) {
+	if IoReadBit(SENSOR_FLOOR1) {
 		return Floor1
-	} else if ioReadBit(SENSOR_FLOOR2) {
+	} else if IoReadBit(SENSOR_FLOOR2) {
 		return Floor2
-	} else if ioReadBit(SENSOR_FLOOR3) {
+	} else if IoReadBit(SENSOR_FLOOR3) {
 		return Floor3
-	} else if ioReadBit(SENSOR_FLOOR4) {
+	} else if IoReadBit(SENSOR_FLOOR4) {
 		return Floor4
 	} else {
 		return FloorInvalid
@@ -160,14 +161,14 @@ func SetFloorIndicator(floor int) {
 	}
 
 	if floor&0x02 > 0 {
-		ioSetBit(LIGHT_FLOOR_IND1)
+		IoSetBit(LIGHT_FLOOR_IND1)
 	} else {
-		ioClearBit(LIGHT_FLOOR_IND1)
+		IoClearBit(LIGHT_FLOOR_IND1)
 	}
 	if floor&0x01 > 0 {
-		ioSetBit(LIGHT_FLOOR_IND2)
+		IoSetBit(LIGHT_FLOOR_IND2)
 	} else {
-		ioClearBit(LIGHT_FLOOR_IND2)
+		IoClearBit(LIGHT_FLOOR_IND2)
 	}
 }
 

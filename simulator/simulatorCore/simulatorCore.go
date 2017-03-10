@@ -265,8 +265,8 @@ func simulateButtonPress(button *bool) {
 }
 
 //FUNCTIONS
-func ioSetBit(channel int) {
-	//log.Println("ioSetBit run. Channel: ", channel)
+func IoSetBit(channel int) {
+	//log.Println("IoSetBit run. Channel: ", channel)
 	elevator_mutex.Lock()
 	switch channel {
 	case LIGHT_UP1:
@@ -307,8 +307,8 @@ func ioSetBit(channel int) {
 	}
 }
 
-func ioClearBit(channel int) {
-	//log.Println("ioClearBit run. Channel: ", channel)
+func IoClearBit(channel int) {
+	//log.Println("IoClearBit run. Channel: ", channel)
 	elevator_mutex.Lock()
 	switch channel {
 	case LIGHT_UP1:
@@ -348,7 +348,7 @@ func ioClearBit(channel int) {
 	}
 }
 
-func ioWriteAnalog(channel, value int) {
+func IoWriteAnalog(channel, value int) {
 	switch channel {
 	case MOTOR:
 		elevator_mutex.Lock()
@@ -361,7 +361,7 @@ func ioWriteAnalog(channel, value int) {
 	}
 }
 
-func ioReadBit(channel int) bool {
+func IoReadBit(channel int) bool {
 	switch channel {
 	case LIGHT_UP1:
 		return elevator.ButtonLightMatrix[0][0]
@@ -444,7 +444,7 @@ func ioReadBit(channel int) bool {
 	return false
 }
 
-func ioReadAnalog(channel int) int {
+func IoReadAnalog(channel int) int {
 	switch channel {
 	case MOTOR:
 		return elevator.MotorSpeed
@@ -457,5 +457,5 @@ func ioReadAnalog(channel int) int {
 
 func printFloorSensors() {
 	log.Printf("SIMULATOR:\t FloorSensors: \t0:%v \t1:%v \t2:%v \t3:%v\n",
-		ioReadBit(SENSOR_FLOOR1), ioReadBit(SENSOR_FLOOR2), ioReadBit(SENSOR_FLOOR3), ioReadBit(SENSOR_FLOOR4))
+		IoReadBit(SENSOR_FLOOR1), IoReadBit(SENSOR_FLOOR2), IoReadBit(SENSOR_FLOOR3), IoReadBit(SENSOR_FLOOR4))
 }

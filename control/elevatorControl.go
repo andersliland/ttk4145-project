@@ -2,6 +2,7 @@ package control
 
 import (
 	"log"
+	"os"
 	"strconv"
 	"time"
 
@@ -78,12 +79,12 @@ func MessageLoop(
 					}
 				*/
 			case ButtonStop:
-				//motorChannel <- MotorStop
-				//lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
+				motorChannel <- MotorStop
+				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
 				log.Println("Stop button pressed. Elevator will come to a halt.")
-				//time.Sleep(1 * time.Second)
-				//lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
-				//os.Exit(1)
+				time.Sleep(1 * time.Second)
+				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
+				os.Exit(1)
 			}
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)

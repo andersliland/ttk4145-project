@@ -2,6 +2,7 @@ package orders
 
 import (
 	"log"
+	"os"
 	"strconv"
 
 	. "../utilities"
@@ -16,6 +17,11 @@ func AddCabOrder(button ElevatorButton, localIP string) {
 
 func ShouldStop(floor, direction int, localIP string) bool {
 	// cabOrders are checked first, do not depend on direction
+	if floor == FloorInvalid {
+		printOrders("Invalid floor " + strconv.Itoa(floor+1) + ". The system will terminate.")
+		os.Exit(1)
+	}
+
 	if ElevatorStatus[localIP].CabOrders[floor] == true {
 		printOrders("There is a cabOrder at floor " + strconv.Itoa(floor+1) + " for " + localIP)
 		return true
