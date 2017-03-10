@@ -4,14 +4,15 @@ import (
 	"errors"
 	"log"
 	"sort"
+	"strconv"
 
 	. "../utilities"
 )
 
-const debugCost = false
+const debugCost = true
 
-const timeBetweenFloor = 2 //seconds //TODO: time and test1
-const timeAtFloor = 3      //seconds //TODO: update at the end
+const timeBetweenFloor = 1 //seconds //TODO: time and test1
+const timeAtFloor = 1      //seconds //TODO: update at the end
 
 type orderCost struct {
 	Cost int
@@ -36,11 +37,12 @@ func AssignOrderToElevator(Floor int, Kind int,
 		floorCount, stopCount := calculateOrderCost(ip, Floor, Kind, ElevatorStatus[ip], HallHallOrderMatrix)
 		cost_num := floorCount*timeBetweenFloor + stopCount*timeAtFloor
 		cost = append(cost, orderCost{cost_num, ip})
-		printDebug(" Cost of order is " + string(cost_num) + " for IP: " + ip)
+		printCost("Cost of order is " + strconv.Itoa(cost_num) + " for IP: " + ip)
+		printCost("floorCount: " + strconv.Itoa(floorCount) + " stopCount: " + strconv.Itoa(stopCount))
 	}
 	sort.Sort(cost) // smallest value at index 0
 	ip = cost[0].IP // ip with lowest cost
-	printDebug("Assigned order to " + ip + " with cost " + string(cost[0].Cost))
+	printCost("Assigned order to " + ip + " with cost " + strconv.Itoa(cost[0].Cost))
 	return ip, err
 }
 
@@ -56,9 +58,14 @@ func calculateOrderCost(localIP string,
 	prevFloor := elevator.Floor
 	state := elevator.State // Yet to be set
 
+	floorCount = 0
+	stopCount = 0
+
+	printCost("Elevator direction: " + MotorStatus[direction+1])
+
 	// Elevator is Idle at the ordered floor
 	if direction == Stop && state != Moving && prevFloor == orderFloor {
-		return 0, 0
+		return floorCount, stopCount
 	}
 
 	searchDirection := direction
@@ -72,21 +79,36 @@ func calculateOrderCost(localIP string,
 		}
 	}
 
+	printCost("Search direction: " + MotorStatus[searchDirection+1])
+
 	// increment floor based on direction of order
 	for f := prevFloor + searchDirection; f < NumFloors && f >= Floor1; f += searchDirection {
 		floorCount++
+		printCost("Current floor in cost loop, f = " + strconv.Itoa(f+1))
 		if f == orderFloor {
-			if f == 0 || f == NumFloors-1 {
+			if f == Floor1 || f == NumFloors-1 {
 				return floorCount, stopCount
+			} else if (direction == Down && orderButtonKind == ButtonCallDown) ||
+				(direction == Up && orderButtonKind == ButtonCallUp) {
+				printCost("Order continuing same direction as elevator direction")
+				return floorCount, stopCount
+			} else {
+				log.Println(anyRequestsAbove(orderFloor, localIP))
+				if searchDirection == Up && !anyRequestsAbove(orderFloor, localIP) {
+					return floorCount, stopCount
+				} else if searchDirection == Down && !anyRequestsBelow(orderFloor, localIP) {
+					return floorCount, stopCount
+				}
 			}
-			//else if direction == Down {
-
 		}
 
+		if f == NumFloors-1 {
+			direction = Down
+		} else if f == Floor1 {
+			direction = Up
+		}
 	}
-
-	return 0, 0
-	//return floorCount, stopCount
+	return floorCount, stopCount
 }
 
 // Implement sort.Interface - Len, Less and Swap of type orderCost
@@ -110,8 +132,8 @@ func (s orderCosts) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func printDebug(s string) {
+func printCost(s string) {
 	if debugCost {
-		log.Println("[cost]", s)
+		log.Println("[cost]\t\t", s)
 	}
 }

@@ -8,7 +8,7 @@ import (
 	. "../utilities"
 )
 
-const debugOrders = true
+const debugOrders = false
 
 func AddCabOrder(button ElevatorButton, localIP string) {
 	ElevatorStatus[localIP].CabOrders[button.Floor] = true

@@ -10,7 +10,7 @@ import (
 	. "../utilities/"
 )
 
-const debugElevatorControl = true
+const debugElevatorControl = false
 
 func MessageLoop(
 	newOrder chan bool,

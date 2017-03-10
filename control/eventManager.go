@@ -10,7 +10,7 @@ import (
 	"../orders"
 )
 
-const debugEventManager = true
+const debugEventManager = false
 
 // Need three functions in an orders.go file to work:
 // ShouldStop(floor, direction, localIP)
@@ -64,6 +64,7 @@ func eventManager(
 			}
 		case floor = <-floorReached:
 			ElevatorStatus[localIP].Floor = floor //  TODO: Confirm functionality of this assignment
+			log.Println("Floor reached: " + strconv.Itoa(floor+1))
 			switch state {
 			case Idle:
 				printEventManager("Elevator reached floor " + strconv.Itoa(floor+1) + " in state IDLE")
@@ -95,7 +96,7 @@ func eventManager(
 				if direction == Stop {
 					state = setState(Idle, localIP)
 				} else {
-					motorChannel <- direction
+					motorChannel <- direction // Is this necessary?
 					state = setState(Moving, localIP)
 				}
 			default:
