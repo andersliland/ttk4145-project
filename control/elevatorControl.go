@@ -39,7 +39,7 @@ func MessageLoop(
 			switch button.Kind {
 			case ButtonCallUp, ButtonCallDown:
 				orderAssignedTo, err := orders.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus, HallOrderMatrix)
-				//printElevatorControl("Local assign order to " + orderAssignedTo)
+				printElevatorControl("Local assign order to " + orderAssignedTo)
 				CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
 				order := OrderMessage{
 					Time:       time.Now(),
