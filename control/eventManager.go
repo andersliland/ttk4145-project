@@ -78,15 +78,12 @@ func eventManager(
 			case moving:
 				if orders.ShouldStop(floor, direction, localIP) {
 					doorTimerReset <- true
-					orders.RemoveFloorOrders(floor, direction, localIP)
 					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
-					//direction = MotorStop
 					motorChannel <- MotorStop
 					state = doorOpen
 				}
 			case doorOpen:
 				// not applicable
-
 			default:
 				// Insert error handling
 			}
@@ -94,11 +91,11 @@ func eventManager(
 			switch state {
 			case idle:
 				// not applicable
-
 			case moving:
 				// not applicable
 			case doorOpen:
 				lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
+				orders.RemoveFloorOrders(floor, direction, localIP)
 				printEventManager("eventDoorTimeout, idle: direction: " + MotorStatus[direction])
 				direction = orders.ChooseDirection(floor, direction, localIP)
 				printEventManager("Door closing, new direction is " + MotorStatus[direction] + ".  Elevator " + localIP)

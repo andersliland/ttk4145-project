@@ -101,9 +101,13 @@ func RemoveFloorOrders(floor, direction int, localIP string) {
 		if HallOrderMatrix[floor][ButtonCallUp].AssignedTo == localIP {
 			HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
 		}
-		if floor == NumFloors-1 { // Edge case: top floor reached
+		if !anyRequestsAbove(floor, localIP) {
 			HallOrderMatrix[floor][ButtonCallDown].Status = NotActive
+			printOrders("Direction up at floor " + strconv.Itoa(floor+1) + ". No new orders above this floor. Removed down order. Elevator: " + localIP)
 		}
+		//if floor == NumFloors-1 { // Edge case: top floor reached
+		//	HallOrderMatrix[floor][ButtonCallDown].Status = NotActive
+		//}
 		printOrders("Removed HallOrder at floor " + strconv.Itoa(floor+1) + " for direction " + MotorStatus[direction] + ". Ip " + localIP)
 		// send order done
 		/*
@@ -119,9 +123,13 @@ func RemoveFloorOrders(floor, direction int, localIP string) {
 		if HallOrderMatrix[floor][ButtonCallDown].AssignedTo == localIP {
 			HallOrderMatrix[floor][ButtonCallDown].Status = NotActive
 		}
-		if floor == Floor1 { // Edge case: bottom floor reached
+		if !anyRequestsBelow(floor, localIP) {
 			HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
+			printOrders("Direction down at floor " + strconv.Itoa(floor+1) + ". No new orders above this floor. Removed up order. Elevator: " + localIP)
 		}
+		//if floor == Floor1 { // Edge case: bottom floor reached
+		//	HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
+		//}
 		printOrders("Removed HallOrder at floor" + strconv.Itoa(floor+1) + " for direction " + MotorStatus[direction] + ". Ip" + localIP)
 
 	default:
