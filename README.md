@@ -25,19 +25,19 @@ No orders are lost
 
 Multiple elevators should be more efficient than one
  - The orders should be distributed across the elevators in a reasonable way
-   - Ex: If all three elevators are idle and two of them are at the bottom floor, then a new order at the top floor should be handled by the closest elevator (ie. neither of the two at the bottom).
+   - Ex: If all three elevators are Idle and two of them are at the bottom floor, then a new order at the top floor should be handled by the closest elevator (ie. neither of the two at the bottom).
  - You are free to choose and design your own "cost function" of some sort: Minimal movement, minimal waiting time, etc.
  - The project is not about creating the "best" or "optimal" distribution of orders. It only has to be clear that the elevators are cooperating and communicating.
  
 An individual elevator should behave sensibly and efficiently
  - No stopping at every floor "just to be safe"
  - The external "call upward" and "call downward" buttons should behave differently
-   - Ex: If the elevator is moving from floor 1 up to floor 4 and there is a downward order at floor 3, then the elevator should not stop on its way upward, but should return back to floor 3 on its way down
+   - Ex: If the elevator is Moving from floor 1 up to floor 4 and there is a downward order at floor 3, then the elevator should not stop on its way upward, but should return back to floor 3 on its way down
  
 The lights should function as expected
  - The lights on the external buttons should show the same thing on all `n` workspaces
  - The internal lights should not be shared between elevators
- - The "door open" lamp should be used as a substitute for an actual door, and as such should not be switched on while the elevator is moving
+ - The "door open" lamp should be used as a substitute for an actual door, and as such should not be switched on while the elevator is Moving
    - The duration for keeping the door open should be in the 1-5 second range
 
  

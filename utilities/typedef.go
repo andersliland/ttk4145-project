@@ -97,6 +97,12 @@ const (
 )
 
 const (
+	Idle = iota
+	Moving
+	DoorOpen
+)
+
+const (
 	MotorStop = iota
 	MotorUp
 	MotorDown
@@ -126,7 +132,7 @@ type HallOrder struct {
 type Elevator struct { // syncronised for all elevators
 	LocalIP         string
 	Time            time.Time
-	State           int //idle, moving, doorOpen
+	State           int //Idle, Moving, DoorOpen
 	Floor           int // current floor for elevator
 	Direction       int // current direction: MotorStop, MotorUp, MotorDown
 	CabOrders       [NumFloors]bool
@@ -135,7 +141,7 @@ type Elevator struct { // syncronised for all elevators
 
 /*
 type ElevatorLocal struct {
-	State           int //idle, moving, doorOpen
+	State           int //Idle, Moving, DoorOpen
 	LastFloor       int // current floor for elevator
 	Direction       int // current direction: MotorStop, MotorUp, MotorDown
 	CabOrders       [NumFloors]bool
