@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	. "../../driver"
 	. "../../utilities"
 )
 

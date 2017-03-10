@@ -18,8 +18,8 @@ import (
 
 var debugSystemControl = false
 
-func InitSystemControl() {
-
+func Init(localIP string) {
+	ElevatorStatus[localIP] = ResolveElevator(Elevator{LocalIP: localIP})
 }
 
 func SystemControl(
@@ -41,17 +41,6 @@ func SystemControl(
 	watchdogKickTimer := time.NewTicker(watchdogKickTime)
 	defer watchdogKickTimer.Stop()
 
-	// init states
-
-	//broadcastBackupChannel <- BackupMessage{
-	//AskerIP: localIP,
-	//ResponderIP: ,
-	//Event:       EventRequestBackup,
-	//State:       Elevator{},
-	//Cab:         CabOrder{},
-	//}
-
-	ElevatorStatus[localIP] = ResolveElevator(Elevator{LocalIP: localIP})
 	updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
 
 	for {

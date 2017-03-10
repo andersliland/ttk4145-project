@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	. "../utilities"
-
+	"../driver"
 	"../orders"
+	. "../utilities"
 )
 
 const debugEventManager = false
@@ -25,11 +25,16 @@ func eventManager(
 	motorChannel chan int, localIP string) {
 
 	var state int = Idle
-	var floor int = FloorInvalid // to initialize or not to initialize?
+	var floor int // to initialize or not to initialize?
 	var direction int
 
 	// if restore order from file do ..., else:
 	const pollDelay = 5 * time.Millisecond
+	floor = driver.GoToFloorBelow(localIP, motorChannel, pollDelay)
+	log.Println("Initialised floor ", (floor + 1))
+	time.Sleep(1 * time.Second)
+	ElevatorStatus[localIP].Floor = floor
+
 	doorTimeout := make(chan bool)
 	doorTimerReset := make(chan bool)
 
@@ -38,7 +43,6 @@ func eventManager(
 	for {
 		select {
 		case <-newOrder:
-			// if floor == FloorInvalid - goToFloorBelow
 			switch state {
 			case Idle:
 				direction = setDirection(orders.ChooseDirection(floor, direction, localIP), localIP)

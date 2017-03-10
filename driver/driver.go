@@ -172,25 +172,21 @@ func SetFloorIndicator(floor int) {
 	}
 }
 
-func GoToFloorBelow(localIP string, motorChannel chan int, pollDelay time.Duration) error {
+func GoToFloorBelow(localIP string, motorChannel chan int, pollDelay time.Duration) int {
 	if readFloorSensor() == FloorInvalid {
 		printElevator("ReadFloorSensor " + strconv.Itoa(readFloorSensor()))
 		motorChannel <- Down
-	} else {
-		// make sure eventManager gets init floor even if start at floor
-		motorChannel <- Up
-		time.Sleep(100 * time.Millisecond)
-		motorChannel <- Down
-	}
-	for {
-		if floor := readFloorSensor(); floor != FloorInvalid {
-			motorChannel <- Stop
-			log.Println("[elevator]\t\t New elevator " + localIP + " starting at floor " + strconv.Itoa(floor+1))
-			return nil
-		} else {
-			time.Sleep(pollDelay)
+		for {
+			if floor := readFloorSensor(); floor != FloorInvalid {
+				motorChannel <- Stop
+				log.Println("[elevator]\t\t New elevator " + localIP + " starting at floor " + strconv.Itoa(floor+1))
+				return floor
+			} else {
+				time.Sleep(pollDelay)
+			}
 		}
 	}
+	return readFloorSensor()
 }
 
 func printElevator(s string) {

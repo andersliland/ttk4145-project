@@ -93,7 +93,6 @@ func calculateOrderCost(localIP string,
 				printCost("Order continuing same direction as elevator direction")
 				return floorCount, stopCount
 			} else {
-				log.Println(anyRequestsAbove(orderFloor, localIP))
 				if searchDirection == Up && !anyRequestsAbove(orderFloor, localIP) {
 					return floorCount, stopCount
 				} else if searchDirection == Down && !anyRequestsBelow(orderFloor, localIP) {
