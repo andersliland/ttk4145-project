@@ -24,8 +24,7 @@ type orderCosts []orderCost
 // Calculate cost for each elevator, add to slice, sort for and return IP of elevator with lowest cost
 func AssignOrderToElevator(Floor int, Kind int,
 	OnlineElevators map[string]bool,
-	ElevatorStatus map[string]*Elevator,
-	HallHallOrderMatrix [NumFloors][2]HallOrder) (ip string, err error) {
+	ElevatorStatus map[string]*Elevator) (ip string, err error) {
 
 	numOnlineElevators := len(OnlineElevators)
 	if numOnlineElevators == 0 {
@@ -34,7 +33,7 @@ func AssignOrderToElevator(Floor int, Kind int,
 	cost := orderCosts{} // initialize slice with empty interface
 
 	for ip, _ := range OnlineElevators { // key, value
-		floorCount, stopCount := calculateOrderCost(ip, Floor, Kind, ElevatorStatus[ip], HallHallOrderMatrix)
+		floorCount, stopCount := calculateOrderCost(ip, Floor, Kind, ElevatorStatus[ip])
 		cost_num := floorCount*timeBetweenFloor + stopCount*timeAtFloor
 		cost = append(cost, orderCost{cost_num, ip})
 		printCost("Cost of order is " + strconv.Itoa(cost_num) + " for IP: " + ip)
@@ -48,11 +47,10 @@ func AssignOrderToElevator(Floor int, Kind int,
 
 // for each floor: loop each button, increment floorNum end of each loop
 // for each button: figure out if there exsist order below, increment button end of each loop
-func calculateOrderCost(localIP string,
+func calculateOrderCost(ip string,
 	orderFloor int,
 	orderButtonKind int,
-	elevator *Elevator,
-	HallHallOrderMatrix [NumFloors][2]HallOrder) (floorCount, stopCount int) {
+	elevator *Elevator) (floorCount, stopCount int) {
 
 	direction := elevator.Direction
 	prevFloor := elevator.Floor
@@ -63,18 +61,18 @@ func calculateOrderCost(localIP string,
 
 	printCost("Elevator direction: " + MotorStatus[direction+1])
 
-	// Elevator is Idle at the ordered floor
+	// Elevator is idle at the ordered floor
 	if direction == Stop && state != Moving && prevFloor == orderFloor {
 		return floorCount, stopCount
 	}
 
 	searchDirection := direction
 	if orderFloor > prevFloor {
-		if !(searchDirection == Down && anyRequestsBelow(prevFloor, localIP)) {
+		if !(searchDirection == Down && anyRequestsBelow(prevFloor, ip)) {
 			searchDirection = Up
 		}
 	} else if orderFloor < prevFloor {
-		if !(searchDirection == Up && anyRequestsAbove(prevFloor, localIP)) {
+		if !(searchDirection == Up && anyRequestsAbove(prevFloor, ip)) {
 			searchDirection = Down
 		}
 	}
@@ -93,13 +91,29 @@ func calculateOrderCost(localIP string,
 				printCost("Order continuing same direction as elevator direction")
 				return floorCount, stopCount
 			} else {
-				if searchDirection == Up && !anyRequestsAbove(orderFloor, localIP) {
+				if searchDirection == Up && !anyRequestsAbove(orderFloor, ip) {
 					return floorCount, stopCount
-				} else if searchDirection == Down && !anyRequestsBelow(orderFloor, localIP) {
+				} else if searchDirection == Down && !anyRequestsBelow(orderFloor, ip) {
 					return floorCount, stopCount
 				}
 			}
 		}
+
+		/*
+			for k := ButtonCallUp; k <= ButtonCommand; k++ {
+				//log.Println(f)
+				//log.Println(k)
+				//log.Println(HallOrderMatrix[f][k])
+				if HallOrderMatrix[f][k].AssignedTo == ip && HallOrderMatrix[f][k].Status == UnderExecution {
+					stopCount++
+					break
+				}
+				if ElevatorStatus[ip].CabOrders[f] {
+					stopCount++
+					break
+				}
+			}
+		*/
 
 		if f == NumFloors-1 {
 			direction = Down

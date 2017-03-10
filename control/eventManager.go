@@ -31,7 +31,6 @@ func eventManager(
 	// if restore order from file do ..., else:
 	const pollDelay = 5 * time.Millisecond
 	floor = driver.GoToFloorBelow(localIP, motorChannel, pollDelay)
-	log.Println("Initialised floor ", (floor + 1))
 	time.Sleep(1 * time.Second)
 	ElevatorStatus[localIP].Floor = floor
 
