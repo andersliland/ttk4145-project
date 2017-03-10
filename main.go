@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"./cost"
 	"log"
 	"os"
 	"os/signal"
@@ -38,9 +37,6 @@ func main() {
 	localIP, err = network.Init(broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel)
 	CheckError("ERROR [main]: Could not initiate network", err)
 
-	// SIMULATOR Uncomment simulatorCore lines and Comment driver lines
-	//simulatorCore.IOInit()                                                                         //Simulator init
-	//simulatorCore.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // elevator init
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
 
 	log.Println("[main]\t\t New Elevator ready with IP:", localIP)

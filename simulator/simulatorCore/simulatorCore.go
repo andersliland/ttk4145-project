@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	. "../../driver"
 	. "../../utilities"
 )
 
@@ -25,7 +24,7 @@ var elevator_mutex = &sync.Mutex{}
 var simulatedMotorChannel = make(chan motorCommand, 3)
 
 //INITIALISATION
-func IOInit() error {
+func SimulatorInit() error {
 	log.Println("SIMULATOR:\t Starting simulator")
 	if NumFloors != 4 {
 		log.Println("SIMULATOR:\t Can´t run the simulator with other than four floors.")
