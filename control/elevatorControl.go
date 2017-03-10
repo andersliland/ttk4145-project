@@ -77,15 +77,13 @@ func MessageLoop(
 					}
 				*/
 			case ButtonStop:
-				motorChannel <- MotorStop
-				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
-				printElevatorControl("Stop button pressed. Elevator " + localIP + " will come to a halt.")
-				time.Sleep(1 * time.Second)
-				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
+				//motorChannel <- MotorStop
+				//lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
+				log.Println("Stop button pressed. Elevator will come to a halt.")
+				//time.Sleep(1 * time.Second)
+				//lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
 				//os.Exit(1)
 			}
-
-			//newOrder <- true
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)
 			floorReached <- floor
