@@ -29,7 +29,7 @@ func MessageLoop(
 
 	floorReached := make(chan int)
 	go eventManager(newOrder, broadcastOrderChannel, floorReached, lightChannel, motorChannel, localIP)
-	go setPanelLights(lightChannel, localIP)
+	//go setPanelLights(lightChannel, localIP)
 
 	for {
 		select {

@@ -3,12 +3,13 @@ package driver
 
 import (
 	"log"
+	"strconv"
 	"time"
 
 	. "../utilities"
 )
 
-var debug = false
+var debugElevator = false
 
 var lampMatrix = [NumFloors][NumButtons]int{
 	{LIGHT_UP1, LIGHT_DOWN1, LIGHT_COMMAND1},
@@ -38,7 +39,6 @@ func Init(buttonChannel chan<- ElevatorButton,
 	go motorController(motorChannel)
 	go floorSensorPoller(floorChannel, pollDelay)
 	go buttonPoller(buttonChannel, pollDelay)
-	printDebug("[elevator] Initialization successful")
 }
 
 func resetAllLights() {
@@ -171,23 +171,25 @@ func SetFloorIndicator(floor int) {
 	}
 }
 
-func GoToFloorBelow(motorChannel chan int, pollDelay time.Duration) {
+func GoToFloorBelow(motorChannel chan int, pollDelay time.Duration) error {
 	if readFloorSensor() == FloorInvalid {
+		printElevator("ReadFloorSensor " + strconv.Itoa(readFloorSensor()))
 		motorChannel <- MotorDown
 		for {
 			if floor := readFloorSensor(); floor != FloorInvalid {
 				motorChannel <- MotorStop
-				//return floor
+				printElevator("Init at floor" + strconv.Itoa(floor+1))
+				return nil
 			} else {
 				time.Sleep(pollDelay)
 			}
 		}
 	}
-	//return readFloorSensor()
+	return nil
 }
 
-func printDebug(s string) {
-	if debug {
-		log.Println("[driver]", s)
+func printElevator(s string) {
+	if debugElevator {
+		log.Println("[driver]\t\t", s)
 	}
 }

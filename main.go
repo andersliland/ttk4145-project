@@ -61,7 +61,10 @@ func main() {
 		HallOrderMatrix,
 		localIP)
 
-	driver.GoToFloorBelow(motorChannel, elevatorPollDelay)
+	err = driver.GoToFloorBelow(motorChannel, elevatorPollDelay)
+	if err != nil {
+		log.Println("[main]\t\t Failed to obtain initial floor")
+	}
 
 	broadcastBackupChannel <- BackupMessage{
 		AskerIP: localIP,
