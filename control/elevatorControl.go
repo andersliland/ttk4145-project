@@ -82,15 +82,14 @@ func MessageLoop(
 				motorChannel <- MotorStop
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
 				log.Println("Stop button pressed. Elevator will come to a halt.")
-				time.Sleep(1 * time.Second)
+				time.Sleep(50 * time.Millisecond)
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
 				os.Exit(1)
+
 			}
 		case floor := <-floorChannel: // Hardware
-			//floorHandler(floor)
 			floorReached <- floor
 			//printElevatorControl("Elevator " + localIP + " reaced floor " + strconv.Itoa(floor+1))
-			// Add cases for tickers
 		}
 	}
 }
