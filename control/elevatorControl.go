@@ -29,7 +29,8 @@ func MessageLoop(
 
 	floorReached := make(chan int)
 	go eventManager(newOrder, broadcastOrderChannel, floorReached, lightChannel, motorChannel, localIP)
-	//go setPanelLights(lightChannel, localIP)
+	time.Sleep(1 * time.Second)
+	go setPanelLights(lightChannel, localIP)
 
 	for {
 		select {
@@ -94,22 +95,32 @@ func MessageLoop(
 }
 
 func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
+	var cabPanelLights [NumFloors]bool
+	var hallPanelLights [NumFloors][2]bool
 	for {
 		for f := 0; f < NumFloors; f++ {
-			if ElevatorStatus[localIP].CabOrders[f] == true {
+			if ElevatorStatus[localIP].CabOrders[f] == true && cabPanelLights[f] != true {
 				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: true}
-				//printElevatorControl("Set panelLight for cabOrder " + strconv.Itoa(f+1))
-			} else {
+				cabPanelLights[f] = true
+				printElevatorControl("Set CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
+			} else if ElevatorStatus[localIP].CabOrders[f] == false && cabPanelLights[f] == true {
 				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: false}
+				cabPanelLights[f] = false
+				printElevatorControl("Clear CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
 			}
 			for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-				if HallOrderMatrix[f][k].Status == Awaiting || HallOrderMatrix[f][k].Status == UnderExecution {
+				if (HallOrderMatrix[f][k].Status == Awaiting || HallOrderMatrix[f][k].Status == UnderExecution) && hallPanelLights[f][k] != true {
 					lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: true}
-				} else {
+					hallPanelLights[f][k] = true
+					printElevatorControl("Set HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[k] + " on elevator " + localIP)
+				} else if (HallOrderMatrix[f][k].Status == NotActive) && hallPanelLights[f][k] == true {
 					lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: false}
+					hallPanelLights[f][k] = false
+					printElevatorControl("Clear HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[k] + " on elevator " + localIP)
 				}
 			}
 		}
+		time.Sleep(200 * time.Millisecond)
 	}
 }
 

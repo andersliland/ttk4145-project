@@ -38,11 +38,13 @@ func eventManager(
 	const pollDelay = 5 * time.Millisecond
 	doorTimeout := make(chan bool)
 	doorTimerReset := make(chan bool)
+
 	go doorTimer(doorTimeout, doorTimerReset)
 
 	for {
 		select {
 		case <-newOrder:
+			// if floor == FloorInvalid - goToFloorBelow
 			switch state {
 			case idle:
 				direction = orders.ChooseDirection(floor, direction, localIP)

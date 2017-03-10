@@ -178,7 +178,7 @@ func GoToFloorBelow(localIP string, motorChannel chan int, pollDelay time.Durati
 	} else {
 		// make sure eventManager gets init floor even if start at floor
 		motorChannel <- MotorUp
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		motorChannel <- MotorDown
 	}
 	for {
