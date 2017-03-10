@@ -45,7 +45,6 @@ func eventManager(
 		case <-newOrder:
 			switch state {
 			case idle:
-				printEventManager("Received new order: floor " + strconv.Itoa(floor+1))
 				direction = orders.ChooseDirection(floor, direction, localIP)
 				if orders.ShouldStop(floor, direction, localIP) {
 					printEventManager("Stopped at floor " + strconv.Itoa(floor+1))

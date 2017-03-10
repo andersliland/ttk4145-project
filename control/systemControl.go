@@ -107,7 +107,7 @@ func SystemControl(
 				}
 
 			case EventElevatorBackupReturned:
-				log.Printf("[systemControl] Received EventElevatorBackupReturned from %v", backup.ResponderIP)
+				printSystemControl("Received EventElevatorBackupReturned from " + backup.ResponderIP)
 				if backup.AskerIP == localIP {
 					// i requested this backup, update
 					// HallOrderMatrix
@@ -118,7 +118,7 @@ func SystemControl(
 
 				}
 			case EventCabOrder:
-				printSystemControl(" Received EventCabOrder from " + backup.AskerIP)
+				printSystemControl("Received EventCabOrder from " + backup.AskerIP)
 				if backup.AskerIP == localIP {
 					printSystemControl("Received an EventCabOrder from selv, ignoring")
 				} else {
@@ -268,6 +268,6 @@ func allElevatorsHaveAcked(OnlineElevators map[string]bool, HallOrderMatrix [Num
 }
 func printSystemControl(s string) {
 	if debugSystemControl {
-		log.Println("[systemControl] \t", s)
+		log.Println("[systemControl]\t", s)
 	}
 }

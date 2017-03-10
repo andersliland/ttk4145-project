@@ -87,7 +87,7 @@ func MessageLoop(
 		case floor := <-floorChannel: // Hardware
 			//floorHandler(floor)
 			floorReached <- floor
-			printElevatorControl("Elevator " + localIP + " reaced floor " + strconv.Itoa(floor+1))
+			//printElevatorControl("Elevator " + localIP + " reaced floor " + strconv.Itoa(floor+1))
 			// Add cases for tickers
 		}
 	}
@@ -98,7 +98,7 @@ func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
 		for f := 0; f < NumFloors; f++ {
 			if ElevatorStatus[localIP].CabOrders[f] == true {
 				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: true}
-				printElevatorControl("Set panelLight for cabOrder " + strconv.Itoa(f+1))
+				//printElevatorControl("Set panelLight for cabOrder " + strconv.Itoa(f+1))
 			} else {
 				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: false}
 			}
@@ -115,6 +115,6 @@ func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
 
 func printElevatorControl(s string) {
 	if debugElevatorControl {
-		log.Println("[elevatorControl] \t", s)
+		log.Println("[elevatorControl]\t", s)
 	}
 }

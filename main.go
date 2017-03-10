@@ -45,7 +45,7 @@ func main() {
 	//simulatorCore.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // elevator init
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
 
-	log.Println("[main]\t\t Ready with IP:", localIP)
+	log.Println("[main]\t\t New Elevator ready with IP:", localIP)
 	go control.SystemControl(newOrder, broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 	go control.MessageLoop(newOrder,
 		buttonChannel,
@@ -61,7 +61,7 @@ func main() {
 		HallOrderMatrix,
 		localIP)
 
-	err = driver.GoToFloorBelow(motorChannel, elevatorPollDelay)
+	err = driver.GoToFloorBelow(localIP, motorChannel, elevatorPollDelay)
 	if err != nil {
 		log.Println("[main]\t\t Failed to obtain initial floor")
 	}
