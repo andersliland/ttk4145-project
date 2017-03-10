@@ -4,9 +4,9 @@ package simulatorCore
 //const NumButtons = 3
 
 //Motor commands
-//const MotorUp = 1
-//const MotorStop = 0
-//const MotorDown = 2
+//const Up = 1
+//const Stop = 0
+//const Down = 2
 
 //---------------SIMULATOR CONFIGURATION PARAMETERS--------------
 const DistancePassingFloors = 1820000

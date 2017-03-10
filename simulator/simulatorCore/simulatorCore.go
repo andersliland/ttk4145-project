@@ -85,7 +85,7 @@ func simulatedMotor() {
 						startedMoving = time.Now().Add(-(TravelTimeBetweenFloors_ms - timeTraveledFromLastFloor))
 						timer.Reset(timeTraveledFromLastFloor * time.Millisecond)
 					}
-					if command.Direction == MotorUp {
+					if command.Direction == Up {
 						motorState = S_movingUp
 					} else {
 						motorState = S_movingDown
@@ -97,12 +97,12 @@ func simulatedMotor() {
 				if command.Speed != 0 && command.Direction != 0 {
 					timer.Reset((TravelTimePassingFloor_ms / 2) * time.Millisecond)
 					startedMoving = time.Now()
-					if elevator.Direction == MotorUp {
+					if elevator.Direction == Up {
 						motorState = S_movingUpInsideSensor
-						unfinishedDirection = MotorUp
+						unfinishedDirection = Up
 					} else {
 						motorState = S_movingDownInsideSensor
-						unfinishedDirection = MotorDown
+						unfinishedDirection = Down
 					}
 				} else if debugSimulatorCore {
 					log.Println("MOTOR:\t Did nothing")
@@ -116,7 +116,7 @@ func simulatedMotor() {
 					timeTraveledFromLastFloor = time.Since(startedMoving)
 					timer.Reset(timeTraveledFromLastFloor * time.Millisecond)
 					startedMoving = time.Now().Add(timeTraveledFromLastFloor - TravelTimeBetweenFloors_ms)
-					if command.Direction == MotorUp {
+					if command.Direction == Up {
 						motorState = S_movingUp
 					} else {
 						motorState = S_movingDown
@@ -135,7 +135,7 @@ func simulatedMotor() {
 					timeTraveledFromLastFloor = time.Since(startedMoving)
 					timer.Reset(timeTraveledFromLastFloor * time.Millisecond)
 					startedMoving = time.Now().Add(timeTraveledFromLastFloor - TravelTimePassingFloor_ms)
-					if command.Direction == MotorUp {
+					if command.Direction == Up {
 						motorState = S_movingUpInsideSensor
 					} else {
 						motorState = S_movingDownInsideSensor
@@ -294,7 +294,7 @@ func IoSetBit(channel int) {
 	case LIGHT_DOOR_OPEN:
 		elevator.DoorOpen = true
 	case MOTORDIR:
-		elevator.Direction = -1 //MotorDown
+		elevator.Direction = -1 //Down
 		if elevator.MotorSpeed != 0 {
 			simulatedMotorChannel <- motorCommand{elevator.MotorSpeed, elevator.Direction}
 		}
@@ -336,7 +336,7 @@ func IoClearBit(channel int) {
 	case LIGHT_DOOR_OPEN:
 		elevator.DoorOpen = false
 	case MOTORDIR:
-		elevator.Direction = 1 //MotorUp
+		elevator.Direction = 1 //Up
 		if elevator.MotorSpeed != 0 {
 			simulatedMotorChannel <- motorCommand{elevator.MotorSpeed, elevator.Direction}
 		}

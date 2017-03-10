@@ -103,15 +103,15 @@ const (
 )
 
 const (
-	MotorStop = iota
-	MotorUp
-	MotorDown
+	Down = iota - 1
+	Stop
+	Up
 )
 
 var MotorStatus = []string{
-	"MotorStop",
-	"MotorUp",
-	"MotorDown",
+	"Down",
+	"Stop",
+	"Up",
 }
 
 type CabOrder struct {
@@ -134,7 +134,7 @@ type Elevator struct { // syncronised for all elevators
 	Time            time.Time
 	State           int //Idle, Moving, DoorOpen
 	Floor           int // current floor for elevator
-	Direction       int // current direction: MotorStop, MotorUp, MotorDown
+	Direction       int // current direction: Stop, Up, Down
 	CabOrders       [NumFloors]bool
 	HallOrderMatrix [NumFloors][2]HallOrder
 }
@@ -143,7 +143,7 @@ type Elevator struct { // syncronised for all elevators
 type ElevatorLocal struct {
 	State           int //Idle, Moving, DoorOpen
 	LastFloor       int // current floor for elevator
-	Direction       int // current direction: MotorStop, MotorUp, MotorDown
+	Direction       int // current direction: Stop, Up, Down
 	CabOrders       [NumFloors]bool
 	HallOrderMatrix [NumFloors][2]HallOrder
 }

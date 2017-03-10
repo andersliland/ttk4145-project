@@ -89,12 +89,12 @@ func motorController(motorChannel chan int) {
 		select {
 		case command = <-motorChannel:
 			switch command {
-			case MotorStop:
+			case Stop:
 				IoWriteAnalog(MOTOR, 0)
-			case MotorUp:
+			case Up:
 				IoClearBit(MOTORDIR)
 				IoWriteAnalog(MOTOR, motorSpeed)
-			case MotorDown:
+			case Down:
 				IoSetBit(MOTORDIR)
 				IoWriteAnalog(MOTOR, motorSpeed)
 			default:
@@ -177,10 +177,10 @@ func SetFloorIndicator(floor int) {
 
 func GoToFloorBelow(motorChannel chan int, pollDelay time.Duration) int {
 	if readFloorSensor() == FloorInvalid {
-		motorChannel <- MotorDown
+		motorChannel <- Down
 		for {
 			if floor := readFloorSensor(); floor != FloorInvalid {
-				motorChannel <- MotorStop
+				motorChannel <- Stop
 				return floor
 			} else {
 				time.Sleep(pollDelay)

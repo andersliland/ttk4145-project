@@ -41,15 +41,17 @@ func eventManager(
 			// if floor == FloorInvalid - goToFloorBelow
 			switch state {
 			case Idle:
-				direction = orders.ChooseDirection(floor, direction, localIP)
+				direction = setDirection(orders.ChooseDirection(floor, direction, localIP), localIP)
+
 				if orders.ShouldStop(floor, direction, localIP) {
 					printEventManager("Stopped at floor " + strconv.Itoa(floor+1))
 					doorTimerReset <- true
 					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
-					state = DoorOpen
+					state = setState(DoorOpen, localIP)
+
 				} else {
 					motorChannel <- direction
-					state = Moving
+					state = setState(Moving, localIP)
 					//newState <- Moving
 				}
 			case Moving: // Ignore
@@ -70,8 +72,8 @@ func eventManager(
 				if orders.ShouldStop(floor, direction, localIP) {
 					doorTimerReset <- true
 					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
-					motorChannel <- MotorStop
-					state = DoorOpen
+					motorChannel <- Stop
+					state = setState(DoorOpen, localIP)
 				}
 			case DoorOpen:
 				// not applicable
@@ -87,14 +89,14 @@ func eventManager(
 			case DoorOpen:
 				lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
 				orders.RemoveFloorOrders(floor, direction, localIP)
-				printEventManager("eventDoorTimeout, Idle: direction: " + MotorStatus[direction])
-				direction = orders.ChooseDirection(floor, direction, localIP)
-				printEventManager("Door closing, new direction is " + MotorStatus[direction] + ".  Elevator " + localIP)
-				if direction == MotorStop {
-					state = Idle
+				printEventManager("eventDoorTimeout, Idle: direction: " + MotorStatus[direction+1])
+				direction = setDirection(orders.ChooseDirection(floor, direction, localIP), localIP)
+				printEventManager("Door closing, new direction is " + MotorStatus[direction+1] + ".  Elevator " + localIP)
+				if direction == Stop {
+					state = setState(Idle, localIP)
 				} else {
 					motorChannel <- direction
-					state = Moving
+					state = setState(Moving, localIP)
 				}
 			default:
 				// Insert error handling here - elevator might possibly need to be restarted ()
@@ -119,6 +121,17 @@ func doorTimer(timeout chan<- bool, reset <-chan bool) {
 			timeout <- true
 		}
 	}
+}
+
+func setDirection(direction int, localIP string) int {
+	ElevatorStatus[localIP].Direction = direction
+	return direction
+
+}
+
+func setState(state int, localIP string) int {
+	ElevatorStatus[localIP].State = state
+	return state
 }
 
 func printEventManager(s string) {

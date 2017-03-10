@@ -52,30 +52,39 @@ func calculateOrderCost(localIP string,
 	elevator *Elevator,
 	HallHallOrderMatrix [NumFloors][2]HallOrder) (floorCount, stopCount int) {
 
-	/*
-		direction := elevator.Direction
-		prevFloor := elevator.Floor
-		state := elevator.State // Yet to be set
+	direction := elevator.Direction
+	prevFloor := elevator.Floor
+	state := elevator.State // Yet to be set
 
-		// Elevator is Idle at the ordered floor
-		//if direction == MotorStop && state != Moving && prevFloor == orderFloor {
-		//	return 0, 0
-		//}
+	// Elevator is Idle at the ordered floor
+	if direction == Stop && state != Moving && prevFloor == orderFloor {
+		return 0, 0
+	}
 
-		searchDirection := direction
-		if orderFloor > prevFloor {
-			if !(searchDirection == MotorDown && anyRequestsBelow(prevFloor, localIP)) {
-				searchDirection = MotorUp
+	searchDirection := direction
+	if orderFloor > prevFloor {
+		if !(searchDirection == Down && anyRequestsBelow(prevFloor, localIP)) {
+			searchDirection = Up
+		}
+	} else if orderFloor < prevFloor {
+		if !(searchDirection == Up && anyRequestsAbove(prevFloor, localIP)) {
+			searchDirection = Down
+		}
+	}
+
+	// increment floor based on direction of order
+	for f := prevFloor + searchDirection; f < NumFloors && f >= Floor1; f += searchDirection {
+		floorCount++
+		if f == orderFloor {
+			if f == 0 || f == NumFloors-1 {
+				return floorCount, stopCount
 			}
-		} else if orderFloor < prevFloor {
-			//!(searchDirection == MotorUp && anyRequestsAbove(prevFloor, localIP))
-		}
-
-		for f := prevFloor + searchDirection; f < NumFloors && f >= Floor1; f += searchDirection {
+			//else if direction == Down {
 
 		}
-	*/
-	// Why isn't cost.go in the orders.go package?
+
+	}
+
 	return 0, 0
 	//return floorCount, stopCount
 }

@@ -78,7 +78,7 @@ func MessageLoop(
 					}
 				*/
 			case ButtonStop:
-				motorChannel <- MotorStop
+				motorChannel <- Stop
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
 				log.Println("Stop button pressed. Elevator will come to a halt.")
 				time.Sleep(50 * time.Millisecond)
@@ -111,11 +111,11 @@ func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
 				if (HallOrderMatrix[f][k].Status == Awaiting || HallOrderMatrix[f][k].Status == UnderExecution) && hallPanelLights[f][k] != true {
 					lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: true}
 					hallPanelLights[f][k] = true
-					printElevatorControl("Set HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[k] + " on elevator " + localIP)
+					//printElevatorControl("Set HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[] + " on elevator " + localIP)
 				} else if (HallOrderMatrix[f][k].Status == NotActive) && hallPanelLights[f][k] == true {
 					lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: false}
 					hallPanelLights[f][k] = false
-					printElevatorControl("Clear HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[k] + " on elevator " + localIP)
+					//printElevatorControl("Clear HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[k+1] + " on elevator " + localIP)
 				}
 			}
 		}

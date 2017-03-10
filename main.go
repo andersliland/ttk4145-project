@@ -81,7 +81,7 @@ func main() {
 
 func safeKill(safeKillChannel <-chan os.Signal, motorChannel chan int) {
 	<-safeKillChannel
-	motorChannel <- MotorStop
+	motorChannel <- Stop
 	time.Sleep(10 * time.Millisecond) // wait for motor stop too be processed
 	log.Fatal(ColorWhite, "\nUser terminated program\nMOTOR STOPPED\n", ColorNeutral)
 	os.Exit(1)

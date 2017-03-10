@@ -89,12 +89,12 @@ func motorController(motorChannel chan int) {
 		select {
 		case command = <-motorChannel:
 			switch command {
-			case MotorStop:
+			case Stop:
 				IoWriteAnalog(MOTOR, 0)
-			case MotorUp:
+			case Up:
 				IoClearBit(MOTORDIR)
 				IoWriteAnalog(MOTOR, motorSpeed)
-			case MotorDown:
+			case Down:
 				IoSetBit(MOTORDIR)
 				IoWriteAnalog(MOTOR, motorSpeed)
 			default:
@@ -175,16 +175,16 @@ func SetFloorIndicator(floor int) {
 func GoToFloorBelow(localIP string, motorChannel chan int, pollDelay time.Duration) error {
 	if readFloorSensor() == FloorInvalid {
 		printElevator("ReadFloorSensor " + strconv.Itoa(readFloorSensor()))
-		motorChannel <- MotorDown
+		motorChannel <- Down
 	} else {
 		// make sure eventManager gets init floor even if start at floor
-		motorChannel <- MotorUp
+		motorChannel <- Up
 		time.Sleep(100 * time.Millisecond)
-		motorChannel <- MotorDown
+		motorChannel <- Down
 	}
 	for {
 		if floor := readFloorSensor(); floor != FloorInvalid {
-			motorChannel <- MotorStop
+			motorChannel <- Stop
 			log.Println("[elevator]\t\t New elevator " + localIP + " starting at floor " + strconv.Itoa(floor+1))
 			return nil
 		} else {
