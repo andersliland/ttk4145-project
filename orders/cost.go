@@ -1,4 +1,4 @@
-package cost
+package orders
 
 import (
 	"errors"
@@ -46,22 +46,38 @@ func AssignOrderToElevator(Floor int, Kind int,
 
 // for each floor: loop each button, increment floorNum end of each loop
 // for each button: figure out if there exsist order below, increment button end of each loop
-func calculateOrderCost(ip string,
-	Floor int,
-	ButtonKind int,
+func calculateOrderCost(localIP string,
+	orderFloor int,
+	orderButtonKind int,
 	elevator *Elevator,
 	HallHallOrderMatrix [NumFloors][2]HallOrder) (floorCount, stopCount int) {
 
-	for f := 0; f > NumFloors; f++ {
+	/*
+		direction := elevator.Direction
+		prevFloor := elevator.Floor
+		state := elevator.State // Yet to be set
 
-		for b := 0; b < (NumButtons - 1); b++ {
+		// Elevator is Idle at the ordered floor
+		//if direction == MotorStop && state != Moving && prevFloor == orderFloor {
+		//	return 0, 0
+		//}
 
+		searchDirection := direction
+		if orderFloor > prevFloor {
+			if !(searchDirection == MotorDown && anyRequestsBelow(prevFloor, localIP)) {
+				searchDirection = MotorUp
+			}
+		} else if orderFloor < prevFloor {
+			//!(searchDirection == MotorUp && anyRequestsAbove(prevFloor, localIP))
 		}
 
-		floorCount++
-	}
+		for f := prevFloor + searchDirection; f < NumFloors && f >= Floor1; f += searchDirection {
 
-	return floorCount, stopCount
+		}
+	*/
+	// Why isn't cost.go in the orders.go package?
+	return 0, 0
+	//return floorCount, stopCount
 }
 
 // Implement sort.Interface - Len, Less and Swap of type orderCost

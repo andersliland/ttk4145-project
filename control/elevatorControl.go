@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"../cost"
 	"../orders/"
 	. "../utilities/"
 )
@@ -39,7 +38,7 @@ func MessageLoop(
 			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor+1))
 			switch button.Kind {
 			case ButtonCallUp, ButtonCallDown:
-				orderAssignedTo, err := cost.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus, HallOrderMatrix)
+				orderAssignedTo, err := orders.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus, HallOrderMatrix)
 				//printElevatorControl("Local assign order to " + orderAssignedTo)
 				CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
 				order := OrderMessage{
