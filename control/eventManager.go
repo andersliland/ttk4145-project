@@ -51,8 +51,6 @@ func eventManager(
 				if orders.ShouldStop(floor, direction, localIP) {
 					printEventManager("Stopped at floor " + strconv.Itoa(floor+1))
 					doorTimerReset <- true
-					orders.RemoveFloorOrders(floor, direction, localIP)
-					//orders.RemoveFloorOrders(floor, direction, localIP broadcastOrderChannel) // change the above function with this later
 					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 					state = doorOpen
 				} else {
@@ -64,7 +62,6 @@ func eventManager(
 			case doorOpen:
 				if orders.ShouldStop(floor, direction, localIP) {
 					doorTimerReset <- true
-					orders.RemoveFloorOrders(floor, direction, localIP)
 				}
 			default:
 				// Insert error handling

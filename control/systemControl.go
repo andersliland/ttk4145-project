@@ -42,14 +42,14 @@ func SystemControl(
 	defer watchdogKickTimer.Stop()
 
 	// init states
-	/*
-		broadcastBackupChannel <- BackupMessage{
-			AskerIP: localIP,
-			Event:   EventRequestBackup,
-			//ResponderIP: "",
-			//State:       Elevator{},
-		}
-	*/
+
+	//broadcastBackupChannel <- BackupMessage{
+	//AskerIP: localIP,
+	//ResponderIP: ,
+	//Event:       EventRequestBackup,
+	//State:       Elevator{},
+	//Cab:         CabOrder{},
+	//}
 
 	ElevatorStatus[localIP] = ResolveElevator(Elevator{LocalIP: localIP})
 	updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)

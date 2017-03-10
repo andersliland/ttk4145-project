@@ -33,8 +33,6 @@ func main() {
 	safeKillChannel := make(chan os.Signal, 10)
 	executeOrderChannel := make(chan OrderMessage, 10)
 
-	//newOrder := make(chan bool)
-
 	var localIP string
 	var err error
 	localIP, err = network.Init(broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel)
