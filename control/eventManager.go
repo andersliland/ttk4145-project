@@ -62,8 +62,7 @@ func eventManager(
 				if orders.ShouldStop(floor, direction, localIP) {
 					doorTimerReset <- true
 				}
-			default:
-				// Insert error handling
+			default: // Insert error handling
 			}
 		case floor = <-floorReached:
 			ElevatorStatus[localIP].Floor = floor //  TODO: Confirm functionality of this assignment
@@ -79,20 +78,17 @@ func eventManager(
 					motorChannel <- Stop
 					state = setState(DoorOpen, localIP)
 				}
-			case DoorOpen:
-				// not applicable
-			default:
-				// Insert error handling
+			case DoorOpen: // not applicable
+			default: // Insert error handling
 			}
 		case <-doorTimeout:
 			switch state {
-			case Idle:
-				// not applicable
-			case Moving:
-				// not applicable
+			case Idle: // not applicable
+			case Moving: // not applicable
 			case DoorOpen:
 				lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
 				orders.RemoveFloorOrders(floor, direction, localIP)
+
 				printEventManager("eventDoorTimeout, Idle: direction: " + MotorStatus[direction+1])
 				direction = setDirection(orders.ChooseDirection(floor, direction, localIP), localIP)
 				printEventManager("Door closing, new direction is " + MotorStatus[direction+1] + ".  Elevator " + localIP)
@@ -102,11 +98,8 @@ func eventManager(
 					motorChannel <- direction // Is this necessary?
 					state = setState(Moving, localIP)
 				}
-			default:
-				// Insert error handling here - elevator might possibly need to be restarted ()
+			default: // Insert error handling here - elevator might possibly need to be restarted ()
 			}
-			//case <-newState:
-			//broadcastOrderChannel <- OrderMessage{}
 
 		}
 	}

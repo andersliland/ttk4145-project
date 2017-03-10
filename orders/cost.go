@@ -99,21 +99,17 @@ func calculateOrderCost(ip string,
 			}
 		}
 
-		/*
-			for k := ButtonCallUp; k <= ButtonCommand; k++ {
-				//log.Println(f)
-				//log.Println(k)
-				//log.Println(HallOrderMatrix[f][k])
-				if HallOrderMatrix[f][k].AssignedTo == ip && HallOrderMatrix[f][k].Status == UnderExecution {
-					stopCount++
-					break
-				}
-				if ElevatorStatus[ip].CabOrders[f] {
-					stopCount++
-					break
-				}
+		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
+			// HallOrderMatrix[f][k].Status is never set to UnderExecution - should be done in systemControl.go
+			if HallOrderMatrix[f][k].AssignedTo == ip && HallOrderMatrix[f][k].Status == UnderExecution {
+				stopCount++
+				break
 			}
-		*/
+			if ElevatorStatus[ip].CabOrders[f] {
+				stopCount++
+				break
+			}
+		}
 
 		if f == NumFloors-1 {
 			direction = Down
