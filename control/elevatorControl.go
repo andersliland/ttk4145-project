@@ -1,5 +1,6 @@
 package control
 
+/*
 import (
 	"log"
 	"os"
@@ -35,15 +36,15 @@ func MessageLoop(
 	for {
 		select {
 		case button := <-buttonChannel: // Hardware
-			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor+1))
+			printSystemControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor+1))
 			switch button.Kind {
 			case ButtonCallUp, ButtonCallDown:
 				if _, ok := OnlineElevators[localIP]; !ok {
-					printElevatorControl("Elevator offline, cannot accept new order")
+					printSystemControl("Elevator offline, cannot accept new order")
 				} else {
 					orderAssignedTo, _ := orders.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus)
 					//cost := orders.CalculateOrderCost(localIP, button.Floor, button.Kind, ElevatorStatus[localIP])
-					//printElevatorControl("Cost for order of type " + ButtonType[button.Kind] + " is " + strconv.Itoa(cost) + "for elevator " + localIP)
+					//printSystemControl("Cost for order of type " + ButtonType[button.Kind] + " is " + strconv.Itoa(cost) + "for elevator " + localIP)
 
 					broadcastOrderChannel <- OrderMessage{
 						Floor:      button.Floor,
@@ -57,7 +58,6 @@ func MessageLoop(
 				}
 
 			case ButtonCommand:
-				/*
 					broadcastBackupChannel <- BackupMessage{
 						AskerIP: localIP,
 						Event:   EventElevatorBackup,
@@ -65,7 +65,6 @@ func MessageLoop(
 							Floor: button.Floor,
 						},
 					}
-				*/
 				orders.AddCabOrder(button, localIP)
 				newOrder <- true
 
@@ -80,7 +79,7 @@ func MessageLoop(
 			}
 		case floor := <-floorChannel: // Hardware
 			floorReached <- floor
-			//printElevatorControl("Elevator " + localIP + " reaced floor " + strconv.Itoa(floor+1))
+			//printSystemControl("Elevator " + localIP + " reaced floor " + strconv.Itoa(floor+1))
 		}
 	}
 }
@@ -93,21 +92,21 @@ func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
 			if ElevatorStatus[localIP].CabOrders[f] == true && cabPanelLights[f] != true {
 				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: true}
 				cabPanelLights[f] = true
-				//printElevatorControl("Set CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
+				//printSystemControl("Set CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
 			} else if ElevatorStatus[localIP].CabOrders[f] == false && cabPanelLights[f] == true {
 				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: false}
 				cabPanelLights[f] = false
-				//printElevatorControl("Clear CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
+				//printSystemControl("Clear CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
 			}
 			for k := ButtonCallUp; k <= ButtonCallDown; k++ {
 				if (HallOrderMatrix[f][k].Status == Awaiting || HallOrderMatrix[f][k].Status == UnderExecution) && hallPanelLights[f][k] != true {
 					lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: true}
 					hallPanelLights[f][k] = true
-					//printElevatorControl("Set HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[] + " on elevator " + localIP)
+					//printSystemControl("Set HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[] + " on elevator " + localIP)
 				} else if (HallOrderMatrix[f][k].Status == NotActive) && hallPanelLights[f][k] == true {
 					lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: false}
 					hallPanelLights[f][k] = false
-					//printElevatorControl("Clear HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[k+1] + " on elevator " + localIP)
+					//printSystemControl("Clear HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[k+1] + " on elevator " + localIP)
 				}
 			}
 		}
@@ -115,8 +114,9 @@ func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
 	}
 }
 
-func printElevatorControl(s string) {
+func printSystemControl(s string) {
 	if debugElevatorControl {
 		log.Println("[elevatorControl]\t", s)
 	}
 }
+*/

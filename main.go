@@ -42,20 +42,7 @@ func main() {
 
 	log.Println("[main]\t\t New Elevator ready with IP:", localIP)
 	control.Init(localIP)
-	go control.SystemControl(newOrder, timeoutChannel, broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
-	go control.MessageLoop(newOrder,
-		buttonChannel,
-		lightChannel,
-		motorChannel,
-		floorChannel,
-		broadcastOrderChannel,
-		receiveOrderChannel,
-		broadcastBackupChannel,
-		receiveBackupChannel,
-		OnlineElevators,
-		ElevatorStatus,
-		HallOrderMatrix,
-		localIP)
+	go control.SystemControl(newOrder, timeoutChannel, broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel, executeOrderChannel, buttonChannel, lightChannel, motorChannel, floorChannel, localIP)
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)

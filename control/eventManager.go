@@ -1,5 +1,6 @@
 package control
 
+/*
 import (
 	"log"
 	"strconv"
@@ -29,7 +30,6 @@ func eventManager(
 	var floor int // to initialize or not to initialize?
 	var direction int
 
-	// if restore order from file do ..., else:
 	const pollDelay = 5 * time.Millisecond
 	floor = driver.GoToFloorBelow(localIP, motorChannel, pollDelay)
 	time.Sleep(1 * time.Second)
@@ -48,7 +48,7 @@ func eventManager(
 				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
 
 				if orders.ShouldStop(floor, direction, localIP) {
-					printEventManager("Stopped at floor " + strconv.Itoa(floor+1))
+					printSystemControl("Stopped at floor " + strconv.Itoa(floor+1))
 					doorTimerReset <- true
 					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 					state = syncState(DoorOpen, localIP, broadcastBackupChannel)
@@ -59,7 +59,7 @@ func eventManager(
 					//newState <- Moving
 				}
 			case Moving: // Ignore
-			case DoorOpen:
+		case DoorOpen:
 				if orders.ShouldStop(floor, direction, localIP) {
 					doorTimerReset <- true
 				}
@@ -70,7 +70,7 @@ func eventManager(
 			log.Println("Floor reached: " + strconv.Itoa(floor+1))
 			switch state {
 			case Idle:
-				printEventManager("Elevator reached floor " + strconv.Itoa(floor+1) + " in state IDLE")
+				printSystemControl("Elevator reached floor " + strconv.Itoa(floor+1) + " in state IDLE")
 
 			case Moving:
 				if orders.ShouldStop(floor, direction, localIP) {
@@ -90,9 +90,9 @@ func eventManager(
 				lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
 				orders.RemoveFloorOrders(floor, direction, localIP)
 
-				printEventManager("eventDoorTimeout, Idle: direction: " + MotorStatus[direction+1])
+				printSystemControl("eventDoorTimeout, Idle: direction: " + MotorStatus[direction+1])
 				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
-				printEventManager("Door closing, new direction is " + MotorStatus[direction+1] + ".  Elevator " + localIP)
+				printSystemControl("Door closing, new direction is " + MotorStatus[direction+1] + ".  Elevator " + localIP)
 				if direction == Stop {
 					state = syncState(Idle, localIP, broadcastBackupChannel)
 				} else {
@@ -144,8 +144,9 @@ func syncState(state int, localIP string, broadcastBackupChannel chan<- BackupMe
 	return state
 }
 
-func printEventManager(s string) {
+func printSystemControl(s string) {
 	if debugEventManager {
 		log.Println("[eventManager]\t", s)
 	}
 }
+*/

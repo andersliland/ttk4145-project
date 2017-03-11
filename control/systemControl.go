@@ -11,9 +11,12 @@ package control
 import (
 	"log"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 
+	"../driver"
+	"../orders"
 	. "../utilities"
 )
 
@@ -24,13 +27,17 @@ func Init(localIP string) {
 }
 
 func SystemControl(
-	newOrder chan<- bool,
+	newOrder chan bool,
 	timeoutChannel chan HallOrder,
 	broadcastOrderChannel chan<- OrderMessage,
 	receiveOrderChannel <-chan OrderMessage,
 	broadcastBackupChannel chan<- BackupMessage,
 	receiveBackupChannel <-chan BackupMessage,
 	executeOrderChannel chan<- OrderMessage,
+	buttonChannel chan ElevatorButton,
+	lightChannel chan ElevatorLight,
+	motorChannel chan int,
+	floorChannel chan int,
 	localIP string) {
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -53,6 +60,26 @@ func SystemControl(
 		AskerIP: localIP,
 		Event:   EventRequestBackup,
 	}
+
+	// elevatorControl
+	floorReached := make(chan int)
+	time.Sleep(1 * time.Second)
+	go setPanelLights(lightChannel, localIP)
+
+	// eventManager
+	var state int = Idle
+	var floor int // to initialize or not to initialize?
+	var direction int
+
+	const pollDelay = 5 * time.Millisecond
+	floor = driver.GoToFloorBelow(localIP, motorChannel, pollDelay)
+	time.Sleep(1 * time.Second)
+	syncFloor(floor, localIP, broadcastBackupChannel)
+
+	doorTimeout := make(chan bool)
+	doorTimerReset := make(chan bool)
+
+	go doorTimer(doorTimeout, doorTimerReset)
 
 	for {
 		select {
@@ -260,7 +287,115 @@ func SystemControl(
 			case UnderExecution: //
 
 			}
+		// elevatorControl
+		case button := <-buttonChannel: // Hardware
+			printSystemControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor+1))
+			switch button.Kind {
+			case ButtonCallUp, ButtonCallDown:
+				if _, ok := OnlineElevators[localIP]; !ok {
+					printSystemControl("Elevator offline, cannot accept new order")
+				} else {
+					orderAssignedTo, _ := orders.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus)
+					//cost := orders.CalculateOrderCost(localIP, button.Floor, button.Kind, ElevatorStatus[localIP])
+					//printSystemControl("Cost for order of type " + ButtonType[button.Kind] + " is " + strconv.Itoa(cost) + "for elevator " + localIP)
 
+					broadcastOrderChannel <- OrderMessage{
+						Floor:      button.Floor,
+						ButtonType: button.Kind,
+						AssignedTo: orderAssignedTo,
+						OriginIP:   localIP,
+						SenderIP:   localIP,
+						Event:      EventNewOrder,
+					}
+
+				}
+
+			case ButtonCommand:
+				/*
+					broadcastBackupChannel <- BackupMessage{
+						AskerIP: localIP,
+						Event:   EventElevatorBackup,
+						Cab: CabOrder{
+							Floor: button.Floor,
+						},
+					}
+				*/
+				orders.AddCabOrder(button, localIP)
+				newOrder <- true
+
+			case ButtonStop:
+				motorChannel <- Stop
+				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
+				log.Println("Stop button pressed. Elevator will come to a halt.")
+				time.Sleep(50 * time.Millisecond)
+				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
+				os.Exit(1)
+
+			}
+		case floor := <-floorChannel: // Hardware
+			floorReached <- floor
+			//printSystemControl("Elevator " + localIP + " reaced floor " + strconv.Itoa(floor+1))
+
+		// eventManager
+		case <-newOrder:
+			switch state {
+			case Idle:
+				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
+
+				if orders.ShouldStop(floor, direction, localIP) {
+					printSystemControl("Stopped at floor " + strconv.Itoa(floor+1))
+					doorTimerReset <- true
+					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
+					state = syncState(DoorOpen, localIP, broadcastBackupChannel)
+
+				} else {
+					motorChannel <- direction
+					state = syncState(Moving, localIP, broadcastBackupChannel)
+					//newState <- Moving
+				}
+			case Moving: // Ignore
+			case DoorOpen:
+				if orders.ShouldStop(floor, direction, localIP) {
+					doorTimerReset <- true
+				}
+			default: // Insert error handling
+			}
+		case floor = <-floorReached:
+			syncFloor(floor, localIP, broadcastBackupChannel)
+			log.Println("Floor reached: " + strconv.Itoa(floor+1))
+			switch state {
+			case Idle:
+				printSystemControl("Elevator reached floor " + strconv.Itoa(floor+1) + " in state IDLE")
+
+			case Moving:
+				if orders.ShouldStop(floor, direction, localIP) {
+					doorTimerReset <- true
+					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
+					motorChannel <- Stop
+					state = syncState(DoorOpen, localIP, broadcastBackupChannel)
+				}
+			case DoorOpen: // not applicable
+			default: // Insert error handling
+			}
+		case <-doorTimeout:
+			switch state {
+			case Idle: // not applicable
+			case Moving: // not applicable
+			case DoorOpen:
+				lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
+				orders.RemoveFloorOrders(floor, direction, localIP)
+
+				printSystemControl("eventDoorTimeout, Idle: direction: " + MotorStatus[direction+1])
+				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
+				printSystemControl("Door closing, new direction is " + MotorStatus[direction+1] + ".  Elevator " + localIP)
+				if direction == Stop {
+					state = syncState(Idle, localIP, broadcastBackupChannel)
+				} else {
+					motorChannel <- direction // Is this necessary?
+					state = syncState(Moving, localIP, broadcastBackupChannel)
+				}
+			default: // Insert error handling here - elevator might possibly need to be restarted ()
+			}
 		} // select
 	} // for
 } //function
@@ -295,6 +430,81 @@ func allElevatorsHaveAcked(OnlineElevators map[string]bool, HallOrderMatrix [Num
 	return true
 
 }
+
+// elevatorControl help functions
+
+func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
+	var cabPanelLights [NumFloors]bool
+	var hallPanelLights [NumFloors][2]bool
+	for {
+		for f := 0; f < NumFloors; f++ {
+			if ElevatorStatus[localIP].CabOrders[f] == true && cabPanelLights[f] != true {
+				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: true}
+				cabPanelLights[f] = true
+				//printSystemControl("Set CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
+			} else if ElevatorStatus[localIP].CabOrders[f] == false && cabPanelLights[f] == true {
+				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: false}
+				cabPanelLights[f] = false
+				//printSystemControl("Clear CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
+			}
+			for k := ButtonCallUp; k <= ButtonCallDown; k++ {
+				if (HallOrderMatrix[f][k].Status == Awaiting || HallOrderMatrix[f][k].Status == UnderExecution) && hallPanelLights[f][k] != true {
+					lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: true}
+					hallPanelLights[f][k] = true
+					//printSystemControl("Set HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[] + " on elevator " + localIP)
+				} else if (HallOrderMatrix[f][k].Status == NotActive) && hallPanelLights[f][k] == true {
+					lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: false}
+					hallPanelLights[f][k] = false
+					//printSystemControl("Clear HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[k+1] + " on elevator " + localIP)
+				}
+			}
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
+// eventManager help functions
+
+func doorTimer(timeout chan<- bool, reset <-chan bool) {
+	const doorOpenTime = 3 * time.Second
+	timer := time.NewTimer(0)
+	timer.Stop()
+	for {
+		select {
+		case <-reset:
+			timer.Reset(doorOpenTime)
+		case <-timer.C:
+			timer.Stop()
+			timeout <- true
+		}
+	}
+}
+
+func syncFloor(floor int, localIP string, broadcastBackupChannel chan<- BackupMessage) {
+	ElevatorStatus[localIP].Floor = floor
+	//broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
+	//log.Println("Sendt ElevatorStatus sync message from syncFloor")
+
+}
+
+func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- BackupMessage) int {
+	ElevatorStatus[localIP].Direction = direction
+	//broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
+	//log.Println("Sendt ElevatorStatus sync message from syncDirection")
+
+	return direction
+
+}
+
+func syncState(state int, localIP string, broadcastBackupChannel chan<- BackupMessage) int {
+	ElevatorStatus[localIP].State = state
+	//broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
+	//log.Println("Sendt ElevatorStatus sync message from syncState")
+	return state
+}
+
+// --- //
+
 func printSystemControl(s string) {
 	if debugSystemControl {
 		log.Println("[systemControl]\t", s)
