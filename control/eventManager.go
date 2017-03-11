@@ -33,8 +33,7 @@ func eventManager(
 	const pollDelay = 5 * time.Millisecond
 	floor = driver.GoToFloorBelow(localIP, motorChannel, pollDelay)
 	time.Sleep(1 * time.Second)
-	ElevatorStatus[localIP].Floor = floor
-	//broadcastBackupChannel <- BackupMessage{State: Elevator{Floor: floor}, Event: EventElevatorBackup}
+	syncFloor(floor, localIP, broadcastBackupChannel)
 
 	doorTimeout := make(chan bool)
 	doorTimerReset := make(chan bool)
@@ -46,17 +45,17 @@ func eventManager(
 		case <-newOrder:
 			switch state {
 			case Idle:
-				direction = setDirection(orders.ChooseDirection(floor, direction, localIP), localIP)
+				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
 
 				if orders.ShouldStop(floor, direction, localIP) {
 					printEventManager("Stopped at floor " + strconv.Itoa(floor+1))
 					doorTimerReset <- true
 					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
-					state = setState(DoorOpen, localIP)
+					state = syncState(DoorOpen, localIP, broadcastBackupChannel)
 
 				} else {
 					motorChannel <- direction
-					state = setState(Moving, localIP)
+					state = syncState(Moving, localIP, broadcastBackupChannel)
 					//newState <- Moving
 				}
 			case Moving: // Ignore
@@ -67,7 +66,7 @@ func eventManager(
 			default: // Insert error handling
 			}
 		case floor = <-floorReached:
-			ElevatorStatus[localIP].Floor = floor //  TODO: Confirm functionality of this assignment
+			syncFloor(floor, localIP, broadcastBackupChannel)
 			log.Println("Floor reached: " + strconv.Itoa(floor+1))
 			switch state {
 			case Idle:
@@ -78,7 +77,7 @@ func eventManager(
 					doorTimerReset <- true
 					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 					motorChannel <- Stop
-					state = setState(DoorOpen, localIP)
+					state = syncState(DoorOpen, localIP, broadcastBackupChannel)
 				}
 			case DoorOpen: // not applicable
 			default: // Insert error handling
@@ -92,13 +91,13 @@ func eventManager(
 				orders.RemoveFloorOrders(floor, direction, localIP)
 
 				printEventManager("eventDoorTimeout, Idle: direction: " + MotorStatus[direction+1])
-				direction = setDirection(orders.ChooseDirection(floor, direction, localIP), localIP)
+				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
 				printEventManager("Door closing, new direction is " + MotorStatus[direction+1] + ".  Elevator " + localIP)
 				if direction == Stop {
-					state = setState(Idle, localIP)
+					state = syncState(Idle, localIP, broadcastBackupChannel)
 				} else {
 					motorChannel <- direction // Is this necessary?
-					state = setState(Moving, localIP)
+					state = syncState(Moving, localIP, broadcastBackupChannel)
 				}
 			default: // Insert error handling here - elevator might possibly need to be restarted ()
 			}
@@ -122,14 +121,26 @@ func doorTimer(timeout chan<- bool, reset <-chan bool) {
 	}
 }
 
-func setDirection(direction int, localIP string) int {
+func syncFloor(floor int, localIP string, broadcastBackupChannel chan<- BackupMessage) {
+	ElevatorStatus[localIP].Floor = floor
+	//broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
+	//log.Println("Sendt ElevatorStatus sync message from syncFloor")
+
+}
+
+func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- BackupMessage) int {
 	ElevatorStatus[localIP].Direction = direction
+	//broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
+	//log.Println("Sendt ElevatorStatus sync message from syncDirection")
+
 	return direction
 
 }
 
-func setState(state int, localIP string) int {
+func syncState(state int, localIP string, broadcastBackupChannel chan<- BackupMessage) int {
 	ElevatorStatus[localIP].State = state
+	//broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
+	//log.Println("Sendt ElevatorStatus sync message from syncState")
 	return state
 }
 

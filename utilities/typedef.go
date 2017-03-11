@@ -24,7 +24,7 @@ var EventType = []string{
 	"EventElevatorOnline",
 	"EventElevatorBackup",
 	"EventRequestBackup",
-	"EventElevatorBackupReturned",
+	"EventBackupReturned",
 	"EventCabOrder",
 	"EventAckCabOrder",
 
@@ -32,8 +32,8 @@ var EventType = []string{
 
 	"EventNewOrder",
 	"EventAckNewOrder",
-	"EventOrderConfirmed",
-	"EventAckOrderConfirmed",
+	"EventOrderCost",
+	"EventAckOrderCost",
 	"EventOrderCompleted",
 	"EventAckOrderCompleted",
 }
@@ -44,7 +44,7 @@ const (
 	EventElevatorOnline = iota //  = 0
 	EventElevatorBackup
 	EventRequestBackup
-	EventElevatorBackupReturned
+	EventBackupReturned
 	EventCabOrder
 	EventAckCabOrder
 	// OrderMessage Events
@@ -248,9 +248,11 @@ func (e *Elevator) RemoveCabOrder(Floor int) {
 }
 
 func (e *Elevator) UpdateElevatorStatus(backup BackupMessage) {
+	e.State = backup.State.State
 	e.Floor = backup.State.Floor
 	e.Direction = backup.State.Direction
-	e.State = backup.State.State
+	//e.CabOrders[backup.State.Floor] = //how to sync CabOrders
+	// NEED TO SYNC HallOrderMatrix?
 }
 
 // ----Type: HallOrder ----

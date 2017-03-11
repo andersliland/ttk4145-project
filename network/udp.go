@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 
 	. "../utilities"
 )
@@ -64,10 +65,8 @@ func resolveLocalIP(broadcastAddr *net.UDPAddr) (string, error) {
 	} else {
 		defer tempConn.Close()
 	}
-	localIP = tempConn.LocalAddr().String()
-	//strings.Split(conn.LocalAddr().String(), ":")[0]
+	localIP = strings.Split(tempConn.LocalAddr().String(), ":")[0]
 	return localIP, nil
-
 }
 
 func udpTransmit(conn *net.UDPConn, udpSendDatagramChannel <-chan UDPMessage) {

@@ -38,30 +38,36 @@ func MessageLoop(
 			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor+1))
 			switch button.Kind {
 			case ButtonCallUp, ButtonCallDown:
-				orderAssignedTo, err := orders.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus)
-				printElevatorControl("Local assign order to " + orderAssignedTo)
-				CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
+				if _, ok := OnlineElevators[localIP]; !ok {
+					printElevatorControl("Elevator offline, cannot accept new order")
+				} else {
+					orderAssignedTo, _ := orders.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus)
+					//cost := orders.CalculateOrderCost(localIP, button.Floor, button.Kind, ElevatorStatus[localIP])
+					//printElevatorControl("Cost for order of type " + ButtonType[button.Kind] + " is " + strconv.Itoa(cost) + "for elevator " + localIP)
 
-				broadcastOrderChannel <- OrderMessage{
-					Floor:      button.Floor,
-					ButtonType: button.Kind,
-					AssignedTo: orderAssignedTo,
-					OriginIP:   localIP,
-					SenderIP:   localIP,
-					Event:      EventNewOrder,
+					broadcastOrderChannel <- OrderMessage{
+						Floor:      button.Floor,
+						ButtonType: button.Kind,
+						AssignedTo: orderAssignedTo,
+						OriginIP:   localIP,
+						SenderIP:   localIP,
+						Event:      EventNewOrder,
+					}
+
 				}
 
 			case ButtonCommand:
+				/*
+					broadcastBackupChannel <- BackupMessage{
+						AskerIP: localIP,
+						Event:   EventElevatorBackup,
+						Cab: CabOrder{
+							Floor: button.Floor,
+						},
+					}
+				*/
 				orders.AddCabOrder(button, localIP)
 				newOrder <- true
-
-				broadcastBackupChannel <- BackupMessage{
-					ResponderIP: localIP,
-					Event:       EventElevatorBackup,
-					Cab: CabOrder{
-						Floor: button.Floor,
-					},
-				}
 
 			case ButtonStop:
 				motorChannel <- Stop
@@ -87,11 +93,11 @@ func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
 			if ElevatorStatus[localIP].CabOrders[f] == true && cabPanelLights[f] != true {
 				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: true}
 				cabPanelLights[f] = true
-				printElevatorControl("Set CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
+				//printElevatorControl("Set CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
 			} else if ElevatorStatus[localIP].CabOrders[f] == false && cabPanelLights[f] == true {
 				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: false}
 				cabPanelLights[f] = false
-				printElevatorControl("Clear CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
+				//printElevatorControl("Clear CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
 			}
 			for k := ButtonCallUp; k <= ButtonCallDown; k++ {
 				if (HallOrderMatrix[f][k].Status == Awaiting || HallOrderMatrix[f][k].Status == UnderExecution) && hallPanelLights[f][k] != true {
