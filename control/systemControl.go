@@ -16,14 +16,15 @@ import (
 	. "../utilities"
 )
 
-var debugSystemControl = false
+var debugSystemControl = true
 
 func Init(localIP string) {
 	ElevatorStatus[localIP] = ResolveElevator(Elevator{LocalIP: localIP})
 }
 
 func SystemControl(
-	newOrder chan bool,
+	newOrder chan<- bool,
+	timeoutChannel chan<- HallOrder,
 	broadcastOrderChannel chan<- OrderMessage,
 	receiveOrderChannel <-chan OrderMessage,
 	broadcastBackupChannel chan<- BackupMessage,
@@ -42,6 +43,12 @@ func SystemControl(
 	defer watchdogKickTimer.Stop()
 
 	updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
+
+	/*broadcastBackupChannel <- BackupMessage{
+		AskerIP: localIP,
+		Event:   EventElevatorBackup,
+	}
+	*/
 
 	for {
 		select {
@@ -70,29 +77,30 @@ func SystemControl(
 				updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
 
 			case EventElevatorBackup:
-				printSystemControl("Received an EventElevatorBackup from " + backup.AskerIP)
+				printSystemControl("Received an EventElevatorBackup from " + backup.ResponderIP)
+
+				if backup.AskerIP == localIP { // shoud be !=
+					ElevatorStatus[backup.AskerIP].UpdateElevatorStatus(backup)
+
+				}
 
 			case EventRequestBackup:
-				printSystemControl("Received an EventRequestBackup from " + backup.AskerIP)
 				if backup.AskerIP != localIP {
-					broadcastBackupChannel <- BackupMessage{
-						AskerIP:     backup.AskerIP,
-						ResponderIP: localIP,
-						Event:       EventElevatorBackupReturned,
-						//State:       Elevator{},
+					printSystemControl("Received an EventRequestBackup from " + backup.AskerIP)
+					if _, ok := ElevatorStatus[backup.AskerIP]; ok {
+						printSystemControl("Returning backup after request from " + backup.AskerIP)
+						broadcastBackupChannel <- BackupMessage{
+							AskerIP:         backup.AskerIP,
+							ResponderIP:     localIP,
+							Event:           EventElevatorBackupReturned,
+							State:           *ElevatorStatus[backup.AskerIP],
+							HallOrderMatrix: HallOrderMatrix,
+						}
+
 					}
 
 				} else {
-					printSystemControl("No stored state for elevator at selv " + localIP)
-					/*
-						broadcastBackupChannel <- BackupMessage{
-							AskerIP:     backup.AskerIP,
-							ResponderIP: localIP,
-							Event:       EventElevatorBackupReturned,
-							State:       ElevatorState{},
-						}
-					*/
-
+					printSystemControl("No stored state for elevator " + backup.AskerIP)
 				}
 
 			case EventElevatorBackupReturned:
@@ -165,6 +173,7 @@ func SystemControl(
 						SenderIP:   localIP,
 						Event:      EventAckNewOrder,
 					}
+
 				case Awaiting:
 					printSystemControl("Received New order allready awaiting")
 				case UnderExecution:
@@ -187,15 +196,16 @@ func SystemControl(
 							printSystemControl("Not all elevators acked")
 
 						}
-
-						broadcastOrderChannel <- OrderMessage{
-							Floor:      order.Floor,
-							ButtonType: order.ButtonType,
-							AssignedTo: order.AssignedTo,
-							OriginIP:   order.OriginIP,
-							SenderIP:   localIP,
-							Event:      EventOrderConfirmed,
-						}
+						/*
+							broadcastOrderChannel <- OrderMessage{
+								Floor:      order.Floor,
+								ButtonType: order.ButtonType,
+								AssignedTo: order.AssignedTo,
+								OriginIP:   order.OriginIP,
+								SenderIP:   localIP,
+								Event:      EventOrderConfirmed,
+							}
+						*/
 
 					case UnderExecution:
 						printSystemControl("Received EventAckNewOrder which is UnderExecution")

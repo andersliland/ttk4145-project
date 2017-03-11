@@ -28,6 +28,7 @@ func main() {
 	floorChannel := make(chan int)
 
 	newOrder := make(chan bool)
+	timeoutChannel := make(chan HallOrder)
 
 	safeKillChannel := make(chan os.Signal, 10)
 	executeOrderChannel := make(chan OrderMessage, 10)
@@ -41,7 +42,7 @@ func main() {
 
 	log.Println("[main]\t\t New Elevator ready with IP:", localIP)
 	control.Init(localIP)
-	go control.SystemControl(newOrder, broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
+	go control.SystemControl(newOrder, timeoutChannel, broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 	go control.MessageLoop(newOrder,
 		buttonChannel,
 		lightChannel,
@@ -55,14 +56,6 @@ func main() {
 		ElevatorStatus,
 		HallOrderMatrix,
 		localIP)
-
-	broadcastBackupChannel <- BackupMessage{
-		AskerIP: localIP,
-		Event:   EventElevatorBackup,
-		State: Elevator{
-			LocalIP: localIP,
-		},
-	}
 
 	// Kill motor when user terminates program
 	signal.Notify(safeKillChannel, os.Interrupt)

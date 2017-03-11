@@ -28,7 +28,7 @@ func MessageLoop(
 	localIP string) {
 
 	floorReached := make(chan int)
-	go eventManager(newOrder, broadcastOrderChannel, floorReached, lightChannel, motorChannel, localIP)
+	go eventManager(newOrder, broadcastOrderChannel, broadcastBackupChannel, floorReached, lightChannel, motorChannel, localIP)
 	time.Sleep(1 * time.Second)
 	go setPanelLights(lightChannel, localIP)
 
@@ -41,8 +41,8 @@ func MessageLoop(
 				orderAssignedTo, err := orders.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus)
 				printElevatorControl("Local assign order to " + orderAssignedTo)
 				CheckError("[elevatorControl] Failed to assign Order to Elevator ", err)
-				order := OrderMessage{
-					Time:       time.Now(),
+
+				broadcastOrderChannel <- OrderMessage{
 					Floor:      button.Floor,
 					ButtonType: button.Kind,
 					AssignedTo: orderAssignedTo,
@@ -50,33 +50,19 @@ func MessageLoop(
 					SenderIP:   localIP,
 					Event:      EventNewOrder,
 				}
-				broadcastOrderChannel <- order
 
 			case ButtonCommand:
 				orders.AddCabOrder(button, localIP)
 				newOrder <- true
 
-				/*
-					broadcastBackupChannel <- BackupMessage{
-						AskerIP: localIP,
-						Event:   EventElevatorBackup,
-						State: Elevator{
-							LocalIP: localIP,
-							//LastFloor: <-floorChannel ,
-							//	Direction: ,
-							//	IsMoving: ,
-							//	DoorStatus: ,
-							// CabOrders[button.Floor]: true, // why does this not work
-						},
-						Cab: CabOrder{
-							LocalIP:  localIP,
-							OriginIP: localIP,
-							Floor:    button.Floor,
-							//ConfirmedBy: ,
-							Timer: time.Now(),
-						},
-					}
-				*/
+				broadcastBackupChannel <- BackupMessage{
+					ResponderIP: localIP,
+					Event:       EventElevatorBackup,
+					Cab: CabOrder{
+						Floor: button.Floor,
+					},
+				}
+
 			case ButtonStop:
 				motorChannel <- Stop
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}

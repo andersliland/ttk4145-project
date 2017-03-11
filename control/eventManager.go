@@ -20,6 +20,7 @@ const debugEventManager = false
 func eventManager(
 	newOrder chan bool,
 	broadcastOrderChannel chan OrderMessage,
+	broadcastBackupChannel chan BackupMessage,
 	floorReached chan int,
 	lightChannel chan ElevatorLight,
 	motorChannel chan int, localIP string) {
@@ -33,6 +34,7 @@ func eventManager(
 	floor = driver.GoToFloorBelow(localIP, motorChannel, pollDelay)
 	time.Sleep(1 * time.Second)
 	ElevatorStatus[localIP].Floor = floor
+	//broadcastBackupChannel <- BackupMessage{State: Elevator{Floor: floor}, Event: EventElevatorBackup}
 
 	doorTimeout := make(chan bool)
 	doorTimerReset := make(chan bool)

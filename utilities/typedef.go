@@ -160,11 +160,12 @@ type OrderMessage struct {
 }
 
 type BackupMessage struct {
-	AskerIP     string
-	ResponderIP string
-	Event       int
-	State       Elevator
-	Cab         CabOrder
+	AskerIP         string
+	ResponderIP     string
+	Event           int
+	State           Elevator
+	Cab             CabOrder
+	HallOrderMatrix [NumFloors][2]HallOrder
 }
 
 type ElevatorButton struct {
@@ -243,6 +244,11 @@ func (e *Elevator) AddCabOrder(Floor int) {
 
 func (e *Elevator) RemoveCabOrder(Floor int) {
 	e.CabOrders[Floor] = false
+
+}
+
+func (e *Elevator) UpdateElevatorStatus(backup BackupMessage) {
+	e.Floor = backup.State.Floor
 
 }
 
