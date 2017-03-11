@@ -249,11 +249,12 @@ func (e *Elevator) RemoveCabOrder(Floor int) {
 
 func (e *Elevator) UpdateElevatorStatus(backup BackupMessage) {
 	e.Floor = backup.State.Floor
-
+	e.Direction = backup.State.Direction
+	e.State = backup.State.State
 }
 
 // ----Type: HallOrder ----
-func (order *HallOrder) InitConfirmedBy() {
+func (order *HallOrder) ClearConfirmedBy() {
 	for key := range order.ConfirmedBy {
 		delete(order.ConfirmedBy, key)
 	}

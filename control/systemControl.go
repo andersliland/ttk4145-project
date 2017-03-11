@@ -10,6 +10,7 @@ package control
 
 import (
 	"log"
+	"math/rand"
 	"strconv"
 	"time"
 
@@ -24,7 +25,7 @@ func Init(localIP string) {
 
 func SystemControl(
 	newOrder chan<- bool,
-	timeoutChannel chan<- HallOrder,
+	timeoutChannel chan HallOrder,
 	broadcastOrderChannel chan<- OrderMessage,
 	receiveOrderChannel <-chan OrderMessage,
 	broadcastBackupChannel chan<- BackupMessage,
@@ -32,9 +33,12 @@ func SystemControl(
 	executeOrderChannel chan<- OrderMessage,
 	localIP string) {
 
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	const watchdogKickTime = 100 * time.Millisecond
 	const watchdogLimit = 3*watchdogKickTime + 10*time.Millisecond
 	const ackTimeLimit = 500 * time.Millisecond
+	var orderTimeout = 5*time.Second + time.Duration(r.Intn(2000))*time.Millisecond // random timeout to prevent all elevator from timing out at the same time
 
 	// Timers
 	watchdogTimer := time.NewTicker(watchdogLimit)
@@ -79,7 +83,7 @@ func SystemControl(
 			case EventElevatorBackup:
 				printSystemControl("Received an EventElevatorBackup from " + backup.ResponderIP)
 
-				if backup.AskerIP == localIP { // shoud be !=
+				if backup.AskerIP != localIP { // shoud be !=
 					ElevatorStatus[backup.AskerIP].UpdateElevatorStatus(backup)
 
 				}
@@ -103,12 +107,24 @@ func SystemControl(
 					printSystemControl("No stored state for elevator " + backup.AskerIP)
 				}
 
+				// Restore state of elevator
 			case EventElevatorBackupReturned:
 				printSystemControl("Received EventElevatorBackupReturned from " + backup.ResponderIP)
 				if backup.AskerIP == localIP {
-					// i requested this backup, update
-					// HallOrderMatrix
-					// CabHallOrderMatrix
+					for floor, hallOrdersAtFloor := range backup.HallOrderMatrix {
+						for buttonKind, hallOrder := range hallOrdersAtFloor {
+							if hallOrder.Status == UnderExecution && hallOrder.AssignedTo != localIP && HallOrderMatrix[floor][buttonKind].Status == NotActive {
+								HallOrderMatrix[floor][buttonKind].Status = UnderExecution
+								HallOrderMatrix[floor][buttonKind].ClearConfirmedBy()
+								HallOrderMatrix[floor][buttonKind].AssignedTo = hallOrder.AssignedTo
+								HallOrderMatrix[floor][buttonKind].Timer = time.AfterFunc(2*orderTimeout, func() {
+									printSystemControl("An order under execution timed out for elevator " + localIP)
+
+								})
+
+							}
+						}
+					}
 
 				} else {
 					log.Printf("[systemControl] Received EventElevatorBackupReturned not requested by me")
@@ -143,26 +159,18 @@ func SystemControl(
 					printSystemControl("Received order in EventNewOrder, case NotActive")
 					HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = order.AssignedTo //assume cost func is correct
 					HallOrderMatrix[order.Floor][order.ButtonType].Status = Awaiting
-					HallOrderMatrix[order.Floor][order.ButtonType].InitConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
+					HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
 
 					// OriginIP is resposnible for order until it is assigned
 					if order.OriginIP == localIP {
+						printSystemControl("Starting timeoutTimer [EventNewOrder] on order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
 						// timeout handeling error where order is not acked
 						HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(ackTimeLimit, func() {
 							log.Println("Timeout \t A new order was not acked by all ")
-							/*
-									ackTimeout <- HallOrder{
-									 Floor: order.Floor,
-									 Type: order.ButtonType,
-									 Order: HallOrder{
-										 Status: Awaiting,
-										 AssignedTo: order.AssignedTo,
-										 Timer: HallOrderMatrix[order.Floor][order.ButtonType].Timer,
-									 }
-								}
-							*/
+							timeoutChannel <- HallOrder{
+								Status: NotActive,
+							}
 						})
-
 					}
 
 					broadcastOrderChannel <- OrderMessage{
@@ -186,15 +194,12 @@ func SystemControl(
 					case Awaiting:
 						HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
 						if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
-							printSystemControl("All elevators have ack'ed order at Floor " + strconv.Itoa(order.Floor) + " of  type " + ButtonType[order.ButtonType])
+							printSystemControl("All elevators have ack'ed order at Floor " + strconv.Itoa(order.Floor+1) + " of  type " + ButtonType[order.ButtonType])
 							HallOrderMatrix[order.Floor][order.ButtonType].Timer.Stop() // stop ackTimeout timer
 							//HallOrderMatrix[order.Floor][order.ButtonType]
-
 							newOrder <- true
-
 						} else {
 							printSystemControl("Not all elevators acked")
-
 						}
 						/*
 							broadcastOrderChannel <- OrderMessage{
@@ -206,29 +211,37 @@ func SystemControl(
 								Event:      EventOrderConfirmed,
 							}
 						*/
-
 					case UnderExecution:
 						printSystemControl("Received EventAckNewOrder which is UnderExecution")
-
 					case NotActive:
 						printSystemControl("Received EventAckNewOrder which is NotActive")
 					}
 				}
-
-			case EventOrderConfirmed:
-
-				// the order is confirmed, start executing
-
+			case EventOrderConfirmed: // the order is confirmed, start executing
 			case EventAckOrderConfirmed:
-
-			case EventOrderCompleted:
-				//printSystemControl("Received EventAckNewOrder which is NotActive")
-
-			case EventAckOrderCompleted:
-				// delete order from matrix and timer functions
-
+			case EventOrderCompleted: //printSystemControl("Received EventAckNewOrder which is NotActive")
+			case EventAckOrderCompleted: // delete order from matrix and timer functions
 			default:
 				printSystemControl("Received an invalid OrderMessage from" + order.SenderIP)
+
+			}
+
+		case t := <-timeoutChannel:
+			printSystemControl("Timed out on order " + " on floor ")
+			switch t.Status {
+			case NotActive: // EventNewOrder failed
+				printSystemControl("Not all elevators ACKed newOrder. Resending")
+				broadcastOrderChannel <- OrderMessage{
+					//Floor: ,
+					//Type
+					SenderIP: localIP,
+					Event:    EventNewOrder,
+				}
+
+			case Awaiting: // EventAckrderConfirmed failed
+				printSystemControl("Not all elevators ACKed OrderConfirmed. Resending")
+
+			case UnderExecution: //
 
 			}
 
