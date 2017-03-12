@@ -42,7 +42,7 @@ func SystemControl(
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	const watchdogKickTime = 100 * time.Millisecond
+	const watchdogKickTime = 1000 * time.Millisecond
 	const watchdogLimit = 3*watchdogKickTime + 10*time.Millisecond
 	const ackTimeLimit = 500 * time.Millisecond
 	var orderTimeout = 5*time.Second + time.Duration(r.Intn(2000))*time.Millisecond // random timeout to prevent all elevator from timing out at the same time
@@ -55,14 +55,16 @@ func SystemControl(
 
 	updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
 
-	printSystemControl("Sending out request for previous state")
-	broadcastBackupChannel <- BackupMessage{
-		AskerIP: localIP,
-		Event:   EventRequestBackup,
-	}
+	/*
+		printSystemControl("Sending out request for previous state")
+		broadcastBackupChannel <- BackupMessage{
+			AskerIP: localIP,
+			Event:   EventRequestBackup,
+		}
+	*/
 
 	// elevatorControl
-	floorReached := make(chan int)
+	//floorReached := make(chan int)
 	time.Sleep(1 * time.Second)
 	go setPanelLights(lightChannel, localIP)
 
@@ -122,13 +124,15 @@ func SystemControl(
 				if backup.AskerIP == localIP { // TODO change to !=
 					printSystemControl("Received an EventRequestBackup from " + backup.AskerIP)
 					if _, ok := ElevatorStatus[backup.AskerIP]; ok {
-						broadcastBackupChannel <- BackupMessage{
-							AskerIP:         backup.AskerIP,
-							ResponderIP:     localIP,
-							Event:           EventBackupReturned,
-							State:           *ElevatorStatus[backup.AskerIP],
-							HallOrderMatrix: HallOrderMatrix,
-						}
+						/*
+							                        broadcastBackupChannel <- BackupMessage{
+														AskerIP:     backup.AskerIP,
+														ResponderIP: localIP,
+														Event:       EventBackupReturned,
+														//State:           *ElevatorStatus[backup.AskerIP],
+														HallOrderMatrix: HallOrderMatrix,
+													}
+						*/
 
 						printSystemControl("Broadcasting elevator state from elevator " + localIP)
 
@@ -332,12 +336,13 @@ func SystemControl(
 				os.Exit(1)
 
 			}
-		case floor := <-floorChannel: // Hardware
-			floorReached <- floor
-			//printSystemControl("Elevator " + localIP + " reaced floor " + strconv.Itoa(floor+1))
+		//case fc := <-floorChannel: // Hardware
+		//printSystemControl("Elevator " + localIP + " reaced floor " + strconv.Itoa(fc+1))
+		//floorReached <- fc
 
 		// eventManager
 		case <-newOrder:
+			log.Println("case NewOrder")
 			switch state {
 			case Idle:
 				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
@@ -360,9 +365,9 @@ func SystemControl(
 				}
 			default: // Insert error handling
 			}
-		case floor = <-floorReached:
-			syncFloor(floor, localIP, broadcastBackupChannel)
+		case floor = <-floorChannel:
 			log.Println("Floor reached: " + strconv.Itoa(floor+1))
+			syncFloor(floor, localIP, broadcastBackupChannel)
 			switch state {
 			case Idle:
 				printSystemControl("Elevator reached floor " + strconv.Itoa(floor+1) + " in state IDLE")
@@ -378,6 +383,7 @@ func SystemControl(
 			default: // Insert error handling
 			}
 		case <-doorTimeout:
+			log.Println("case doorTimeout")
 			switch state {
 			case Idle: // not applicable
 			case Moving: // not applicable

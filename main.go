@@ -22,13 +22,13 @@ func main() {
 	broadcastBackupChannel := make(chan BackupMessage, 5)
 	receiveBackupChannel := make(chan BackupMessage, 5)
 
-	buttonChannel := make(chan ElevatorButton)
-	lightChannel := make(chan ElevatorLight)
-	motorChannel := make(chan int)
-	floorChannel := make(chan int)
+	buttonChannel := make(chan ElevatorButton, 10)
+	lightChannel := make(chan ElevatorLight, 10)
+	motorChannel := make(chan int, 10)
+	floorChannel := make(chan int, 10)
 
-	newOrder := make(chan bool)
-	timeoutChannel := make(chan HallOrder)
+	newOrder := make(chan bool, 10)
+	timeoutChannel := make(chan HallOrder, 10)
 
 	safeKillChannel := make(chan os.Signal, 10)
 	executeOrderChannel := make(chan OrderMessage, 10)
