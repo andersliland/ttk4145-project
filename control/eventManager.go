@@ -123,15 +123,15 @@ func doorTimer(timeout chan<- bool, reset <-chan bool) {
 
 func syncFloor(floor int, localIP string, broadcastBackupChannel chan<- BackupMessage) {
 	ElevatorStatus[localIP].Floor = floor
-	//broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
-	//log.Println("Sendt ElevatorStatus sync message from syncFloor")
+	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
+	log.Println("Sendt ElevatorStatus sync message from syncFloor")
 
 }
 
 func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- BackupMessage) int {
 	ElevatorStatus[localIP].Direction = direction
-	//broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
-	//log.Println("Sendt ElevatorStatus sync message from syncDirection")
+	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
+	log.Println("Sendt ElevatorStatus sync message from syncDirection")
 
 	return direction
 
@@ -139,8 +139,8 @@ func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- 
 
 func syncState(state int, localIP string, broadcastBackupChannel chan<- BackupMessage) int {
 	ElevatorStatus[localIP].State = state
-	//broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
-	//log.Println("Sendt ElevatorStatus sync message from syncState")
+	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
+	log.Println("Sendt ElevatorStatus sync message from syncState")
 	return state
 }
 

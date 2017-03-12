@@ -103,8 +103,9 @@ func udpReceive(conn *net.UDPConn, udpReceiveDatagramChannel chan<- UDPMessage) 
 }
 
 func udpConnectionReader(conn *net.UDPConn, bconn_rcv_ch chan<- UDPMessage) {
-	buf := make([]byte, messageSize)
 	for {
+		buf := make([]byte, messageSize)
+
 		if debugUDP {
 			log.Printf("[udp] UDPConnectionReader:\t Waiting on data from UDPConn %s\n", localIP)
 		}

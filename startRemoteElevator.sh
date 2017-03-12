@@ -4,7 +4,14 @@ clear
 user="student"
 echo "Type in the workstation number to start"
 read workstationNumber
-if [ $workstationNumber == "10" ]; then
+
+if [ $workstationNumber == "2" ]; then
+  IP=149
+elif [ $workstationNumber == "3" ]; then
+  IP=146
+elif [ $workstationNumber == "4" ]; then
+  IP=141
+elif [ $workstationNumber == "10" ]; then
   IP=155
 elif [ $workstationNumber == "11" ]; then
   IP="Na"
@@ -32,18 +39,20 @@ else
   exit 1
 fi
 
+ssh -t $user@129.241.187.$IP
+
 # Create new rsa key
 #ssh-keygen -t rsa # uncomment when starting from a new computer
 
 # Send RSA key to remote conputer
-#cat ~/.ssh/id_rsa.pub | ssh $user@129.241.187.$IP 'cat >> .ssh/authorized_keys'
+cat ~/.ssh/id_rsa.pub | ssh $user@129.241.187.$IP 'cat >> .ssh/authorized_keys'
 
 echo "Connecting to Workstation" $workstationNumber "at 129.241.187."$IP
-#ssh-copy-id $user@129.241.187.$IP
+ssh-copy-id $user@129.241.187.$IP
 echo "Delete old files and folder"
-#ssh $user@129.241.187.$IP 'rm -rf ~/work/src/github.com/andersliland/ttk4145-project/'
+ssh $user@129.241.187.$IP 'rm -rf ~/work/src/github.com/andersliland/ttk4145-project/'
 echo "Create new folder path"
-#ssh $user@129.241.187.$IP 'mkdir -p ~/work/src/github.com/andersliland/ttk4145-project' # create directory path if it does not exsist
+ssh $user@129.241.187.$IP 'mkdir -p ~/work/src/github.com/andersliland/ttk4145-project' # create directory path if it does not exsist
 echo "Copy project content"
 scp -rq ~/work/src/github.com/andersliland/ttk4145-project/. $user@129.241.187.$IP:~/work/src/github.com/andersliland/ttk4145-project &>/dev/null
 echo 'SSH into remote and execute go run main.go'
