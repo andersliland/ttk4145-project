@@ -5,14 +5,15 @@ import (
 	"log"
 	"sort"
 	"strconv"
+	"time"
 
 	. "../utilities"
 )
 
-const debugCost = true
+const debugCost = false
 
-const timeBetweenFloor = 1 //seconds //TODO: time and test1
-const timeAtFloor = 1      //seconds //TODO: update at the end
+const timeBetweenFloor = 2 //seconds //TODO: time and test1
+const timeAtFloor = 3      //seconds //TODO: update at the end
 
 type orderCost struct {
 	Cost int
@@ -54,7 +55,7 @@ func calculateOrderCost(ip string,
 
 	direction := elevator.Direction
 	prevFloor := elevator.Floor
-	state := elevator.State // Yet to be set
+	//state := elevator.State // Yet to be set
 
 	floorCount = 0
 	stopCount = 0
@@ -62,7 +63,7 @@ func calculateOrderCost(ip string,
 	printCost("Elevator direction: " + MotorStatus[direction+1])
 
 	// Elevator is idle at the ordered floor
-	if direction == Stop && state != Moving && prevFloor == orderFloor {
+	if direction == Stop && prevFloor == orderFloor {
 		return floorCount, stopCount
 	}
 
@@ -78,9 +79,11 @@ func calculateOrderCost(ip string,
 	}
 
 	printCost("Search direction: " + MotorStatus[searchDirection+1])
+	printCost("Elevator state: " + strconv.Itoa(ElevatorStatus[ip].State))
 
 	// increment floor based on direction of order
 	for f := prevFloor + searchDirection; f < NumFloors && f >= Floor1; f += searchDirection {
+		time.Sleep(200 * time.Millisecond) // TODO: remove
 		floorCount++
 		printCost("Current floor in cost loop, f = " + strconv.Itoa(f+1))
 		if f == orderFloor {

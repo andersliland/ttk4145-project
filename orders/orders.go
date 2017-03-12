@@ -143,6 +143,7 @@ func RemoveFloorOrders(floor, direction int, localIP string) {
 	default:
 		log.Println("ERROR [order]: Undefined direction for RemoveFloorOrders")
 	}
+
 }
 
 // --- //

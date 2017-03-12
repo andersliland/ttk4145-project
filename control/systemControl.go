@@ -17,7 +17,7 @@ import (
 	. "../utilities"
 )
 
-var debugSystemControl = true
+var debugSystemControl = false
 
 func Init(localIP string) {
 	ElevatorStatus[localIP] = ResolveElevator(Elevator{LocalIP: localIP})
@@ -80,7 +80,7 @@ func SystemControl(
 				updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
 
 			case EventElevatorBackup:
-				log.Println("Received an EventElevatorBackup from " + backup.AskerIP)
+				//log.Println("Received an EventElevatorBackup from " + backup.AskerIP)
 
 				if backup.AskerIP != localIP { // shoud be !=
 					ElevatorStatus[backup.AskerIP].UpdateElevatorStatus(backup)
@@ -199,11 +199,9 @@ func SystemControl(
 						if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
 							printSystemControl("All elevators have ack'ed order at Floor " + strconv.Itoa(order.Floor+1) + " of  type " + ButtonType[order.ButtonType])
 							HallOrderMatrix[order.Floor][order.ButtonType].Timer.Stop() // stop ackTimeout timer
-
-							// calculate cost and broadcast to event EventOrderCost
 							newOrder <- true
 						} else {
-							printSystemControl("Not all elevators acked")
+							log.Println("Not all elevators acked")
 						}
 
 						broadcastOrderChannel <- OrderMessage{
@@ -238,7 +236,7 @@ func SystemControl(
 			case EventOrderCompleted: //printSystemControl("Received EventAckNewOrder which is NotActive")
 			case EventAckOrderCompleted: // delete order from matrix and timer functions
 			default:
-				printSystemControl("Received an invalid OrderMessage from" + order.SenderIP)
+				log.Println("Received an invalid OrderMessage from" + order.SenderIP)
 
 			}
 
@@ -272,14 +270,14 @@ func updateOnlineElevators(ElevatorStatus map[string]*Elevator, OnlineElevators 
 		if time.Since(ElevatorStatus[k].Time) > watchdogLimit { //watchdog timeout
 			if OnlineElevators[k] == true {
 				delete(OnlineElevators, k)
-				printSystemControl("Removed elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
-				log.Printf("[systemControl] \t All Working elevators %v", OnlineElevators)
+				//printSystemControl("Removed elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
+				log.Printf("[systemControl] \t All OnlineElevators  %v", OnlineElevators)
 
 			}
 		} else { // watchdog not timed out
 			if OnlineElevators[k] != true {
 				OnlineElevators[k] = true
-				printSystemControl("Added elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
+				//printSystemControl("Added elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
 				log.Printf("[systemControl] \t All OnlineElevators %v", OnlineElevators)
 			}
 		}

@@ -39,12 +39,12 @@ func MessageLoop(
 			switch button.Kind {
 			case ButtonCallUp, ButtonCallDown:
 				if _, ok := OnlineElevators[localIP]; !ok {
-					printElevatorControl("Elevator offline, cannot accept new order")
+					log.Println("Elevator offline, cannot accept new order")
 				} else {
 					orderAssignedTo, _ := orders.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus)
-					//cost := orders.CalculateOrderCost(localIP, button.Floor, button.Kind, ElevatorStatus[localIP])
-					//printElevatorControl("Cost for order of type " + ButtonType[button.Kind] + " is " + strconv.Itoa(cost) + "for elevator " + localIP)
-
+					if orderAssignedTo == localIP {
+						log.Println("Order at floor " + (button.Floor + 1) + " of type " + ButtonType[button.Kind] + " is assigned to " + orderAssignedTo)
+					}
 					broadcastOrderChannel <- OrderMessage{
 						Floor:      button.Floor,
 						ButtonType: button.Kind,

@@ -43,8 +43,10 @@ func eventManager(
 	for {
 		select {
 		case <-newOrder:
+			log.Println("newOrder state: " + StateEventManager[state])
 			switch state {
 			case Idle:
+
 				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
 
 				if orders.ShouldStop(floor, direction, localIP) {
@@ -66,6 +68,8 @@ func eventManager(
 			default: // Insert error handling
 			}
 		case floor = <-floorReached:
+			log.Println("floorReached state: " + StateEventManager[state])
+
 			syncFloor(floor, localIP, broadcastBackupChannel)
 			log.Println("Floor reached: " + strconv.Itoa(floor+1))
 			switch state {
@@ -83,6 +87,7 @@ func eventManager(
 			default: // Insert error handling
 			}
 		case <-doorTimeout:
+			log.Println("doorTimeout state: " + StateEventManager[state])
 			switch state {
 			case Idle: // not applicable
 			case Moving: // not applicable
@@ -124,14 +129,14 @@ func doorTimer(timeout chan<- bool, reset <-chan bool) {
 func syncFloor(floor int, localIP string, broadcastBackupChannel chan<- BackupMessage) {
 	ElevatorStatus[localIP].Floor = floor
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
-	log.Println("Sendt ElevatorStatus sync message from syncFloor")
+	//log.Println("Sendt ElevatorStatus sync message from syncFloor")
 
 }
 
 func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- BackupMessage) int {
 	ElevatorStatus[localIP].Direction = direction
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
-	log.Println("Sendt ElevatorStatus sync message from syncDirection")
+	//log.Println("Sendt ElevatorStatus sync message from syncDirection")
 
 	return direction
 
@@ -140,7 +145,7 @@ func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- 
 func syncState(state int, localIP string, broadcastBackupChannel chan<- BackupMessage) int {
 	ElevatorStatus[localIP].State = state
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
-	log.Println("Sendt ElevatorStatus sync message from syncState")
+	//log.Println("Sendt ElevatorStatus sync message from syncState")
 	return state
 }
 
