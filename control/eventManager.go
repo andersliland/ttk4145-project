@@ -43,7 +43,7 @@ func eventManager(
 	for {
 		select {
 		case <-newOrder:
-			log.Println("newOrder state: " + StateEventManager[state])
+			//log.Println("newOrder state: " + StateEventManager[state])
 			switch state {
 			case Idle:
 
@@ -68,10 +68,9 @@ func eventManager(
 			default: // Insert error handling
 			}
 		case floor = <-floorReached:
-			log.Println("floorReached state: " + StateEventManager[state])
-
+			//log.Println("floorReached state: " + StateEventManager[state])
 			syncFloor(floor, localIP, broadcastBackupChannel)
-			log.Println("Floor reached: " + strconv.Itoa(floor+1))
+			//log.Println("Floor reached: " + strconv.Itoa(floor+1))
 			switch state {
 			case Idle:
 				printEventManager("Elevator reached floor " + strconv.Itoa(floor+1) + " in state IDLE")
@@ -87,13 +86,13 @@ func eventManager(
 			default: // Insert error handling
 			}
 		case <-doorTimeout:
-			log.Println("doorTimeout state: " + StateEventManager[state])
+			//log.Println("doorTimeout state: " + StateEventManager[state])
 			switch state {
 			case Idle: // not applicable
 			case Moving: // not applicable
 			case DoorOpen:
 				lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
-				orders.RemoveFloorOrders(floor, direction, localIP)
+				orders.RemoveFloorOrders(floor, direction, localIP, broadcastOrderChannel)
 
 				printEventManager("eventDoorTimeout, Idle: direction: " + MotorStatus[direction+1])
 				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)

@@ -20,15 +20,13 @@ var EventType = []string{
 	"EventBackupReturned",
 	"EventCabOrder",
 	"EventAckCabOrder",
-
 	// OrderMessage Events
-
 	"EventNewOrder",
 	"EventAckNewOrder",
-	"EventOrderCost",
-	"EventAckOrderCost",
 	"EventOrderCompleted",
 	"EventAckOrderCompleted",
+	"EventOrderConfirmed",
+	"EventAckOrderConfirmed",
 }
 
 // TODO: UPDATE network module if any changes in events
@@ -43,10 +41,10 @@ const (
 	// OrderMessage Events
 	EventNewOrder
 	EventAckNewOrder
-	EventOrderConfirmed
-	EventAckOrderConfirmed
 	EventOrderCompleted
 	EventAckOrderCompleted
+	EventOrderConfirmed
+	EventAckOrderConfirmed
 )
 
 var ButtonType = []string{
@@ -119,6 +117,12 @@ type CabOrder struct {
 	Floor       int
 	ConfirmedBy map[string]bool
 	Timer       time.Time
+}
+
+type ExtendedHallOrder struct {
+	Order      HallOrder
+	ButtonType int
+	Floor      int
 }
 
 type HallOrder struct {

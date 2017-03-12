@@ -28,7 +28,7 @@ func main() {
 	floorChannel := make(chan int)
 
 	newOrder := make(chan bool)
-	timeoutChannel := make(chan HallOrder)
+	timeoutChannel := make(chan ExtendedHallOrder)
 
 	safeKillChannel := make(chan os.Signal, 10)
 	executeOrderChannel := make(chan OrderMessage, 10)

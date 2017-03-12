@@ -8,9 +8,11 @@ read workstationNumber
 if [ $workstationNumber == "2" ]; then
   IP=149
 elif [ $workstationNumber == "3" ]; then
-  IP=146
+  IP=150
 elif [ $workstationNumber == "4" ]; then
   IP=141
+elif [ $workstationNumber == "6" ]; then
+  IP=146
 elif [ $workstationNumber == "10" ]; then
   IP=155
 elif [ $workstationNumber == "11" ]; then
