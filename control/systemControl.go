@@ -195,6 +195,7 @@ func SystemControl(
 								Floor:        order.Floor,
 								ButtonType:   order.ButtonType,
 								TimeoutState: TimeoutAckOrderConfirmed,
+								OriginIP:     order.OriginIP,
 								Order: HallOrder{
 									AssignedTo: order.AssignedTo,
 									//Timer:      HallOrderMatrix[order.Floor][order.ButtonType].Timer,
@@ -318,6 +319,14 @@ func SystemControl(
 
 			case TimeoutAckOrderConfirmed: // EventAckOrderConfirmed failed
 				log.Println("Not all elevators ACKed OrderConfirmed. Resending")
+				broadcastOrderChannel <- OrderMessage{
+					Floor:      t.Floor,
+					ButtonType: t.ButtonType,
+					AssignedTo: t.Order.AssignedTo,
+					SenderIP:   localIP,
+					OriginIP:   t.OriginIP,
+					Event:      EventOrderConfirmed,
+				}
 
 			case TimeoutAckOrderComplete: // EventAckOrderCompleted failed
 				log.Println("Elevator have NOT completed order, it must be reasigned")
@@ -336,7 +345,7 @@ func SystemControl(
 					AssignedTo: assignedTo,
 					OriginIP:   localIP, //assign new Origin of order
 					SenderIP:   localIP,
-					Event:      EventNewOrder,
+					Event:      EventReassignOrder,
 				}
 
 			}

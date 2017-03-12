@@ -25,6 +25,7 @@ var EventType = []string{
 	"EventAckNewOrder",
 	"EventOrderCompleted",
 	"EventAckOrderCompleted",
+	"EventReassignOrder",
 	"EventOrderConfirmed",
 	"EventAckOrderConfirmed",
 }
@@ -43,6 +44,7 @@ const (
 	EventAckNewOrder
 	EventOrderCompleted
 	EventAckOrderCompleted
+	EventReassignOrder
 	EventOrderConfirmed
 	EventAckOrderConfirmed
 )
@@ -129,6 +131,7 @@ type ExtendedHallOrder struct {
 	Floor        int
 	ButtonType   int
 	TimeoutState int
+	OriginIP     string
 	Order        HallOrder
 }
 
