@@ -42,7 +42,7 @@ func main() {
 
 	log.Println("[main]\t\t New Elevator ready with IP:", localIP)
 	control.Init(localIP)
-	go control.SystemControl(newOrder, timeoutChannel, broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
+	go control.SystemControl(motorChannel, newOrder, timeoutChannel, broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 	go control.MessageLoop(newOrder,
 		buttonChannel,
 		lightChannel,

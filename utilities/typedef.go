@@ -80,6 +80,12 @@ const (
 )
 
 const (
+	TimeoutAckNewOrder = iota
+	TimeoutAckOrderConfirmed
+	TimeoutAckOrderComplete
+)
+
+const (
 	FloorInvalid = iota - 1
 	Floor1
 	Floor2
@@ -120,9 +126,10 @@ type CabOrder struct {
 }
 
 type ExtendedHallOrder struct {
-	Order      HallOrder
-	ButtonType int
-	Floor      int
+	Floor        int
+	ButtonType   int
+	TimeoutState int
+	Order        HallOrder
 }
 
 type HallOrder struct {
@@ -264,5 +271,13 @@ func (order *HallOrder) ClearConfirmedBy() {
 		delete(order.ConfirmedBy, key)
 	}
 	order.ConfirmedBy = make(map[string]bool)
+
+}
+
+func (order *HallOrder) StopTimer() bool {
+	if order.Timer != nil {
+		return order.Timer.Stop()
+	}
+	return false
 
 }

@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"time"
 
+	"../orders"
+
 	. "../utilities"
 )
 
@@ -24,6 +26,7 @@ func Init(localIP string) {
 }
 
 func SystemControl(
+	motorChannel chan<- int,
 	newOrder chan<- bool,
 	timeoutChannel chan ExtendedHallOrder,
 	broadcastOrderChannel chan<- OrderMessage,
@@ -147,19 +150,18 @@ func SystemControl(
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = order.AssignedTo //assume cost func is correct
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = Awaiting
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
-				// OriginIP is resposnible for order until it is assigned
+
 				if order.OriginIP == localIP {
 					//printSystemControl("Starting timeoutTimer [EventNewOrder] on order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
 					// timeout handeling error where order is not acked
 					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(ackTimeLimit, func() {
 						log.Println("Timeout \t A new order was not ACKed by all ")
 						timeoutChannel <- ExtendedHallOrder{
-							Floor:      order.Floor,
-							ButtonType: order.ButtonType,
+							Floor:        order.Floor,
+							ButtonType:   order.ButtonType,
+							TimeoutState: TimeoutAckNewOrder,
 							Order: HallOrder{
-								Status:     NotActive,
 								AssignedTo: order.AssignedTo,
-								Timer:      HallOrderMatrix[order.Floor][order.ButtonType].Timer,
 							},
 						}
 					})
@@ -175,26 +177,33 @@ func SystemControl(
 				}
 
 			case EventAckNewOrder:
-				// OriginIP is responsible for register ack from other elevators
 				if order.AssignedTo == localIP {
 					newOrder <- true
 				}
-
+				// OriginIP is responsible for register ack from other elevators
 				if order.OriginIP == localIP {
-
 					HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
 					if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
-						printSystemControl("All elevators have ack'ed order at Floor " + strconv.Itoa(order.Floor+1) + " of  type " + ButtonType[order.ButtonType])
-						HallOrderMatrix[order.Floor][order.ButtonType].Timer.Stop() // stop ackTimeout timer
+						printSystemControl(localIP + " All elevators have ack'ed NewOrder at Floor " + strconv.Itoa(order.Floor+1) + " of  type " + ButtonType[order.ButtonType])
+						HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()
 						HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy()
 
-						HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(orderTimeout, func() {
-							log.Println("Order not ")
-							// Error handle if order is not completed within resonable time
+						HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(2*orderTimeout, func() {
+							log.Println("TIMEOUT\t An orderConfirmed was not ACKed by all OnlineElevators")
+
+							timeoutChannel <- ExtendedHallOrder{
+								Floor:        order.Floor,
+								ButtonType:   order.ButtonType,
+								TimeoutState: TimeoutAckOrderConfirmed,
+								Order: HallOrder{
+									AssignedTo: order.AssignedTo,
+									//Timer:      HallOrderMatrix[order.Floor][order.ButtonType].Timer,
+								},
+							}
 						})
 						//newOrder <- true
 					} else {
-						log.Println("[systemControl]\t Not all elevators ACK newOrder")
+						//log.Println("[systemControl]\t Not all elevators ACK newOrder")
 					}
 					broadcastOrderChannel <- OrderMessage{
 						Floor:      order.Floor,
@@ -207,32 +216,66 @@ func SystemControl(
 				}
 
 			case EventOrderConfirmed:
-			case EventAckOrderConfirmed:
-
-			case EventOrderCompleted:
-				//log.Println("[systemControl]\t Received EventOrderCompleted")
-				printSystemControl("Floor: " + strconv.Itoa(order.Floor+1) + " ButtonType: " + ButtonType[order.ButtonType])
-
-				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
-				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
-				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
-
-				if order.OriginIP == localIP {
-					//printSystemControl("Starting timeoutTimer [EventOrderCompleted] on order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
-					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(ackTimeLimit, func() {
-						log.Println("[systemControl]\t Timeout \t A new OrderCompleted was not ACKed by all ")
+				// printSystemControl("Floor: " + strconv.Itoa(order.Floor+1) + " ButtonType: " + ButtonType[order.ButtonType])
+				if order.OriginIP != localIP {
+					timeout := orderTimeout
+					if order.AssignedTo != localIP {
+						timeout = 2 * orderTimeout
+					}
+					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
 						timeoutChannel <- ExtendedHallOrder{
-							Floor:      order.Floor,
-							ButtonType: order.ButtonType,
+							Floor:        order.Floor,
+							ButtonType:   order.ButtonType,
+							TimeoutState: TimeoutAckOrderComplete,
 							Order: HallOrder{
-								Status:     NotActive,
-								AssignedTo: order.AssignedTo,
-								Timer:      HallOrderMatrix[order.Floor][order.ButtonType].Timer,
+								Timer: HallOrderMatrix[order.Floor][order.ButtonType].Timer,
 							},
 						}
 					})
 				}
 
+				broadcastOrderChannel <- OrderMessage{
+					Floor:      order.Floor,
+					ButtonType: order.ButtonType,
+					AssignedTo: order.AssignedTo,
+					OriginIP:   order.OriginIP,
+					SenderIP:   localIP,
+					Event:      EventAckOrderConfirmed,
+				}
+
+			case EventAckOrderConfirmed:
+				if order.OriginIP == localIP {
+					HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
+					if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
+						HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
+						HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
+
+					}
+				}
+
+			case EventOrderCompleted:
+				//printSystemControl("Floor: " + strconv.Itoa(order.Floor+1) + " ButtonType: " + ButtonType[order.ButtonType])
+				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
+				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
+				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
+				if order.OriginIP == localIP {
+					//printSystemControl("Starting timeoutTimer [EventOrderCompleted] on order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
+					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(ackTimeLimit, func() {
+						//log.Println("[systemControl]\t Timeout \t A new OrderCompleted was not ACKed by all ")
+						/*
+							timeoutChannel <- ExtendedHallOrder{
+								Floor:        order.Floor,
+								ButtonType:   order.ButtonType,
+								TimeoutState: TimeoutAckOrderComplete,
+								Order: HallOrder{
+									Status:     NotActive,
+									AssignedTo: order.AssignedTo,
+									//Timer:      HallOrderMatrix[order.Floor][order.ButtonType].Timer,
+								},
+							}*/
+
+					})
+				}
 				//if order.SenderIP != localIP {
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      order.Floor,
@@ -250,18 +293,19 @@ func SystemControl(
 					HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
 					if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
 						printSystemControl("All elevators have ACKed orderComplete at Floor " + strconv.Itoa(order.Floor+1) + " of  type " + ButtonType[order.ButtonType])
-						HallOrderMatrix[order.Floor][order.ButtonType].Timer.Stop() // stop ackTimeout timer
+						HallOrderMatrix[order.Floor][order.ButtonType].StopTimer() // stop ackTimeout timer
 					} else {
-						log.Println("[systemControl]\tNot all elevators ACK orderComplete")
+						//log.Println("[systemControl]\tNot all elevators ACK orderComplete")
 					}
 				}
+
 			default:
 				log.Println("Received an invalid OrderMessage from" + order.SenderIP)
-			}
 
+			}
 		case t := <-timeoutChannel:
-			switch t.Order.Status {
-			case NotActive: // EventAckNewOrder failed
+			switch t.TimeoutState {
+			case TimeoutAckNewOrder: // EventAckNewOrder failed
 				log.Println("Not all elevators ACKed newOrder. Resending")
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      t.Floor,
@@ -272,10 +316,28 @@ func SystemControl(
 					Event:      EventNewOrder,
 				}
 
-			case Awaiting: // EventAckrderConfirmed failed
+			case TimeoutAckOrderConfirmed: // EventAckOrderConfirmed failed
 				log.Println("Not all elevators ACKed OrderConfirmed. Resending")
 
-			case UnderExecution: //
+			case TimeoutAckOrderComplete: // EventAckOrderCompleted failed
+				log.Println("Elevator have NOT completed order, it must be reasigned")
+
+				// kill self
+				if t.Order.AssignedTo == localIP {
+					motorChannel <- Stop
+					time.Sleep(100 * time.Millisecond)
+					log.Fatal("SUICIDE, could not complete order. Something wrong")
+				}
+
+				assignedTo, _ := orders.AssignOrderToElevator(t.Floor, t.ButtonType, OnlineElevators, ElevatorStatus)
+				broadcastOrderChannel <- OrderMessage{
+					Floor:      t.Floor,
+					ButtonType: t.ButtonType,
+					AssignedTo: assignedTo,
+					OriginIP:   localIP, //assign new Origin of order
+					SenderIP:   localIP,
+					Event:      EventNewOrder,
+				}
 
 			}
 
@@ -291,7 +353,7 @@ func updateOnlineElevators(ElevatorStatus map[string]*Elevator, OnlineElevators 
 			if OnlineElevators[k] == true {
 				delete(OnlineElevators, k)
 				//printSystemControl("Removed elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
-				log.Printf("[systemControl] \t All OnlineElevators  %v", OnlineElevators)
+				log.Printf("[systemControl] \t All OnlineElevators %v", OnlineElevators)
 
 			}
 		} else { // watchdog not timed out
@@ -299,9 +361,11 @@ func updateOnlineElevators(ElevatorStatus map[string]*Elevator, OnlineElevators 
 				OnlineElevators[k] = true
 				//printSystemControl("Added elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
 				log.Printf("[systemControl] \t All OnlineElevators %v", OnlineElevators)
+
 			}
 		}
 	}
+
 }
 
 func allElevatorsHaveAcked(OnlineElevators map[string]bool, HallOrderMatrix [NumFloors][2]HallOrder, order OrderMessage) bool {

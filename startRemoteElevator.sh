@@ -5,7 +5,10 @@ user="student"
 echo "Type in the workstation number to start"
 read workstationNumber
 
-if [ $workstationNumber == "2" ]; then
+
+if [ $workstationNumber == "1" ]; then
+  IP=140
+elif [ $workstationNumber == "2" ]; then
   IP=149
 elif [ $workstationNumber == "3" ]; then
   IP=150
@@ -16,8 +19,7 @@ elif [ $workstationNumber == "6" ]; then
 elif [ $workstationNumber == "10" ]; then
   IP=155
 elif [ $workstationNumber == "11" ]; then
-  IP="Na"
-  echo "Not a valid workstation"
+  IP=159
 elif [ $workstationNumber == "12" ]; then
   IP=144
 elif [ $workstationNumber == "13" ]; then
