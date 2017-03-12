@@ -62,9 +62,8 @@ func resolveLocalIP(broadcastAddr *net.UDPAddr) (string, error) {
 	if err != nil {
 		log.Println("[udo] resolveLocalIP, no internet connection", err)
 		return "", err
-	} else {
-		defer tempConn.Close()
 	}
+	defer tempConn.Close()
 	localIP = strings.Split(tempConn.LocalAddr().String(), ":")[0]
 	return localIP, nil
 }
@@ -103,8 +102,9 @@ func udpReceive(conn *net.UDPConn, udpReceiveDatagramChannel chan<- UDPMessage) 
 }
 
 func udpConnectionReader(conn *net.UDPConn, bconn_rcv_ch chan<- UDPMessage) {
-	buf := make([]byte, messageSize)
 	for {
+		buf := make([]byte, messageSize)
+
 		if debugUDP {
 			log.Printf("[udp] UDPConnectionReader:\t Waiting on data from UDPConn %s\n", localIP)
 		}

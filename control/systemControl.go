@@ -42,7 +42,7 @@ func SystemControl(
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	const watchdogKickTime = 1000 * time.Millisecond
+	const watchdogKickTime = 100 * time.Millisecond
 	const watchdogLimit = 3*watchdogKickTime + 10*time.Millisecond
 	const ackTimeLimit = 500 * time.Millisecond
 	var orderTimeout = 5*time.Second + time.Duration(r.Intn(2000))*time.Millisecond // random timeout to prevent all elevator from timing out at the same time
@@ -414,7 +414,7 @@ func updateOnlineElevators(ElevatorStatus map[string]*Elevator, OnlineElevators 
 			if OnlineElevators[k] == true {
 				delete(OnlineElevators, k)
 				printSystemControl("Removed elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
-				log.Printf("[systemControl] \t All Working elevators %v", OnlineElevators)
+				log.Printf("[systemControl] \t All working elevators %v", OnlineElevators)
 
 			}
 		} else { // watchdog not timed out

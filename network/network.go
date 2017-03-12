@@ -66,7 +66,7 @@ func receiveMessageHandler(
 			var f interface{}
 			err := json.Unmarshal(msg.Data[:msg.Length], &f)
 			if err != nil {
-				log.Println("[network] First Unmarshal failed", err)
+
 			} else {
 				printNetwork(" New UDP datagram received, first Unmarshal sucess")
 

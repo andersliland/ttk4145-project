@@ -9,14 +9,7 @@ const NumButtons = 3
 const NumFloors = 4
 
 var HallOrderMatrix [NumFloors][2]HallOrder
-
-//var CabHallOrderMatrix [NumFloors]CabOrder
-
-// key = IPaddr
 var ElevatorStatus = make(map[string]*Elevator) // containing last known state
-
-//var ElevatorLocalMap = make(map[string]*ElevatorLocal)
-
 var OnlineElevators = make(map[string]bool)
 
 var EventType = []string{
