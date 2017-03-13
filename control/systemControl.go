@@ -77,14 +77,13 @@ func SystemControl(
 				if _, ok := ElevatorStatus[backup.ResponderIP]; ok { // check if a value exsist for ResponderIP
 					ElevatorStatus[backup.ResponderIP].Time = time.Now() //update time for known elevator
 				} else {
-					printSystemControl("Received EventElevatorOnline from a new elevator with IP" + backup.ResponderIP)
+					printSystemControl("Received EventElevatorOnline from a new elevator with IP " + backup.ResponderIP)
 					ElevatorStatus[backup.ResponderIP] = ResolveElevator(backup.State)
 				}
 				updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
 
 			case EventElevatorBackup:
-				log.Println("Received an EventElevatorBackup from " + backup.AskerIP)
-
+				//log.Println("Received an EventElevatorBackup from " + backup.AskerIP)
 				//if backup.AskerIP != localIP { // shoud be !=
 				//	ElevatorStatus[backup.AskerIP].UpdateElevatorStatus(backup)
 				//}
@@ -385,13 +384,14 @@ func updateOnlineElevators(ElevatorStatus map[string]*Elevator, OnlineElevators 
 			if OnlineElevators[k] == true {
 				delete(OnlineElevators, k)
 				//printSystemControl("Removed elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
+				log.Println("[systemControl] \t All OnlineElevators", OnlineElevators, "Removed ", ElevatorStatus[k].LocalIP)
+
 			}
-			//log.Printf("[systemControl] \t All OnlineElevators %v", OnlineElevators)
 		} else { // watchdog not timed out
 			if OnlineElevators[k] != true {
 				OnlineElevators[k] = true
 				//printSystemControl("Added elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
-				log.Printf("[systemControl] \t All OnlineElevators %v", OnlineElevators)
+				log.Println("[systemControl] \t All OnlineElevators", OnlineElevators, "Added ", ElevatorStatus[k].LocalIP)
 			}
 		}
 	}

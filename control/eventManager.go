@@ -35,13 +35,15 @@ func eventManager(
 
 	if err := ElevatorStatus[localIP].LoadFromFile("backupElevator"); err == nil {
 		log.Println("[eventManager]\t Executing restored orders")
+
 		for f := 0; f < NumFloors; f++ {
 			if ElevatorStatus[localIP].CabOrders[f] {
-				newOrder <- true
+				//newOrder <- true
 				break
 			}
 		}
 	}
+
 	floor = driver.GoToFloorBelow(localIP, motorChannel, pollDelay)
 
 	fmt.Print(ColorWhite)

@@ -157,6 +157,10 @@ type Elevator struct { // syncronised for all elevators
 	HallOrderMatrix [NumFloors][2]HallOrder
 }
 
+type BackupOrders struct {
+	CabOrders [NumFloors]bool
+}
+
 /*
 type ElevatorLocal struct {
 	State           int //Idle, Moving, DoorOpen
