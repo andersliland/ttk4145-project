@@ -165,7 +165,7 @@ func SystemControl(
 				}
 
 				if order.OriginIP == localIP {
-					printSystemControl("Starting timeoutTimer [EventNewOrder] on order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
+					printSystemControl("Starting ack timer [EventNewOrder] on order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
 					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(ackTimeLimit, func() {
 						log.Println("[systemControl]\t Timeout\t newOrder not ACK'ed by all ")
 						timeoutChannel <- ExtendedHallOrder{
@@ -179,9 +179,7 @@ func SystemControl(
 					})
 				}
 			case EventAckNewOrder:
-				if order.SenderIP == localIP {
-					//printSystemControl("case: EventAckNewOrder")
-				}
+				//printSystemControl("case: EventAckNewOrder")
 				// OriginIP is responsible for registering ack from other elevators
 				if order.OriginIP == localIP {
 					HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
@@ -226,6 +224,7 @@ func SystemControl(
 						log.Println("THE MADMAN")
 						timeout = 2 * orderTimeout
 					}
+					printSystemControl("Starting execution timer [EventOrderConfirmed] on order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
 					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
 						log.Println("Timeout\t orderUnderExecution - elevator " + order.OriginIP + " could not execute order (OriginIP != localIP)")
 						timeoutChannel <- ExtendedHallOrder{
@@ -250,13 +249,13 @@ func SystemControl(
 						printSystemControl("All elevators have ack'ed OrderConfirmed at Floor " + strconv.Itoa(order.Floor+1) + " of  type " + ButtonType[order.ButtonType])
 						HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 						HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
-
 						timeout := orderTimeout
 						if order.AssignedTo != localIP {
 							timeout = 2 * orderTimeout
 						}
+						log.Println("[systemConrtol]\t OriginIP start execution timer [EventOrderConfirmed] on order "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
 						HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
-							log.Println("Timeout\t orderUnderExecution - Elevator could not execute order (OriginIP == localIP)")
+							log.Println("Timeout\t\t orderUnderExecution - Elevator could not execute order (OriginIP == localIP)")
 							timeoutChannel <- ExtendedHallOrder{
 								Floor:        order.Floor,
 								ButtonType:   order.ButtonType,
@@ -267,17 +266,16 @@ func SystemControl(
 								},
 							}
 						})
-					} else {
-						//log.Println("OrderConfirmed NOT ack'ed by all")
 					}
 				}
 			case EventOrderCompleted:
 				// This case is only sent from the eventManager after it detects that an order is completed.
 				printSystemControl("case: EventOrderCompleted")
-
-				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
+				//HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
-				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stops timer set in EventAckOrderConfirmed
+				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer() // stops timer set in EventAckOrderConfirmed
+				log.Println("[systemControl]\t EventOrderComplete stop timer at order  "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
+
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
 
 				broadcastOrderChannel <- OrderMessage{
@@ -304,30 +302,27 @@ func SystemControl(
 				}
 
 			case EventAckOrderCompleted: // delete order from matrix and timer functions
-				if order.AssignedTo == localIP {
-					printSystemControl("case: EventAckOrderCompleted")
-				}
-				if order.OriginIP == localIP {
-					HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
-					if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
-						fmt.Printf(ColorBlue)
-						log.Println("[systemControl]\t All elevators have ack'ed OrderCompleted at Floor "+strconv.Itoa(order.Floor+1)+" of  type "+ButtonType[order.ButtonType], ColorNeutral)
-						HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
-						HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
-					}
+				printSystemControl("case: EventAckOrderCompleted")
+				HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
+				if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
+					fmt.Printf(ColorBlue)
+					log.Println("[systemControl]\t All elevators have ack'ed OrderCompleted at Floor "+strconv.Itoa(order.Floor+1)+" of  type "+ButtonType[order.ButtonType], ColorNeutral)
+					HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
+					HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
 				}
 
 			case EventReassignOrder:
-				if order.SenderIP == localIP {
-					//printSystemControl("case: EventReassignOrder")
-				}
+
+				printSystemControl("case: EventReassignOrder")
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
+				assignedTo, _ := orders.AssignOrderToElevator(order.Floor, order.ButtonType, OnlineElevators, ElevatorStatus)
+				printSystemControl("case: EventReassignOrder assigned to" + assignedTo + ". OriginIP " + order.OriginIP)
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      order.Floor,
 					ButtonType: order.ButtonType,
-					AssignedTo: order.AssignedTo,
+					AssignedTo: assignedTo,
 					OriginIP:   order.OriginIP,
 					SenderIP:   localIP,
 					Event:      EventNewOrder,
@@ -366,17 +361,31 @@ func SystemControl(
 				if t.Order.AssignedTo == localIP {
 					motorChannel <- Stop
 					time.Sleep(100 * time.Millisecond)
-					log.Fatal("SUICIDE, could not complete order. Something wrong")
+					fmt.Print(ColorRed)
+					log.Fatal("SUICIDE, could not complete order "+ButtonType[t.ButtonType]+" at floor "+strconv.Itoa(t.Floor+1)+". OriginIP: "+t.OriginIP+" AssignedTo: "+t.Order.AssignedTo, ColorNeutral)
 				}
+				if t.OriginIP == localIP {
+					printSystemControl("Order timeout I am OriginIP ")
+					broadcastOrderChannel <- OrderMessage{
+						Floor:      t.Floor,
+						ButtonType: t.ButtonType,
+						AssignedTo: t.Order.AssignedTo,
+						OriginIP:   localIP, //randomly assign OriginIP for new order
+						SenderIP:   localIP,
+						Event:      EventReassignOrder,
+					}
 
-				assignedTo, _ := orders.AssignOrderToElevator(t.Floor, t.ButtonType, OnlineElevators, ElevatorStatus)
-				broadcastOrderChannel <- OrderMessage{
-					Floor:      t.Floor,
-					ButtonType: t.ButtonType,
-					AssignedTo: assignedTo,
-					OriginIP:   localIP, //assign new Origin of order
-					SenderIP:   localIP,
-					Event:      EventReassignOrder,
+				} else {
+					printSystemControl("Order timeout I am NOT OriginIP ")
+					broadcastOrderChannel <- OrderMessage{
+						Floor:      t.Floor,
+						ButtonType: t.ButtonType,
+						AssignedTo: t.Order.AssignedTo,
+						OriginIP:   localIP, //randomly assign OriginIP for new order
+						SenderIP:   localIP,
+						Event:      EventReassignOrder,
+					}
+
 				}
 
 			}
@@ -393,15 +402,13 @@ func updateOnlineElevators(ElevatorStatus map[string]*Elevator, OnlineElevators 
 			if OnlineElevators[k] == true {
 				delete(OnlineElevators, k)
 				//printSystemControl("Removed elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
-				//log.Printf("[systemControl] \t All OnlineElevators %v", OnlineElevators)
-
 			}
+			//log.Printf("[systemControl] \t All OnlineElevators %v", OnlineElevators)
 		} else { // watchdog not timed out
 			if OnlineElevators[k] != true {
 				OnlineElevators[k] = true
 				//printSystemControl("Added elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
 				log.Printf("[systemControl] \t All OnlineElevators %v", OnlineElevators)
-
 			}
 		}
 	}

@@ -72,7 +72,6 @@ func MessageLoop(
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
 				log.Println("[elevatorControl]\t Stop button pressed. Elevator will come to a halt.")
 				log.Println("[elevatorControl]\t You need to restart system to init elevator again.")
-
 				time.Sleep(50 * time.Millisecond)
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
 				//os.Exit(1)
