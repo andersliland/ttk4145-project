@@ -59,9 +59,9 @@ fi
 ##echo "Connecting to Workstation" $workstationNumber "at 129.241.187."$IP
 #ssh-copy-id -i ~/.ssh/id_rsa.pub  $user@129.241.187.$IP
 ##echo "Delete old files and folder"
-ssh $user@129.241.187.$IP 'rm -rf ~/work/src/github.com/andersliland/ttk4145-project/'
+#ssh $user@129.241.187.$IP 'rm -rf ~/work/src/github.com/andersliland/ttk4145-project/'
 #echo "Create new folder path"
-ssh $user@129.241.187.$IP 'mkdir -p ~/work/src/github.com/andersliland/ttk4145-project' # create directory path if it does not exsist
+#ssh $user@129.241.187.$IP 'mkdir -p ~/work/src/github.com/andersliland/ttk4145-project' # create directory path if it does not exsist
 echo "Copy project content"
 scp -rq ~/work/src/github.com/andersliland/ttk4145-project/. $user@129.241.187.$IP:~/work/src/github.com/andersliland/ttk4145-project &>/dev/null
 echo 'SSH into remote and execute go run main.go'

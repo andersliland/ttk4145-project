@@ -193,6 +193,7 @@ type ElevatorLight struct {
 // Console colors
 const (
 	ColorWhite   = "\x1b[37;1m"
+	ColorGreen   = "\x1b[31;1m"
 	ColorNeutral = "\x1b[0m"
 )
 
