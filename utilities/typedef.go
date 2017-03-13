@@ -1,6 +1,12 @@
 package utilities
 
-import "time"
+import (
+	"encoding/json"
+	"io/ioutil"
+	"log"
+	"os"
+	"time"
+)
 
 const debug = false
 
@@ -286,4 +292,35 @@ func (order *HallOrder) StopTimer() bool {
 	}
 	return false
 
+}
+
+// Backup - save to file
+func (state *Elevator) SaveToFile(filename string) error {
+	data, err := json.Marshal(&state)
+	if err != nil {
+		log.Println("json.Marshal() error: Failed to marshal backup")
+		return err
+	}
+	if err := ioutil.WriteFile(filename, data, 0644); err != nil {
+		log.Println("ioutil.WriteFile() error: Failed to save backup")
+		return err
+	}
+	return nil
+}
+
+// loadFromDisk checks if a file of the given name is available on disk, and
+// saves its contents to a queue if the file is present.
+func (state *Elevator) LoadFromFile(filename string) error {
+	if _, err := os.Stat(filename); err == nil {
+		log.Println("Backup file found, processing...")
+
+		data, err := ioutil.ReadFile(filename)
+		if err != nil {
+			log.Println("loadFromDisk() error: Failed to read file")
+		}
+		if err := json.Unmarshal(data, state); err != nil {
+			log.Println("loadFromDisk() error: Failed to unmarshal")
+		}
+	}
+	return nil
 }

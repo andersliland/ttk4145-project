@@ -66,7 +66,11 @@ func MessageLoop(
 					}
 				*/
 				orders.AddCabOrder(button, localIP)
+				//ElevatorStatus[localIP].SaveToFile("backupElevator")
+				ElevatorStatus[localIP].LoadFromFile("backupElevator")
+				log.Println("Load file successful!")
 				newOrder <- true
+				log.Println(ElevatorStatus[localIP])
 
 			case ButtonStop:
 				motorChannel <- Stop
