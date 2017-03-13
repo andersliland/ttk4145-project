@@ -235,9 +235,9 @@ func ResolveBackupState(e *Elevator) BackupMessage {
 
 // ----Type: BackupMessage ----
 func (m BackupMessage) IsValid() bool {
-	if m.AskerIP == m.ResponderIP {
-		return false
-	}
+	//if m.AskerIP == m.ResponderIP {
+	//	return false
+	//}
 	//if m.Event > 4 || m.Event < 0 {
 	//	return false
 	//}

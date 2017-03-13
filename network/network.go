@@ -66,7 +66,7 @@ func receiveMessageHandler(
 			var f interface{}
 			err := json.Unmarshal(msg.Data[:msg.Length], &f)
 			if err != nil {
-				log.Println("[network] First Unmarshal failed", err)
+				log.Println("[network]\t First Unmarshal failed", err)
 			} else {
 				//printNetwork(" New UDP datagram received, first Unmarshal sucess")
 
@@ -82,7 +82,7 @@ func receiveMessageHandler(
 							receiveBackupChannel <- backupMessage
 							//printNetwork("Recived an BackupMessage with Event " + EventType[backupMessage.Event])
 						} else {
-							//printNetwork("Rejected an BackupMessage with Event " + EventType[backupMessage.Event])
+							log.Println("[network]\t Rejected an BackupMessage with Event " + EventType[backupMessage.Event])
 						}
 					} else {
 						log.Print("[network] BackupMessage Unmarshal failed", err)
@@ -95,13 +95,13 @@ func receiveMessageHandler(
 							receiveOrderChannel <- orderMessage
 							printNetwork("Recived an OrderMessage with Event " + EventType[orderMessage.Event])
 						} else {
-							printNetwork("Rejected an OrderMessage with Event " + EventType[orderMessage.Event])
+							log.Println("[network]\t Rejected an OrderMessage with Event " + EventType[orderMessage.Event])
 						}
 					} else {
-						log.Print("[network] OrderMessage Unmarshal failed")
+						log.Print("[network]\t OrderMessage Unmarshal failed")
 					}
 				} else {
-					log.Println("[network] Recived an unknown message type")
+					log.Println("[network]\t Recived an unknown message type")
 				}
 			}
 
@@ -111,6 +111,6 @@ func receiveMessageHandler(
 
 func printNetwork(s string) {
 	if debugNetwork {
-		log.Println("[network]", s)
+		log.Println("[network]\t", s)
 	}
 }

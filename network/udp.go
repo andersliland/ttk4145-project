@@ -60,7 +60,7 @@ func InitUDP(
 func resolveLocalIP(broadcastAddr *net.UDPAddr) (string, error) {
 	tempConn, err := net.DialUDP("udp4", nil, broadcastAddr)
 	if err != nil {
-		log.Println("[udo] resolveLocalIP, no internet connection", err)
+		log.Println("[udo]\t\t resolveLocalIP, no internet connection", err)
 		return "", err
 	} else {
 		defer tempConn.Close()
@@ -79,10 +79,10 @@ func udpTransmit(conn *net.UDPConn, udpSendDatagramChannel <-chan UDPMessage) {
 			}
 			n, err := conn.Write(message.Data)
 			if (err != nil || n < 0) && debugUDP {
-				log.Println("[udp] Sending UDP broadcast failed", err)
+				log.Println("[udp]\t\t Sending UDP broadcast failed", err)
 			} else {
 				if debugUDP {
-					log.Println("[udp] UDP Sent number of bytes:" + strconv.Itoa(n))
+					log.Println("[udp]\t\t UDP Sent number of bytes:" + strconv.Itoa(n))
 				}
 			}
 		}
@@ -107,15 +107,15 @@ func udpConnectionReader(conn *net.UDPConn, bconn_rcv_ch chan<- UDPMessage) {
 		buf := make([]byte, messageSize)
 
 		if debugUDP {
-			log.Printf("[udp] UDPConnectionReader:\t Waiting on data from UDPConn %s\n", localIP)
+			log.Printf("[udp]\t\t UDPConnectionReader:\t Waiting on data from UDPConn %s\n", localIP)
 		}
 		n, raddr, err := conn.ReadFromUDP(buf)
 		if err != nil || n < 0 || n > messageSize {
-			log.Println("[udp]  Error in ReadFromUDP:", err)
+			log.Println("[udp]\t\t  Error in ReadFromUDP:", err)
 		} else {
 			if debugUDP {
-				log.Printf("[udp] udpReceive Received packet from: %v ", raddr.String())
-				log.Printf("[udp] udpReceive: \t %v", string(buf[:]))
+				log.Printf("[udp]\t\t udpReceive Received packet from: %v ", raddr.String())
+				log.Printf("[udp]\t\t udpReceive: \t %v", string(buf[:]))
 			}
 			bconn_rcv_ch <- UDPMessage{Raddr: raddr.String(), Data: buf[:n], Length: n}
 		}
@@ -125,6 +125,6 @@ func udpConnectionReader(conn *net.UDPConn, bconn_rcv_ch chan<- UDPMessage) {
 
 func printUDP(s string) {
 	if debugUDP {
-		log.Println("[udp]", s)
+		log.Println("[udp]\t", s)
 	}
 }

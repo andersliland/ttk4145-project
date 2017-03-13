@@ -83,20 +83,15 @@ func SystemControl(
 				updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
 
 			case EventElevatorBackup:
-				//log.Println("Received an EventElevatorBackup from " + backup.AskerIP)
+				log.Println("Received an EventElevatorBackup from " + backup.AskerIP)
 
-				if backup.AskerIP != localIP { // shoud be !=
-					ElevatorStatus[backup.AskerIP].UpdateElevatorStatus(backup)
-					//for k := range ElevatorStatus {
-					//log.Println("LOCAL IP " + k + " - Floor " + strconv.Itoa(ElevatorStatus[k].Floor+1))
-					//}
-
-					//update ElevatorStatus
-				}
+				//if backup.AskerIP != localIP { // shoud be !=
+				//	ElevatorStatus[backup.AskerIP].UpdateElevatorStatus(backup)
+				//}
 
 			case EventRequestBackup:
 				if backup.AskerIP == localIP { // TODO change to !=
-					//printSystemControl("Received an EventRequestBackup from " + backup.AskerIP)
+					printSystemControl("Received an EventRequestBackup from " + backup.AskerIP)
 					if _, ok := ElevatorStatus[backup.AskerIP]; ok {
 						broadcastBackupChannel <- BackupMessage{
 							AskerIP:         backup.AskerIP,
@@ -105,35 +100,21 @@ func SystemControl(
 							State:           *ElevatorStatus[backup.AskerIP],
 							HallOrderMatrix: HallOrderMatrix,
 						}
-
-						//printSystemControl("Broadcasting elevator state from elevator " + localIP)
-
+						printSystemControl("Broadcasting elevator state from elevator " + localIP)
 					} else {
-						printSystemControl("No stored state for elevator " + backup.AskerIP)
+						log.Println("[systemControl]\t No stored state for elevator " + backup.AskerIP)
 					}
 				}
 
 				// Restore state of elevator
 			case EventBackupReturned:
-				//printSystemControl("Received EventBackupReturned from " + backup.ResponderIP)
+				printSystemControl("Received EventBackupReturned from " + backup.ResponderIP)
 				if backup.AskerIP == localIP {
-					for floor, hallOrdersAtFloor := range backup.HallOrderMatrix {
-						for buttonKind, hallOrder := range hallOrdersAtFloor {
-							if hallOrder.Status == UnderExecution && hallOrder.AssignedTo != localIP && HallOrderMatrix[floor][buttonKind].Status == NotActive {
-								HallOrderMatrix[floor][buttonKind].Status = UnderExecution
-								HallOrderMatrix[floor][buttonKind].ClearConfirmedBy()
-								HallOrderMatrix[floor][buttonKind].AssignedTo = hallOrder.AssignedTo
-								HallOrderMatrix[floor][buttonKind].Timer = time.AfterFunc(2*orderTimeout, func() {
-									log.Println("[systemControl]\tAn order under execution timed out for elevator " + localIP)
-
-								})
-
-							}
-						}
-					}
+					//ElevatorStatus[localIP] ResolveElevator()
+					log.Printf("[systemControl]\t Received EventBackupReturned requested by me")
 
 				} else {
-					log.Printf("[systemControl]\t Received EventBackupReturned not requested by me")
+					log.Printf("[systemControl]\t Received EventBackupReturned NOT requested by me")
 				}
 			default:
 				log.Println("[systemControl]\tReceived invalid BackupMessage from", backup.ResponderIP)
