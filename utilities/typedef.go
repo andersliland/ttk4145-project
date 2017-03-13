@@ -18,39 +18,33 @@ var EventType = []string{
 	"EventElevatorBackup",
 	"EventRequestBackup",
 	"EventBackupReturned",
-	"EventCabOrder",
-	"EventAckCabOrder",
+
 	// OrderMessage Events
 	"EventNewOrder",
 	"EventAckNewOrder",
 	"EventOrderConfirmed",
 	"EventAckOrderConfirmed",
-	"EventOrderCompleted",
 	"EventAckOrderCompleted",
+	"EventOrderCompleted",
 	"EventReassignOrder",
-	"EventDummy1",
-	"EventDummy2",
 }
 
 // TODO: UPDATE network module if any changes in events
+//TODO: remember to update IsValid when change Events
 const (
 	// BackupMessage Events
 	EventElevatorOnline = iota //  = 0
 	EventElevatorBackup
 	EventRequestBackup
 	EventBackupReturned
-	EventCabOrder
-	EventAckCabOrder
 	// OrderMessage Events
 	EventNewOrder
 	EventAckNewOrder
 	EventOrderConfirmed
 	EventAckOrderConfirmed
-	EventOrderCompleted
 	EventAckOrderCompleted
+	EventOrderCompleted
 	EventReassignOrder
-	EventDummy1
-	EventDummy2
 )
 
 var ButtonType = []string{
@@ -233,9 +227,9 @@ func (m BackupMessage) IsValid() bool {
 	if m.AskerIP == m.ResponderIP {
 		return false
 	}
-	if m.Event > 4 || m.Event < 0 {
-		return false
-	}
+	//if m.Event > 4 || m.Event < 0 {
+	//	return false
+	//}
 	return true
 }
 
@@ -248,9 +242,9 @@ func (m OrderMessage) IsValid() bool {
 	if m.ButtonType > 2 || m.ButtonType < 0 {
 		return false
 	}
-	if m.Event > 10 || m.Event < 5 {
-		return false
-	}
+	//if m.Event > 10 || m.Event < 5 {
+	//	return false
+	//}
 	return true
 }
 

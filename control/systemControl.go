@@ -134,8 +134,6 @@ func SystemControl(
 				} else {
 					log.Printf("[systemControl]\t Received EventBackupReturned not requested by me")
 				}
-			case EventCabOrder:
-			case EventAckCabOrder:
 			default:
 				log.Println("[systemControl]\tReceived invalid BackupMessage from", backup.ResponderIP)
 			}
@@ -333,7 +331,7 @@ func SystemControl(
 			}
 		case t := <-timeoutChannel:
 			switch t.TimeoutState {
-			case TimeoutAckNewOrder: // EventAckNewOrder failed
+			case TimeoutAckNewOrder:
 				log.Println("Not all elevators ACKed newOrder. Resending")
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      t.Floor,
@@ -344,7 +342,7 @@ func SystemControl(
 					Event:      EventNewOrder,
 				}
 
-			case TimeoutAckOrderConfirmed: // EventAckOrderConfirmed failed
+			case TimeoutAckOrderConfirmed:
 				log.Println("Not all elevators ACKed orderConfirmed. Resending")
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      t.Floor,

@@ -39,7 +39,7 @@ func sendMessageHandler(broadcastOrderChannel <-chan OrderMessage,
 				log.Println("ERROR [network]: sendMessage marshal failed", err)
 			} else {
 				UDPSendChannel <- UDPMessage{Data: data}
-				printNetwork("Sent an OrderMessage with " + EventType[message.Event])
+				//	printNetwork("Sent an OrderMessage with " + EventType[message.Event])
 
 			}
 		case message := <-broadcastBackupChannel:
@@ -48,7 +48,7 @@ func sendMessageHandler(broadcastOrderChannel <-chan OrderMessage,
 				log.Println("ERROR [network]: sendBackup marshal failed", err)
 			} else {
 				UDPSendChannel <- UDPMessage{Data: data}
-				printNetwork("Sent an BackupMessage " + EventType[message.Event])
+				//printNetwork("Sent an BackupMessage " + EventType[message.Event])
 			}
 		}
 	}
@@ -68,26 +68,26 @@ func receiveMessageHandler(
 			if err != nil {
 				log.Println("[network] First Unmarshal failed", err)
 			} else {
-				printNetwork(" New UDP datagram received, first Unmarshal sucess")
+				//printNetwork(" New UDP datagram received, first Unmarshal sucess")
 
 				// TODO: revrite two next lines, probably go build in reflect package
 				m := f.(map[string]interface{})
 				event := int(m["Event"].(float64)) // type assertion, float64 because
 
-				if event <= 5 && event >= 0 {
+				if event <= 3 && event >= 0 {
 					var backupMessage = BackupMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &backupMessage); err == nil { //unmarshal into correct message struct
-						printNetwork("BackupMessage Unmarshal sucess")
+						//printNetwork("BackupMessage Unmarshal sucess")
 						if backupMessage.IsValid() {
 							receiveBackupChannel <- backupMessage
-							printNetwork("Recived an BackupMessage with Event " + EventType[backupMessage.Event])
+							//printNetwork("Recived an BackupMessage with Event " + EventType[backupMessage.Event])
 						} else {
-							printNetwork("Rejected an BackupMessage with Event " + EventType[backupMessage.Event])
+							//printNetwork("Rejected an BackupMessage with Event " + EventType[backupMessage.Event])
 						}
 					} else {
 						log.Print("[network] BackupMessage Unmarshal failed", err)
 					}
-				} else if event >= 6 && event <= 14 {
+				} else if event >= 4 && event <= 12 {
 					var orderMessage = OrderMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &orderMessage); err == nil { //unmarshal into correct message struct
 						printNetwork("[network] OrderMessage Unmarshal sucess")
