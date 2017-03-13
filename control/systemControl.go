@@ -9,6 +9,7 @@ package control
 // send
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"strconv"
@@ -147,7 +148,9 @@ func SystemControl(
 				if order.SenderIP == localIP {
 					//printSystemControl("case: EventAckNewOrder")
 				}
-				log.Println("[systemControl]\t ASSIGNED TO " + order.AssignedTo + ". Order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
+				fmt.Print(ColorGreen)
+				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1) + " is assigned to " + order.AssignedTo + ColorNeutral)
+
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = order.AssignedTo //assume cost func is correct
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = Awaiting
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // create new instance of ConfirmedBy map
