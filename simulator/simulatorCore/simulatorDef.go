@@ -11,7 +11,7 @@ package simulatorCore
 //---------------SIMULATOR CONFIGURATION PARAMETERS--------------
 const DistancePassingFloors = 1820000
 const DistanceBetweenFloors = 4200000
-const TravelTimeBetweenFloors_ms = 1500 * 2
+const TravelTimeBetweenFloors_ms = 2000
 const TravelTimePassingFloor_ms = 1000
 const BtnDepressedTime_ms = 200
 
