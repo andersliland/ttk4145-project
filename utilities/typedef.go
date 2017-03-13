@@ -82,7 +82,7 @@ const (
 const (
 	TimeoutAckNewOrder = iota
 	TimeoutAckOrderConfirmed
-	TimeoutAckOrderComplete
+	TimeoutOrderExecution
 )
 
 const (

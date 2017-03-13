@@ -234,7 +234,10 @@ func SystemControl(
 							Floor:        order.Floor,
 							ButtonType:   order.ButtonType,
 							OriginIP:     order.OriginIP,
-							TimeoutState: TimeoutAckOrderComplete,
+							TimeoutState: TimeoutOrderExecution,
+							Order: HallOrder{
+								AssignedTo: order.AssignedTo,
+							},
 						}
 					})
 				}
@@ -260,7 +263,10 @@ func SystemControl(
 								Floor:        order.Floor,
 								ButtonType:   order.ButtonType,
 								OriginIP:     order.OriginIP,
-								TimeoutState: TimeoutAckOrderComplete,
+								TimeoutState: TimeoutOrderExecution,
+								Order: HallOrder{
+									AssignedTo: order.AssignedTo,
+								},
 							}
 						})
 					} else {
@@ -353,8 +359,8 @@ func SystemControl(
 					Event:      EventOrderConfirmed,
 				}
 
-			case TimeoutAckOrderComplete: // EventAckOrderCompleted failed
-				log.Println("Elevator have NOT completed order, it must be reasigned")
+			case TimeoutOrderExecution: // EventAckOrderCompleted failed
+				log.Println("Elevator have NOT completed order, it must be reassigned")
 
 				// kill self
 				if t.Order.AssignedTo == localIP {
@@ -363,7 +369,6 @@ func SystemControl(
 					log.Fatal("SUICIDE, could not complete order. Something wrong")
 				}
 
-				log.Println("EventReassignOrder")
 				assignedTo, _ := orders.AssignOrderToElevator(t.Floor, t.ButtonType, OnlineElevators, ElevatorStatus)
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      t.Floor,
