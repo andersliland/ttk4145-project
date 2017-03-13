@@ -309,6 +309,8 @@ func SystemControl(
 					log.Println("[systemControl]\t All elevators have ack'ed OrderCompleted at Floor "+strconv.Itoa(order.Floor+1)+" of  type "+ButtonType[order.ButtonType], ColorNeutral)
 					HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 					HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
+
+					resetTimerForAllAssignedOrders(order.Floor, orderTimeout, order.AssignedTo)
 				}
 
 			case EventReassignOrder:
@@ -413,6 +415,18 @@ func updateOnlineElevators(ElevatorStatus map[string]*Elevator, OnlineElevators 
 		}
 	}
 
+}
+
+func resetTimerForAllAssignedOrders(floor int, orderTimeout time.Duration, ip string) {
+	// reset timer for all order AssignetTo == localIP
+	for f := 0; f < NumFloors; f++ {
+		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
+			if HallOrderMatrix[f][k].AssignedTo == ip {
+				HallOrderMatrix[f][k].Timer.Reset(orderTimeout)
+				log.Println("Reset timer on order" + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
+			}
+		}
+	}
 }
 
 func allElevatorsHaveAcked(OnlineElevators map[string]bool, HallOrderMatrix [NumFloors][2]HallOrder, order OrderMessage) bool {
