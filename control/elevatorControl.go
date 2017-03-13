@@ -111,7 +111,7 @@ func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
 				}
 			}
 		}
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
 	}
 }
 

@@ -47,6 +47,7 @@ else
   exit 1
 fi
 
+#ssh student@129.241.187.38
 #ssh -t $user@129.241.187.$IP
 
 # Create new rsa key

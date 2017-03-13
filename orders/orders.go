@@ -100,7 +100,6 @@ func RemoveFloorOrders(floor, direction int, localIP string, broadcastOrderChann
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
 			if HallOrderMatrix[floor][k].AssignedTo == localIP {
 				broadcastOrderChannel <- resolveRemoveOrderMessage(floor, k, localIP)
-				//HallOrderMatrix[floor][k].Status = NotActive
 				printOrders("Removed HallOrder at floor " + strconv.Itoa(floor+1) + " for direction " + MotorStatus[direction+1] + ". Ip " + localIP)
 
 			}
@@ -108,49 +107,28 @@ func RemoveFloorOrders(floor, direction int, localIP string, broadcastOrderChann
 	case Up:
 		if HallOrderMatrix[floor][ButtonCallUp].AssignedTo == localIP {
 			broadcastOrderChannel <- resolveRemoveOrderMessage(floor, ButtonCallUp, localIP)
-			//HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
 
 		}
-		if !anyRequestsAbove(floor, localIP) {
+		if !anyRequestsAbove(floor, localIP) && HallOrderMatrix[floor][ButtonCallDown].AssignedTo == localIP {
 			broadcastOrderChannel <- resolveRemoveOrderMessage(floor, ButtonCallDown, localIP)
-			//HallOrderMatrix[floor][ButtonCallDown].Status = NotActive
 			printOrders("Direction up at floor " + strconv.Itoa(floor+1) + ". No new orders above this floor. Removed down order. Elevator: " + localIP)
 		}
-		//if floor == NumFloors-1 { // Edge case: top floor reached
-		//	HallOrderMatrix[floor][ButtonCallDown].Status = NotActive
-		//}
 		printOrders("Removed HallOrder at floor " + strconv.Itoa(floor+1) + " for direction " + MotorStatus[direction+1] + ". Ip " + localIP)
-		// send order done
-		/*
-			broadcastOrderChannel <- ElevatorOrderMessage{
-				Floor: floor,
-				ButtonType: ButtonCallUp,
-				//OriginIP: ,
-				Event: EventOrderCompleted,
-			}
-		*/
 
 	case Down:
 		if HallOrderMatrix[floor][ButtonCallDown].AssignedTo == localIP {
 			broadcastOrderChannel <- resolveRemoveOrderMessage(floor, ButtonCallDown, localIP)
-			//HallOrderMatrix[floor][ButtonCallDown].Status = NotActive
 		}
-		if !anyRequestsBelow(floor, localIP) {
+		if !anyRequestsBelow(floor, localIP) && HallOrderMatrix[floor][ButtonCallUp].AssignedTo == localIP {
 			broadcastOrderChannel <- resolveRemoveOrderMessage(floor, ButtonCallUp, localIP)
-			//HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
 			printOrders("Direction down at floor " + strconv.Itoa(floor+1) + ". No new orders above this floor. Removed up order. Elevator: " + localIP)
 		}
-		//if floor == Floor1 { // Edge case: bottom floor reached
-		//	HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
-		//}
 		printOrders("Removed HallOrder at floor" + strconv.Itoa(floor+1) + " for direction " + MotorStatus[direction+1] + ". Ip" + localIP)
 	default:
 		log.Println("ERROR [order]: Undefined direction for RemoveFloorOrders")
 	}
 
 }
-
-// --- //
 
 func anyRequestsAbove(floor int, localIP string) bool {
 	for f := floor + 1; f < NumFloors; f++ { // floor+1 : check floor above
