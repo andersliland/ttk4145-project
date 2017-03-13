@@ -36,6 +36,12 @@ func eventManager(
 
 	// if restore order from file do ..., else:
 	const pollDelay = 5 * time.Millisecond
+
+	if err := ElevatorStatus[localIP].LoadFromFile("backupElevator"); err == nil {
+		log.Println("[eventManager]\t Executing restored orders")
+		newOrder <- true
+
+	}
 	floor = driver.GoToFloorBelow(localIP, motorChannel, pollDelay)
 
 	fmt.Print(ColorWhite)

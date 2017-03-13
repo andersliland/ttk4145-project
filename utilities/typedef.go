@@ -311,9 +311,8 @@ func (state *Elevator) SaveToFile(filename string) error {
 // loadFromDisk checks if a file of the given name is available on disk, and
 // saves its contents to a queue if the file is present.
 func (state *Elevator) LoadFromFile(filename string) error {
-	if _, err := os.Stat(filename); err == nil {
-		log.Println("Backup file found, processing...")
-
+	if _, fileNotFound := os.Stat(filename); fileNotFound == nil {
+		log.Println("Backup file found")
 		data, err := ioutil.ReadFile(filename)
 		if err != nil {
 			log.Println("loadFromDisk() error: Failed to read file")
@@ -321,6 +320,10 @@ func (state *Elevator) LoadFromFile(filename string) error {
 		if err := json.Unmarshal(data, state); err != nil {
 			log.Println("loadFromDisk() error: Failed to unmarshal")
 		}
+		return nil
+	} else {
+		log.Println("Backup file not found")
+		return fileNotFound
 	}
-	return nil
+
 }
