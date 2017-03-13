@@ -87,7 +87,7 @@ func receiveMessageHandler(
 					} else {
 						log.Print("[network] BackupMessage Unmarshal failed", err)
 					}
-				} else if event >= 6 && event <= 12 {
+				} else if event >= 6 && event <= 14 {
 					var orderMessage = OrderMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &orderMessage); err == nil { //unmarshal into correct message struct
 						printNetwork("[network] OrderMessage Unmarshal sucess")

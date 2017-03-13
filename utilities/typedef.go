@@ -23,11 +23,13 @@ var EventType = []string{
 	// OrderMessage Events
 	"EventNewOrder",
 	"EventAckNewOrder",
+	"EventOrderConfirmed",
+	"EventAckOrderConfirmed",
 	"EventOrderCompleted",
 	"EventAckOrderCompleted",
 	"EventReassignOrder",
-	"EventOrderConfirmed",
-	"EventAckOrderConfirmed",
+	"Dummy1",
+	"Dummy2",
 }
 
 // TODO: UPDATE network module if any changes in events
@@ -42,11 +44,13 @@ const (
 	// OrderMessage Events
 	EventNewOrder
 	EventAckNewOrder
+	EventOrderConfirmed
+	EventAckOrderConfirmed
 	EventOrderCompleted
 	EventAckOrderCompleted
 	EventReassignOrder
-	EventOrderConfirmed
-	EventAckOrderConfirmed
+	Dummy1
+	Dummy2
 )
 
 var ButtonType = []string{
