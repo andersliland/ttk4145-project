@@ -28,8 +28,8 @@ var EventType = []string{
 	"EventOrderCompleted",
 	"EventAckOrderCompleted",
 	"EventReassignOrder",
-	"Dummy1",
-	"Dummy2",
+	"EventDummy1",
+	"EventDummy2",
 }
 
 // TODO: UPDATE network module if any changes in events
@@ -49,8 +49,8 @@ const (
 	EventOrderCompleted
 	EventAckOrderCompleted
 	EventReassignOrder
-	Dummy1
-	Dummy2
+	EventDummy1
+	EventDummy2
 )
 
 var ButtonType = []string{
