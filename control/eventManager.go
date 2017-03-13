@@ -1,7 +1,9 @@
 package control
 
 import (
+	"fmt"
 	"log"
+	"math/rand"
 	"strconv"
 	"time"
 
@@ -29,9 +31,15 @@ func eventManager(
 	var floor int // to initialize or not to initialize?
 	var direction int
 
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	var orderTimeout = 5*time.Second + time.Duration(r.Intn(2000))*time.Millisecond // random timeout to prevent all elevator from timing out at the same time
+
 	// if restore order from file do ..., else:
 	const pollDelay = 5 * time.Millisecond
 	floor = driver.GoToFloorBelow(localIP, motorChannel, pollDelay)
+
+	fmt.Print(ColorWhite)
+	log.Println("[eventManager]\t New elevator "+localIP+" starting at floor "+strconv.Itoa(floor+1), ColorNeutral)
 	time.Sleep(1 * time.Second)
 	syncFloor(floor, localIP, broadcastBackupChannel)
 
@@ -46,9 +54,7 @@ func eventManager(
 			//log.Println("newOrder state: " + StateEventManager[state])
 			switch state {
 			case Idle:
-
 				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
-
 				if orders.ShouldStop(floor, direction, localIP) {
 					printEventManager("Stopped at floor " + strconv.Itoa(floor+1))
 					doorTimerReset <- true
@@ -102,6 +108,16 @@ func eventManager(
 				} else {
 					motorChannel <- direction // Is this necessary?
 					state = syncState(Moving, localIP, broadcastBackupChannel)
+
+					// reset timer for all order AssignetTo == localIP
+					for f := floor + direction; f < NumFloors && f >= Floor1; f += direction {
+						for k := ButtonCallUp; k <= ButtonCallDown; k++ {
+							if HallOrderMatrix[f][k].AssignedTo == localIP {
+								HallOrderMatrix[f][k].Timer.Reset(orderTimeout)
+								log.Println("Reset timer on order" + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
+							}
+						}
+					}
 				}
 			default: // Insert error handling here - elevator might possibly need to be restarted ()
 			}

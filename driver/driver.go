@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	// . "../simulator/simulatorCore" // uncomment to use simulator
+	. "../simulator/simulatorCore" // uncomment to use simulator
 	. "../utilities"
-	. "../wrapper" // comment out when using simulator
+	// . "../wrapper" // comment out when using simulator
 )
 
 var debugElevator = false
@@ -36,10 +36,10 @@ func Init(buttonChannel chan<- ElevatorButton,
 	pollDelay time.Duration) {
 
 	// SIMULATOR Uncomment below to run simulator
-	//SimulatorInit() // Uncomment to start elevator
+	SimulatorInit() // Uncomment to start elevator
 
 	// Wrapper Uncomment below to use wrapper
-	IoInit()
+	//IoInit()
 
 	resetAllLights()
 	go lightController(lightChannel)
@@ -185,7 +185,6 @@ func GoToFloorBelow(localIP string, motorChannel chan int, pollDelay time.Durati
 		for {
 			if floor := readFloorSensor(); floor != FloorInvalid {
 				motorChannel <- Stop
-				log.Println("[elevator]\t\t New elevator " + localIP + " starting at floor " + strconv.Itoa(floor+1))
 				return floor
 			} else {
 				time.Sleep(pollDelay)

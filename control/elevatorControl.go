@@ -1,6 +1,7 @@
 package control
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -79,7 +80,8 @@ func MessageLoop(
 			}
 		case floor := <-floorChannel: // Hardware
 			floorReached <- floor
-			//printElevatorControl("Elevator " + localIP + " reaced floor " + strconv.Itoa(floor+1))
+			fmt.Print(ColorYellow)
+			log.Println("Elevator "+localIP+" reached floor "+strconv.Itoa(floor+1), ColorNeutral)
 		}
 	}
 }

@@ -137,7 +137,7 @@ type HallOrder struct {
 	Status      int
 	AssignedTo  string
 	ConfirmedBy map[string]bool
-	Timer       *time.Timer // *time.Timer 'json:"-"'
+	Timer       *time.Timer
 }
 
 type Elevator struct { // syncronised for all elevators

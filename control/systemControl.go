@@ -152,8 +152,8 @@ func SystemControl(
 				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1) + " is assigned to " + order.AssignedTo + ColorNeutral)
 
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = order.AssignedTo //assume cost func is correct
-				HallOrderMatrix[order.Floor][order.ButtonType].Status = Awaiting
-				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // create new instance of ConfirmedBy map
+				HallOrderMatrix[order.Floor][order.ButtonType].Status = Awaiting             // set to NotActive
+				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy()            // create new instance of ConfirmedBy map
 
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      order.Floor,
@@ -167,7 +167,7 @@ func SystemControl(
 				if order.OriginIP == localIP {
 					printSystemControl("Starting ack timer [EventNewOrder] on order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
 					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(ackTimeLimit, func() {
-						log.Println("[systemControl]\t Timeout\t newOrder not ACK'ed by all ")
+						log.Println("[systemControl]\t newOrder at floor " + strconv.Itoa(order.Floor+1) + " for " + ButtonType[order.ButtonType] + " not ACK'ed by all ")
 						timeoutChannel <- ExtendedHallOrder{
 							Floor:        order.Floor,
 							ButtonType:   order.ButtonType,
@@ -200,12 +200,10 @@ func SystemControl(
 				}
 
 			case EventOrderConfirmed:
-				if order.SenderIP == localIP {
-					//printSystemControl("case: EventOrderConfirmed")
-				}
 				if order.AssignedTo == localIP {
 					newOrder <- true
 				}
+
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      order.Floor,
 					ButtonType: order.ButtonType,
@@ -253,28 +251,30 @@ func SystemControl(
 						if order.AssignedTo != localIP {
 							timeout = 2 * orderTimeout
 						}
-						log.Println("[systemConrtol]\t OriginIP start execution timer [EventOrderConfirmed] on order "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
-						HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
-							log.Println("Timeout\t\t orderUnderExecution - Elevator could not execute order (OriginIP == localIP)")
-							timeoutChannel <- ExtendedHallOrder{
-								Floor:        order.Floor,
-								ButtonType:   order.ButtonType,
-								OriginIP:     order.OriginIP,
-								TimeoutState: TimeoutOrderExecution,
-								Order: HallOrder{
-									AssignedTo: order.AssignedTo,
-								},
-							}
-						})
+						if HallOrderMatrix[order.Floor][order.ButtonType].Status == UnderExecution {
+							log.Println("[systemConrtol]\t OriginIP start execution timer [EventOrderConfirmed] on order "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
+							HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
+								log.Println("Timeout\t\t orderUnderExecution - Elevator could not execute order (OriginIP == localIP)")
+								timeoutChannel <- ExtendedHallOrder{
+									Floor:        order.Floor,
+									ButtonType:   order.ButtonType,
+									OriginIP:     order.OriginIP,
+									TimeoutState: TimeoutOrderExecution,
+									Order: HallOrder{
+										AssignedTo: order.AssignedTo,
+									},
+								}
+							})
+						}
 					}
 				}
 			case EventOrderCompleted:
 				// This case is only sent from the eventManager after it detects that an order is completed.
-				printSystemControl("case: EventOrderCompleted")
-				//HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
+				printSystemControl("case: EventOrderCompleted at floor " + strconv.Itoa(order.Floor+1) + " for " + ButtonType[order.ButtonType] + " for " + order.AssignedTo)
+				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer() // stops timer set in EventAckOrderConfirmed
-				log.Println("[systemControl]\t EventOrderComplete stop timer at order  "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
+				//log.Println("[systemControl]\t EventOrderComplete stop timer at order  "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
 
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
 
@@ -289,7 +289,7 @@ func SystemControl(
 
 				if order.AssignedTo == localIP {
 					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(ackTimeLimit, func() {
-						log.Println("Timeout\t orderCompleted not ACK'ed by all ")
+						log.Println("[systemControl]\t orderCompleted at floor " + strconv.Itoa(order.Floor+1) + " for " + ButtonType[order.ButtonType] + " not ACK'ed by all ")
 						broadcastOrderChannel <- OrderMessage{ // Should we send to timeoutChannel - or just resend OrderMessage?
 							Floor:      order.Floor,
 							ButtonType: order.ButtonType,
@@ -335,7 +335,7 @@ func SystemControl(
 		case t := <-timeoutChannel:
 			switch t.TimeoutState {
 			case TimeoutAckNewOrder:
-				log.Println("Not all elevators ACKed newOrder. Resending")
+				log.Println("Not all elevators ACKed newOrder at floor " + strconv.Itoa(t.Floor+1) + " for " + ButtonType[t.ButtonType] + ". Resending...")
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      t.Floor,
 					ButtonType: t.ButtonType,
@@ -346,7 +346,7 @@ func SystemControl(
 				}
 
 			case TimeoutAckOrderConfirmed:
-				log.Println("Not all elevators ACKed orderConfirmed. Resending")
+				log.Println("Not all elevators ACKed orderConfirmed at floor " + strconv.Itoa(t.Floor+1) + " for " + ButtonType[t.ButtonType] + ". Resending...")
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      t.Floor,
 					ButtonType: t.ButtonType,

@@ -40,7 +40,7 @@ func main() {
 
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
 
-	log.Println("[main]\t\t New Elevator ready with IP:", localIP)
+	//log.Println("[main]\t\t New Elevator ready with IP:", localIP)
 	control.Init(localIP)
 	go control.SystemControl(motorChannel, newOrder, timeoutChannel, broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
 	go control.MessageLoop(newOrder,
