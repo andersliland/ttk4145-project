@@ -16,6 +16,8 @@ elif [ $workstationNumber == "4" ]; then
   IP=141
 elif [ $workstationNumber == "6" ]; then
   IP=146
+elif [ $workstationNumber == "7" ]; then
+  IP=154
 elif [ $workstationNumber == "10" ]; then
   IP=155
 elif [ $workstationNumber == "11" ]; then

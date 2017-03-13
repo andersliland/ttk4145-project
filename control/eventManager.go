@@ -3,7 +3,6 @@ package control
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"strconv"
 	"time"
 
@@ -31,16 +30,17 @@ func eventManager(
 	var floor int // to initialize or not to initialize?
 	var direction int
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	var orderTimeout = OrderTimeout*time.Second + time.Duration(r.Intn(2000))*time.Millisecond // random timeout to prevent all elevator from timing out at the same time
-
 	// if restore order from file do ..., else:
 	const pollDelay = 5 * time.Millisecond
 
 	if err := ElevatorStatus[localIP].LoadFromFile("backupElevator"); err == nil {
 		log.Println("[eventManager]\t Executing restored orders")
-		newOrder <- true
-
+		for f := 0; f < NumFloors; f++ {
+			if ElevatorStatus[localIP].CabOrders[f] {
+				newOrder <- true
+				break
+			}
+		}
 	}
 	floor = driver.GoToFloorBelow(localIP, motorChannel, pollDelay)
 
@@ -80,11 +80,6 @@ func eventManager(
 			default: // Insert error handling
 			}
 
-			// Reset order if a user is spamming button
-			if ElevatorStatus[localIP].CabOrders[floor] && direction != Stop {
-				resetTimerForAllAssignedOrders(floor, direction, orderTimeout, localIP)
-			}
-
 		case floor = <-floorReached:
 			//log.Println("floorReached state: " + StateEventManager[state])
 			syncFloor(floor, localIP, broadcastBackupChannel)
@@ -120,8 +115,6 @@ func eventManager(
 				} else {
 					motorChannel <- direction // Is this necessary?
 					state = syncState(Moving, localIP, broadcastBackupChannel)
-					resetTimerForAllAssignedOrders(floor, direction, orderTimeout, localIP)
-
 				}
 			default: // Insert error handling here - elevator might possibly need to be restarted ()
 			}
@@ -166,18 +159,6 @@ func syncState(state int, localIP string, broadcastBackupChannel chan<- BackupMe
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
 	//log.Println("Sendt ElevatorStatus sync message from syncState")
 	return state
-}
-
-func resetTimerForAllAssignedOrders(floor, direction int, orderTimeout time.Duration, localIP string) {
-	// reset timer for all order AssignetTo == localIP
-	for f := floor + direction; f < NumFloors && f >= Floor1; f += direction {
-		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-			if HallOrderMatrix[f][k].AssignedTo == localIP {
-				HallOrderMatrix[f][k].Timer.Reset(orderTimeout)
-				log.Println("Reset timer on order" + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
-			}
-		}
-	}
 }
 
 func printEventManager(s string) {
