@@ -294,7 +294,6 @@ func (order *HallOrder) StopTimer() bool {
 
 }
 
-// Backup - save to file
 func (state *Elevator) SaveToFile(filename string) error {
 	data, err := json.Marshal(&state)
 	if err != nil {
@@ -308,8 +307,6 @@ func (state *Elevator) SaveToFile(filename string) error {
 	return nil
 }
 
-// loadFromDisk checks if a file of the given name is available on disk, and
-// saves its contents to a queue if the file is present.
 func (state *Elevator) LoadFromFile(filename string) error {
 	if _, fileNotFound := os.Stat(filename); fileNotFound == nil {
 		log.Println("Backup file found")

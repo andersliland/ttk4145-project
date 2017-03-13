@@ -94,6 +94,7 @@ func RemoveFloorOrders(floor, direction int, localIP string, broadcastOrderChann
 		printOrders("Removed CabOrder at floor " + strconv.Itoa(floor+1) + " for " + localIP)
 	}
 	ElevatorStatus[localIP].CabOrders[floor] = false
+	ElevatorStatus[localIP].SaveToFile("backupElevator")
 
 	switch direction {
 	case Stop:
