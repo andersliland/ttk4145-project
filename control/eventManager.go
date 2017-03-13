@@ -33,12 +33,11 @@ func eventManager(
 	// if restore order from file do ..., else:
 	const pollDelay = 5 * time.Millisecond
 
-	if err := ElevatorStatus[localIP].LoadFromFile("backupElevator"); err == nil {
+	if err := LoadBackup("backupElevator", &ElevatorStatus[localIP].CabOrders); err == nil {
 		log.Println("[eventManager]\t Executing restored orders")
-
 		for f := 0; f < NumFloors; f++ {
 			if ElevatorStatus[localIP].CabOrders[f] {
-				//newOrder <- true
+				newOrder <- true
 				break
 			}
 		}

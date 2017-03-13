@@ -66,7 +66,9 @@ func MessageLoop(
 					}
 				*/
 				orders.AddCabOrder(button, localIP)
-				ElevatorStatus[localIP].SaveToFile("backupElevator")
+				if err := SaveBackup("backupElevator", ElevatorStatus[localIP].CabOrders); err != nil {
+					log.Println("Save Backup failed: ", err)
+				}
 				newOrder <- true
 				//log.Println(ElevatorStatus[localIP])
 

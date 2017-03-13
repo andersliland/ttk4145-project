@@ -157,10 +157,6 @@ type Elevator struct { // syncronised for all elevators
 	HallOrderMatrix [NumFloors][2]HallOrder
 }
 
-type BackupOrders struct {
-	CabOrders [NumFloors]bool
-}
-
 /*
 type ElevatorLocal struct {
 	State           int //Idle, Moving, DoorOpen
@@ -298,8 +294,8 @@ func (order *HallOrder) StopTimer() bool {
 
 }
 
-func (state *Elevator) SaveToFile(filename string) error {
-	data, err := json.Marshal(&state)
+func SaveBackup(filename string, cabOrders [NumFloors]bool) error {
+	data, err := json.Marshal(cabOrders)
 	if err != nil {
 		log.Println("json.Marshal() error: Failed to marshal backup")
 		return err
@@ -309,6 +305,23 @@ func (state *Elevator) SaveToFile(filename string) error {
 		return err
 	}
 	return nil
+}
+
+func LoadBackup(filename string, cabOrders *[NumFloors]bool) error {
+	if _, fileNotFound := os.Stat(filename); fileNotFound == nil {
+		log.Println("Backup file found")
+		data, err := ioutil.ReadFile(filename)
+		if err != nil {
+			log.Println("loadFromDisk() error: Failed to read file")
+		}
+		if err := json.Unmarshal(data, &cabOrders); err != nil {
+			log.Println("loadFromDisk() error: Failed to unmarshal")
+		}
+		return nil
+	} else {
+		log.Println("Backup file not found")
+		return fileNotFound
+	}
 }
 
 func (state *Elevator) LoadFromFile(filename string) error {
@@ -326,5 +339,4 @@ func (state *Elevator) LoadFromFile(filename string) error {
 		log.Println("Backup file not found")
 		return fileNotFound
 	}
-
 }
