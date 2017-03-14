@@ -77,7 +77,10 @@ func main() {
 	watchdogKickTimer := time.NewTicker(watchdogKickTime)
 	defer watchdogKickTimer.Stop()
 
+	ElevatorStatusMutex.Lock()
 	ElevatorStatus[localIP] = ResolveElevator(Elevator{LocalIP: localIP})
+	ElevatorStatusMutex.Unlock()
+
 	onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, watchdogLimit)
 
 	go control.EventManager(newOrder, floor, elevatorStatusChannel, broadcastOrderChannel, broadcastBackupChannel, orderCompleteChannel, floorReached, lightChannel, motorChannel, localIP)
@@ -125,7 +128,10 @@ func main() {
 					}
 				}
 			case ButtonCommand:
+				ElevatorStatusMutex.Lock()
 				ElevatorStatus[localIP].CabOrders[button.Floor] = true
+				ElevatorStatusMutex.Unlock()
+
 				if err := SaveBackup("backupElevator", ElevatorStatus[localIP].CabOrders); err != nil {
 					log.Println("[elevatorControl]\t Save Backup failed: ", err)
 				}
@@ -154,9 +160,12 @@ func main() {
 			//log.Println("[main]\t Received elevatorStatusChannel from " + status.LocalIP)
 			//log.Println("Before ElevatorStatus[localIP]", ElevatorStatus[status.LocalIP])
 			// TODO: does this overvrite unused valuse
+			ElevatorStatusMutex.Lock()
 			ElevatorStatus[status.LocalIP].Floor = status.Floor
 			ElevatorStatus[status.LocalIP].Direction = status.Direction
 			ElevatorStatus[status.LocalIP].State = status.State
+			ElevatorStatusMutex.Unlock()
+
 			//log.Println("After ElevatorStatus[localIP]", ElevatorStatus[status.LocalIP])
 
 		case backup := <-receiveBackupChannel:
@@ -164,10 +173,16 @@ func main() {
 			switch backup.Event {
 			case EventElevatorOnline:
 				if _, ok := ElevatorStatus[backup.ResponderIP]; ok { // check if a value exsist for ResponderIP
+					ElevatorStatusMutex.Lock()
 					ElevatorStatus[backup.ResponderIP].Time = time.Now() //update time for known elevator
+					ElevatorStatusMutex.Unlock()
+
 				} else {
 					log.Println("[systemControl]\t Received EventElevatorOnline from a new elevator with IP " + backup.ResponderIP)
+					ElevatorStatusMutex.Lock()
 					ElevatorStatus[backup.ResponderIP] = ResolveElevator(backup.State)
+					ElevatorStatusMutex.Unlock()
+
 				}
 				onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, watchdogLimit)
 			case EventElevatorBackup:

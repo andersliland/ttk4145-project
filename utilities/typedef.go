@@ -26,11 +26,7 @@ var HallOrderMatrix [NumFloors][2]HallOrder
 var ElevatorStatus = make(map[string]*Elevator) // containing last known state
 
 var HallOrderMatrixMutex = &sync.Mutex{}
-
-HallOrderMatrixMutex.Lock()
-HallOrderMatrixMutex.Unlock()
-
-
+var ElevatorStatusMutex = &sync.Mutex{}
 
 var EventType = []string{
 	// BackupMessage Events

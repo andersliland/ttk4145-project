@@ -90,7 +90,10 @@ func RemoveFloorOrders(floor, direction int, localIP string, broadcastOrderChann
 	if ElevatorStatus[localIP].CabOrders[floor] == true {
 		printOrders("Removed CabOrder at floor " + strconv.Itoa(floor+1) + " for " + localIP)
 	}
+	ElevatorStatusMutex.Lock()
 	ElevatorStatus[localIP].CabOrders[floor] = false
+	ElevatorStatusMutex.Unlock()
+
 	if err := SaveBackup("backupElevator", ElevatorStatus[localIP].CabOrders); err != nil {
 		fmt.Printf(ColorRed)
 		log.Println("Write CabOrder backup to file failed: ", err, ColorNeutral)
