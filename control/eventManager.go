@@ -38,7 +38,7 @@ func EventManager(
 		select {
 		case hallOrders := <-hallOrderSyncChannel: //TODO: sync Status and AssignedTo
 			log.Println("[eventManager]\t hallOrderSyncChannel received hallOrder. Updating hallOrderMatrix")
-			for f := 0; f < floor; f++ {
+			for f := 0; f < NumFloors; f++ {
 				for k := 0; k < 2; k++ {
 					if hallOrders.Status > -1 && hallOrders.Status < 3 {
 						//log.Println("[eventManager]\t Valid hallOrderStatus sync")

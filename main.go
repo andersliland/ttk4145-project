@@ -38,6 +38,7 @@ func main() {
 	orderCompleteChannel := make(chan OrderMessage, 5) // send OrderComplete from RemoveOrders to SystemControl
 	elevatorStatusChannel := make(chan Elevator, 5)
 	hallOrderSyncChannel := make(chan HallOrder, 5)
+	hallOrderLightSyncChannel := make(chan HallOrder, 5)
 
 	buttonChannel := make(chan ElevatorButton, 10)
 	lightChannel := make(chan ElevatorLight)
@@ -86,7 +87,7 @@ func main() {
 
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go safeKill(safeKillChannel, motorChannel)
-	go setPanelLights(lightChannel, localIP, HallOrderMatrix)
+	go setPanelLights(lightChannel, localIP, hallOrderLightSyncChannel)
 
 	if err := LoadBackup("backupElevator", &ElevatorStatus[localIP].CabOrders); err == nil {
 		log.Println("[eventManager]\t Loading and executing CabOrder restored from backup")
@@ -233,7 +234,8 @@ func main() {
 				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\ton floor " + strconv.Itoa(order.Floor+1) + " is assigned to " + order.AssignedTo + ColorNeutral)
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = order.AssignedTo
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = Awaiting
-				hallOrderSyncChannel <- HallOrder{AssignedTo: order.AssignedTo, Status: Awaiting} //TODO:
+				hallOrderSyncChannel <- HallOrder{AssignedTo: order.AssignedTo, Status: Awaiting}      //TODO:
+				hallOrderLightSyncChannel <- HallOrder{AssignedTo: order.AssignedTo, Status: Awaiting} //TODO:
 
 				if order.AssignedTo == localIP {
 					newOrder <- true
@@ -310,7 +312,8 @@ func main() {
 				// TODO: move to allElevatorsHaveAcked. Orders should not be removed untill all elevators have ack
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
-				hallOrderSyncChannel <- HallOrder{AssignedTo: "", Status: NotActive} //TODO:
+				hallOrderSyncChannel <- HallOrder{AssignedTo: "", Status: NotActive}                   //TODO:
+				hallOrderLightSyncChannel <- HallOrder{AssignedTo: order.AssignedTo, Status: Awaiting} //TODO:
 
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer() // stops timer set in EventAckOrderConfirmed
 				//log.Println("[systemControl]\t EventOrderComplete stop timer at order  "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
@@ -354,7 +357,8 @@ func main() {
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
-				hallOrderSyncChannel <- HallOrder{Status: NotActive} //TODO:
+				hallOrderSyncChannel <- HallOrder{Status: NotActive}                                   //TODO:
+				hallOrderLightSyncChannel <- HallOrder{AssignedTo: order.AssignedTo, Status: Awaiting} //TODO:
 
 				assignedTo, _ := orders.AssignOrderToElevator(order.Floor, order.ButtonType, onlineElevators, ElevatorStatus, HallOrderMatrix)
 
@@ -380,7 +384,8 @@ func main() {
 			if !elevatorIsOnline(order.AssignedTo, onlineElevators) {
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
-				hallOrderSyncChannel <- HallOrder{AssignedTo: "", Status: NotActive} //TODO
+				hallOrderSyncChannel <- HallOrder{AssignedTo: "", Status: NotActive}                   //TODO
+				hallOrderLightSyncChannel <- HallOrder{AssignedTo: order.AssignedTo, Status: Awaiting} //TODO:
 
 				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\t at floor " + strconv.Itoa(order.Floor+1) + " set to NotActive")
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer() // stops timer set in EventAckOrderConfirmed
@@ -470,34 +475,54 @@ func updateOnlineElevators(ElevatorStatus map[string]*Elevator, onlineElevators 
 	return onlineElevators
 }
 
-func setPanelLights(lightChannel chan ElevatorLight, localIP string, HallOrderMatrix [NumFloors][2]HallOrder) {
+func setPanelLights(lightChannel chan ElevatorLight, localIP string, hallOrderLightSyncChannel chan HallOrder) {
 	var cabPanelLights [NumFloors]bool
 	var hallPanelLights [NumFloors][2]bool
+
+	var hallOrderMatrix [NumFloors][2]HallOrder
+
 	for {
-		for f := 0; f < NumFloors; f++ {
-			if ElevatorStatus[localIP].CabOrders[f] == true && cabPanelLights[f] != true {
-				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: true}
-				cabPanelLights[f] = true
-				//printElevatorControl("Set CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
-			} else if ElevatorStatus[localIP].CabOrders[f] == false && cabPanelLights[f] == true {
-				lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: false}
-				cabPanelLights[f] = false
-				//printElevatorControl("Clear CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
-			}
-			for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-				if (HallOrderMatrix[f][k].Status == Awaiting || HallOrderMatrix[f][k].Status == UnderExecution) && hallPanelLights[f][k] != true {
-					lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: true}
-					hallPanelLights[f][k] = true
-					//printElevatorControl("Set HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[] + " on elevator " + localIP)
-				} else if (HallOrderMatrix[f][k].Status == NotActive) && hallPanelLights[f][k] == true {
-					lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: false}
-					hallPanelLights[f][k] = false
-					//printElevatorControl("Clear HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[k+1] + " on elevator " + localIP)
+		select {
+		case hallOrders := <-hallOrderLightSyncChannel: //TODO: sync Status and AssignedTo
+			log.Println("[main]\t hallOrderLightSyncChannel received hallOrder. Updating hallOrderMatrix in setPannelLights")
+			for f := 0; f < NumFloors; f++ {
+				for k := 0; k < 2; k++ {
+					if hallOrders.AssignedTo == localIP {
+						hallOrderMatrix[f][k].Status = hallOrders.Status
+						hallOrderMatrix[f][k].AssignedTo = hallOrders.AssignedTo
+						//log.Println("[eventManager]\t hallOrderMatrix.Status ", hallOrderMatrix[f][k].Status)
+						//log.Println("[eventManager]\t hallOrderMatrix.AssignedTo ", hallOrderMatrix[f][k].AssignedTo)
+					}
 				}
 			}
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
+
+			for {
+				for f := 0; f < NumFloors; f++ {
+					if ElevatorStatus[localIP].CabOrders[f] == true && cabPanelLights[f] != true {
+						lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: true}
+						cabPanelLights[f] = true
+						//printElevatorControl("Set CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
+					} else if ElevatorStatus[localIP].CabOrders[f] == false && cabPanelLights[f] == true {
+						lightChannel <- ElevatorLight{Floor: f, Kind: ButtonCommand, Active: false}
+						cabPanelLights[f] = false
+						//printElevatorControl("Clear CabOrder light on floor " + strconv.Itoa(f+1) + " on elevator " + localIP)
+					}
+					for k := ButtonCallUp; k <= ButtonCallDown; k++ {
+						if (hallOrderMatrix[f][k].Status == Awaiting || hallOrderMatrix[f][k].Status == UnderExecution) && hallPanelLights[f][k] != true {
+							lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: true}
+							hallPanelLights[f][k] = true
+							//printElevatorControl("Set HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[] + " on elevator " + localIP)
+						} else if (hallOrderMatrix[f][k].Status == NotActive) && hallPanelLights[f][k] == true {
+							lightChannel <- ElevatorLight{Floor: f, Kind: k, Active: false}
+							hallPanelLights[f][k] = false
+							//printElevatorControl("Clear HallOrder light on floor " + strconv.Itoa(f+1) + " of kind " + MotorStatus[k+1] + " on elevator " + localIP)
+						}
+					}
+				}
+				time.Sleep(20 * time.Millisecond)
+			}
+		} //select
+	} // for
 }
 
 func allElevatorsHaveAcked(onlineElevators map[string]bool, HallOrderMatrix [NumFloors][2]HallOrder, order OrderMessage) bool {
