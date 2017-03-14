@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"time"
 
-	. "../simulator/simulatorCore" // uncomment to use simulator
+	// . "../simulator/simulatorCore" // uncomment to use simulator
 	. "../utilities"
-	// . "../wrapper" // comment out when using simulator
+	. "../wrapper" // comment out when using simulator
 )
 
-var debugElevator = false
+var debugDriver = false
 
 var lampMatrix = [NumFloors][NumButtons]int{
 	{LIGHT_UP1, LIGHT_DOWN1, LIGHT_COMMAND1},
@@ -36,10 +36,10 @@ func Init(buttonChannel chan<- ElevatorButton,
 	PollDelay time.Duration) {
 
 	// SIMULATOR Uncomment below to run simulator
-	SimulatorInit() // Uncomment to start elevator
+	//SimulatorInit() // Uncomment to start elevator
 
 	// Wrapper Uncomment below to use wrapper
-	//IoInit()
+	IoInit()
 
 	resetAllLights()
 	go lightController(lightChannel)
@@ -180,7 +180,7 @@ func SetFloorIndicator(floor int) {
 
 func GoToFloorBelow(localIP string, motorChannel chan int, PollDelay time.Duration) int {
 	if readFloorSensor() == FloorInvalid {
-		printElevator("ReadFloorSensor " + strconv.Itoa(readFloorSensor()))
+		printDriver("ReadFloorSensor " + strconv.Itoa(readFloorSensor()))
 		motorChannel <- Down
 		for {
 			if floor := readFloorSensor(); floor != FloorInvalid {
@@ -194,8 +194,8 @@ func GoToFloorBelow(localIP string, motorChannel chan int, PollDelay time.Durati
 	return readFloorSensor()
 }
 
-func printElevator(s string) {
-	if debugElevator {
+func printDriver(s string) {
+	if debugDriver {
 		log.Println("[elevator]\t\t ", s)
 	}
 }

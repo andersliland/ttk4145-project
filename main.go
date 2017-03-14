@@ -50,15 +50,25 @@ func main() {
 
 	var onlineElevators = make(map[string]bool)
 
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	var orderTimeout = OrderTimeout*time.Second + time.Duration(r.Intn(2000))*time.Millisecond // random timeout to prevent all elevator from timing out at the same time
+
 	var localIP string
 	var err error
 	localIP, err = network.Init(broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel)
-	CheckError("ERROR [main]: Could not initiate network", err)
-
+	if err != nil {
+		fmt.Print(ColorRed)
+		log.Println("[main]\t\t Could not initiate network", err, ColorNeutral)
+	}
 	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, ElevatorPollDelay)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	var orderTimeout = OrderTimeout*time.Second + time.Duration(r.Intn(2000))*time.Millisecond // random timeout to prevent all elevator from timing out at the same time
+	// init by going to  nearest floor below and broadcast
+	floor := driver.GoToFloorBelow(localIP, motorChannel, PollDelay)
+	floorReached <- floor
+	//broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP} // sync floor status
+
+	fmt.Print(ColorWhite)
+	log.Println("[eventManager]\t New elevator "+localIP+" starting at floor "+strconv.Itoa(floor+1), ColorNeutral)
 
 	// Timers
 	watchdogTimer := time.NewTicker(watchdogLimit)
@@ -86,10 +96,7 @@ func main() {
 		HallOrderMatrix,
 		localIP)
 
-	go control.EventManager(newOrder, elevatorStatusChannel, broadcastOrderChannel, broadcastBackupChannel, orderCompleteChannel, floorReached, lightChannel, motorChannel, localIP)
-
-	// init elevator, go to nearest floor below
-	floorReached <- driver.GoToFloorBelow(localIP, motorChannel, PollDelay)
+	go control.EventManager(newOrder, floor, elevatorStatusChannel, broadcastOrderChannel, broadcastBackupChannel, orderCompleteChannel, floorReached, lightChannel, motorChannel, localIP)
 
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go safeKill(safeKillChannel, motorChannel)
@@ -116,9 +123,15 @@ func main() {
 			onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, watchdogLimit)
 			//log.Println("[systemControl] Active Elevators", onlineElevators)
 
-		case status := <-elevatorStatusChannel:
-			log.Println("[main]\t Received elevatorStatusChannel")
-			ElevatorStatus[status.LocalIP] = &status
+		case status := <-elevatorStatusChannel: //TODO: fill inn
+			log.Println("[main]\t Received elevatorStatusChannel from " + status.LocalIP)
+			log.Println("Before ElevatorStatus[localIP]", ElevatorStatus[status.LocalIP])
+			// TODO: does this overvrite unused valuse
+			ElevatorStatus[status.LocalIP].Floor = status.Floor
+			ElevatorStatus[status.LocalIP].Direction = status.Direction
+			ElevatorStatus[status.LocalIP].State = status.State
+			log.Println("After ElevatorStatus[localIP]", ElevatorStatus[status.LocalIP])
+
 		case backup := <-receiveBackupChannel:
 			//log.Printf("[systemControl] receivedBackupChannel with event %v from %v]", EventType[backup.Event], backup.AskerIP)
 			switch backup.Event {
@@ -131,7 +144,7 @@ func main() {
 				}
 				onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, watchdogLimit)
 			case EventElevatorBackup:
-				log.Println("[systemControl]\t Received EventElevatorBackup from a new elevator with IP " + backup.AskerIP)
+				//log.Println("[systemControl]\t Received EventElevatorBackup from a new elevator with IP " + backup.AskerIP)
 
 			default:
 				log.Println("[systemControl]\tReceived invalid BackupMessage from", backup.ResponderIP)

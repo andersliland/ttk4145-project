@@ -14,6 +14,8 @@ elif [ $workstationNumber == "3" ]; then
   IP=150
 elif [ $workstationNumber == "4" ]; then
   IP=141
+elif [ $workstationNumber == "5" ]; then
+  IP=143
 elif [ $workstationNumber == "6" ]; then
   IP=146
 elif [ $workstationNumber == "7" ]; then
@@ -53,14 +55,13 @@ fi
 #ssh -t $user@129.241.187.$IP
 
 # Create new rsa key
-#ssh-keygen
-#-t rsa # uncomment when starting from a new computer
+#ssh-keygen -t rsa # uncomment when starting from a new computer
 
 # Send RSA key to remote conputer
-#cat ~/.ssh/id_rsa.pub | ssh $user@129.241.187.$IP 'cat >> .ssh/authorized_keys'
+cat ~/.ssh/id_rsa.pub | ssh $user@129.241.187.$IP 'cat >> .ssh/authorized_keys'
 
 ##echo "Connecting to Workstation" $workstationNumber "at 129.241.187."$IP
-#ssh-copy-id -i ~/.ssh/id_rsa.pub  $user@129.241.187.$IP
+ssh-copy-id -i ~/.ssh/id_rsa.pub  $user@129.241.187.$IP
 echo "Delete old files and folder"
 ssh $user@129.241.187.$IP 'rm -rf ~/work/src/github.com/andersliland/ttk4145-project/'
 echo "Create new folder path"
@@ -69,3 +70,5 @@ echo "Copy project content"
 scp -rq ~/work/src/github.com/andersliland/ttk4145-project/. $user@129.241.187.$IP:~/work/src/github.com/andersliland/ttk4145-project &>/dev/null
 echo 'SSH into remote and execute go run main.go'
 ssh -t $user@129.241.187.$IP "cd /home/student/work/src/github.com/andersliland/ttk4145-project/ && ./setupRemote.sh ; bash"
+
+clear
