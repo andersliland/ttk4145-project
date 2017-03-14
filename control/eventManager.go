@@ -110,8 +110,7 @@ func doorTimer(timeout chan<- bool, reset <-chan bool) {
 }
 
 func syncFloor(floor int, localIP string, broadcastBackupChannel chan<- BackupMessage, elevatorStatusChannel chan Elevator) {
-
-	ElevatorStatus[localIP].Floor = floor //TODO: send on channel to main
+	//ElevatorStatus[localIP].Floor = floor //TODO: send on channel to main
 	elevatorStatusChannel <- Elevator{Floor: floor, LocalIP: localIP}
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
 	//log.Println("Sendt ElevatorStatus sync message from syncFloor")
@@ -119,8 +118,8 @@ func syncFloor(floor int, localIP string, broadcastBackupChannel chan<- BackupMe
 }
 
 func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- BackupMessage, elevatorStatusChannel chan Elevator) int {
-	ElevatorStatus[localIP].Direction = direction //TODO: send on channel to main
-	//elevatorStatusChannel <- Elevator{Direction: direction, LocalIP: localIP}
+	//ElevatorStatus[localIP].Direction = direction //TODO: send on channel to main
+	elevatorStatusChannel <- Elevator{Direction: direction, LocalIP: localIP}
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
 	//log.Println("Sendt ElevatorStatus sync message from syncDirection")
 	return direction
@@ -128,9 +127,9 @@ func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- 
 }
 
 func syncState(state int, localIP string, broadcastBackupChannel chan<- BackupMessage, elevatorStatusChannel chan Elevator) int {
-	ElevatorStatus[localIP].State = state //TODO: send on channel to main
 
-	//elevatorStatusChannel <- Elevator{State: state, LocalIP: localIP}
+	//ElevatorStatus[localIP].State = state //TODO: send on channel to main
+	elevatorStatusChannel <- Elevator{State: state, LocalIP: localIP}
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
 	//log.Println("Sendt ElevatorStatus sync message from syncState")
 	return state
