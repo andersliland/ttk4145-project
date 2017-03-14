@@ -1,8 +1,10 @@
 package network
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 
@@ -30,26 +32,45 @@ func InitUDP(
 	udpReceiveDatagramChannel chan<- UDPMessage) (localIP string, err error) {
 
 	broadcastAddr, err = net.ResolveUDPAddr("udp4", "255.255.255.255"+":"+strconv.Itoa(broadcastSendPort))
-	CheckError("ERROR [udp]: Failed to resolve remote addr", err)
+	if err != nil {
+		fmt.Print(ColorRed)
+		log.Println("[udp]\t\t Failed to resolve remote adress. Are you connected to the internet?", ColorNeutral)
+		log.Println("[udp]\t\t ", err)
+	}
 
 	localAddr, err = net.ResolveUDPAddr("udp4", ":"+strconv.Itoa(broadcastSendPort))
-	CheckError("ERROR [udp]: Failed to resolve broadcastlocalListenConnPort: ", err)
+	if err != nil {
+		fmt.Print(ColorRed)
+		log.Println("[udp]\t\t Failed to local remote adress. Are you connected to the internet?", ColorNeutral)
+		log.Println("[udp]\t\t ", err)
+	}
 
 	// Get local IP address
 	localIP, err = resolveLocalIP(broadcastAddr)
-	CheckError("ERROR [udp]: Failed to get local addr", err)
-	if debugUDP {
-		log.Println("[udp] LocalIP:" + localIP)
-
+	if err != nil {
+		fmt.Print(ColorRed)
+		log.Println("[udp]\t\t Failed to get own IP adress. Does you computer have a network card?", ColorNeutral)
+		log.Println("[udp]\t\t ", err)
 	}
 
 	// Broadcast broadcastlocalListenConnConnection
 	broadcastSendConn, err := net.DialUDP("udp4", nil, broadcastAddr)
-	CheckError("[udp] ERROR DialUDP failed", err)
+	if err != nil {
+		fmt.Print(ColorRed)
+		log.Println("[udp]\t\t Failed to dial UDP broadcast connection", ColorNeutral)
+		log.Println("[udp]\t\t ", err)
+		os.Exit(1)
+
+	}
 
 	// Local localListenConning connection
 	listen, err := net.ListenUDP("udp4", localAddr)
-	CheckError("[udp] Failed to create local listen connection", err)
+	if err != nil {
+		fmt.Print(ColorRed)
+		log.Println("[udp]\t\t Failed to dial UDP listen connection", ColorNeutral)
+		log.Println("[udp]\t\t ", err)
+		os.Exit(1)
+	}
 
 	go udpTransmit(broadcastSendConn, udpSendDatagramChannel)
 	go udpReceive(listen, udpReceiveDatagramChannel)
@@ -74,9 +95,6 @@ func udpTransmit(conn *net.UDPConn, udpSendDatagramChannel <-chan UDPMessage) {
 	for {
 		select {
 		case message := <-udpSendDatagramChannel:
-			if debugUDP {
-				//log.Println("[udp] UDP Send: \t", string(message.Data))
-			}
 			n, err := conn.Write(message.Data)
 			if (err != nil || n < 0) && debugUDP {
 				log.Println("[udp]\t\t Sending UDP broadcast failed", err)
