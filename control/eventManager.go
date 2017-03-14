@@ -13,11 +13,6 @@ import (
 
 const debugEventManager = false
 
-// Need three functions in an orders.go file to work:
-// ShouldStop(floor, direction, localIP)
-// ChooseDirection(floor, direction, localIP)
-// RemoveFloorOrders(floor, localIP)
-
 func eventManager(
 	newOrder chan bool,
 	broadcastOrderChannel chan OrderMessage,

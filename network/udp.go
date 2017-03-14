@@ -49,7 +49,7 @@ func InitUDP(
 	localIP, err = resolveLocalIP(broadcastAddr)
 	if err != nil {
 		fmt.Print(ColorRed)
-		log.Println("[udp]\t\t Failed to get own IP adress. Does your computer have a network card?", ColorNeutral)
+		log.Println("[udp]\t\t Failed to get own IP adress. Are you connected to the internet??", ColorNeutral)
 		log.Println("[udp]\t\t ", err)
 	}
 
