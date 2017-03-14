@@ -13,7 +13,7 @@ const debug = false
 const NumElevators = 3
 const NumButtons = 3
 const NumFloors = 4
-const OrderTimeout = 10 //seconds
+const OrderTimeout = 5 //seconds
 
 var HallOrderMatrix [NumFloors][2]HallOrder
 var ElevatorStatus = make(map[string]*Elevator) // containing last known state
