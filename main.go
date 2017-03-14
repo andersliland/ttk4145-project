@@ -24,6 +24,8 @@ const watchdogKickTime = 100 * time.Millisecond
 const watchdogLimit = 3*watchdogKickTime + 10*time.Millisecond
 const ackTimeLimit = 500 * time.Millisecond
 
+var LocalIP string
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -83,15 +85,21 @@ func main() {
 		HallOrderMatrix,
 		localIP)
 
-	floor := driver.GoToFloorBelow(localIP, motorChannel, PollDelay)
-	floorReached <- floor
+	// init elevator, go to nearest floor below
+	floorReached <- driver.GoToFloorBelow(localIP, motorChannel, PollDelay)
+
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go safeKill(safeKillChannel, motorChannel)
 	go setPanelLights(lightChannel, localIP)
 
-	broadcastBackupChannel <- BackupMessage{
-		AskerIP: localIP,
-		Event:   EventRequestBackup,
+	if err := LoadBackup("backupElevator", &ElevatorStatus[localIP].CabOrders); err == nil {
+		log.Println("[eventManager]\t Loading and executing CabOrder restored from backup")
+		for f := 0; f < NumFloors; f++ {
+			if ElevatorStatus[localIP].CabOrders[f] {
+				newOrder <- true
+				break
+			}
+		}
 	}
 
 	for {
@@ -116,6 +124,9 @@ func main() {
 					ElevatorStatus[backup.ResponderIP] = ResolveElevator(backup.State)
 				}
 				onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, watchdogLimit)
+			case EventElevatorBackup:
+				log.Println("[systemControl]\t Received EventElevatorBackup from a new elevator with IP " + backup.AskerIP)
+
 			default:
 				log.Println("[systemControl]\tReceived invalid BackupMessage from", backup.ResponderIP)
 			}

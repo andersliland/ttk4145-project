@@ -25,16 +25,6 @@ func eventManager(
 	var floor int // to initialize or not to initialize?
 	var direction int
 
-	if err := LoadBackup("backupElevator", &ElevatorStatus[localIP].CabOrders); err == nil {
-		log.Println("[eventManager]\t Loading and executing CabOrder restored from backup")
-		for f := 0; f < NumFloors; f++ {
-			if ElevatorStatus[localIP].CabOrders[f] {
-				newOrder <- true
-				break
-			}
-		}
-	}
-
 	fmt.Print(ColorWhite)
 	log.Println("[eventManager]\t New elevator "+localIP+" starting at floor "+strconv.Itoa(floor+1), ColorNeutral)
 	time.Sleep(1 * time.Second)
@@ -125,14 +115,15 @@ func doorTimer(timeout chan<- bool, reset <-chan bool) {
 }
 
 func syncFloor(floor int, localIP string, broadcastBackupChannel chan<- BackupMessage) {
-	ElevatorStatus[localIP].Floor = floor
+	ElevatorStatus[localIP].Floor = floor //TODO: send on channel to main
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
+	elevatorStatusChannel <- Elevator{Floor: floor, LocalIP: localIP}
 	//log.Println("Sendt ElevatorStatus sync message from syncFloor")
 
 }
 
 func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- BackupMessage) int {
-	ElevatorStatus[localIP].Direction = direction
+	ElevatorStatus[localIP].Direction = direction //TODO: send on channel to main
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
 	//log.Println("Sendt ElevatorStatus sync message from syncDirection")
 	return direction
@@ -140,7 +131,7 @@ func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- 
 }
 
 func syncState(state int, localIP string, broadcastBackupChannel chan<- BackupMessage) int {
-	ElevatorStatus[localIP].State = state
+	ElevatorStatus[localIP].State = state //TODO: send on channel to main
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
 	//log.Println("Sendt ElevatorStatus sync message from syncState")
 	return state
