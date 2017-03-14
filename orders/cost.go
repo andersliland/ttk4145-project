@@ -21,16 +21,16 @@ type orderCosts []orderCost
 
 // Calculate cost for each elevator, add to slice, sort for and return IP of elevator with lowest cost
 func AssignOrderToElevator(Floor int, Kind int,
-	OnlineElevators map[string]bool,
+	onlineElevators map[string]bool,
 	ElevatorStatus map[string]*Elevator) (ip string, err error) {
 
-	numOnlineElevators := len(OnlineElevators)
+	numOnlineElevators := len(onlineElevators)
 	if numOnlineElevators == 0 {
 		return "", errors.New("[cost] Cannot Assign new order with zero active elevators")
 	}
 	cost := orderCosts{} // initialize slice with empty interface
 
-	for ip, _ := range OnlineElevators { // key, value
+	for ip, _ := range onlineElevators { // key, value
 		floorCount, stopCount := calculateOrderCost(ip, Floor, Kind, ElevatorStatus[ip])
 		cost_num := floorCount*TimeBetweenFloors + stopCount*DoorOpenTime
 		cost = append(cost, orderCost{cost_num, ip})

@@ -24,7 +24,7 @@ func MessageLoop(
 	broadcastBackupChannel chan BackupMessage,
 	receiveBackupChannel chan BackupMessage,
 	orderCompleteChannel chan OrderMessage,
-	OnlineElevators map[string]bool,
+	onlineElevators map[string]bool,
 	ElevatorStatus map[string]*Elevator,
 	HallOrderMatrix [NumFloors][2]HallOrder,
 	localIP string) {
@@ -42,10 +42,10 @@ func MessageLoop(
 			printElevatorControl("New button push from " + localIP + " of type '" + ButtonType[button.Kind] + "' at floor " + strconv.Itoa(button.Floor+1))
 			switch button.Kind {
 			case ButtonCallUp, ButtonCallDown:
-				if _, ok := OnlineElevators[localIP]; !ok {
+				if _, ok := onlineElevators[localIP]; !ok {
 					log.Println("[elevatorControl]\t Elevator offline, cannot accept new order")
 				} else {
-					orderAssignedTo, _ := orders.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus)
+					orderAssignedTo, _ := orders.AssignOrderToElevator(button.Floor, button.Kind, onlineElevators, ElevatorStatus)
 					broadcastOrderChannel <- OrderMessage{
 						Floor:      button.Floor,
 						ButtonType: button.Kind,

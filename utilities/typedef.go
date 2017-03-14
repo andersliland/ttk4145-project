@@ -23,7 +23,6 @@ const ElevatorPollDelay = 50 * time.Millisecond // Move to config?
 
 var HallOrderMatrix [NumFloors][2]HallOrder
 var ElevatorStatus = make(map[string]*Elevator) // containing last known state
-var OnlineElevators = make(map[string]bool)
 
 var EventType = []string{
 	// BackupMessage Events

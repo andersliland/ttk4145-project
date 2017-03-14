@@ -21,6 +21,7 @@ func Init(localIP string) {
 }
 
 func SystemControl(
+	onlineElevators map[string]bool,
 	motorChannel chan<- int,
 	newOrder chan<- bool,
 	timeoutChannel chan ExtendedHallOrder,
@@ -44,7 +45,7 @@ func SystemControl(
 	watchdogKickTimer := time.NewTicker(watchdogKickTime)
 	defer watchdogKickTimer.Stop()
 
-	updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
+	onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, watchdogLimit)
 
 	broadcastBackupChannel <- BackupMessage{
 		AskerIP: localIP,
@@ -59,8 +60,9 @@ func SystemControl(
 			//log.Printf("[systemControl] Watchdog send IAmAlive from %v \n", localIP)
 
 		case <-watchdogTimer.C:
-			updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
-			//log.Println("[systemControl] Active Elevators", OnlineElevators)
+			onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, watchdogLimit)
+
+			//log.Println("[systemControl] Active Elevators", onlineElevators)
 
 			// Network
 		case backup := <-receiveBackupChannel:
@@ -74,7 +76,8 @@ func SystemControl(
 					log.Println("[systemControl]\t Received EventElevatorOnline from a new elevator with IP " + backup.ResponderIP)
 					ElevatorStatus[backup.ResponderIP] = ResolveElevator(backup.State)
 				}
-				updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
+				onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, watchdogLimit)
+
 				/*
 					case EventElevatorBackup:
 					case EventRequestBackup:
@@ -140,7 +143,7 @@ func SystemControl(
 				// OriginIP is responsible for registering ack from other elevators
 				if order.OriginIP == localIP {
 					HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
-					if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
+					if allElevatorsHaveAcked(onlineElevators, HallOrderMatrix, order) {
 						//printSystemControl("All elevators have ack'ed NewOrder at Floor " + strconv.Itoa(order.Floor+1) + " of  type " + ButtonType[order.ButtonType])
 						HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()
 						HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy()
@@ -203,7 +206,7 @@ func SystemControl(
 				//printSystemControl("case: EventAckOrderConfirmed")
 				if order.OriginIP == localIP {
 					HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
-					if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
+					if allElevatorsHaveAcked(onlineElevators, HallOrderMatrix, order) {
 						//printSystemControl("All elevators have ack'ed OrderConfirmed at Floor " + strconv.Itoa(order.Floor+1) + " of  type " + ButtonType[order.ButtonType])
 						HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 						HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
@@ -267,7 +270,7 @@ func SystemControl(
 			case EventAckOrderCompleted: // delete order from matrix and timer functions
 				//printSystemControl("case: EventAckOrderCompleted")
 				HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
-				if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
+				if allElevatorsHaveAcked(onlineElevators, HallOrderMatrix, order) {
 					fmt.Printf(ColorBlue)
 					log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\ton floor "+strconv.Itoa(order.Floor+1)+" is completed and ack'ed by all", ColorNeutral)
 					HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
@@ -280,7 +283,7 @@ func SystemControl(
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
-				assignedTo, _ := orders.AssignOrderToElevator(order.Floor, order.ButtonType, OnlineElevators, ElevatorStatus)
+				assignedTo, _ := orders.AssignOrderToElevator(order.Floor, order.ButtonType, onlineElevators, ElevatorStatus)
 
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      order.Floor,
@@ -301,7 +304,7 @@ func SystemControl(
 		// set HallOrders to NotActive when there is not network connection
 		case order := <-orderCompleteChannel:
 			//printSystemControl("case: orderCompleteChannel at floor " + strconv.Itoa(order.Floor+1) + " for " + ButtonType[order.ButtonType] + " for " + order.AssignedTo)
-			if !elevatorIsOnline(order.AssignedTo) {
+			if !elevatorIsOnline(order.AssignedTo, onlineElevators) {
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
 				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\t at floor " + strconv.Itoa(order.Floor+1) + " set to NotActive")
@@ -371,28 +374,29 @@ func SystemControl(
 	} // for
 } //function
 
-// removes elevator from 'OnlineElevators' if watchdog timeout
-// adds elevator to 'OnlineElevators' if watchdog not timeout
-func updateOnlineElevators(ElevatorStatus map[string]*Elevator, OnlineElevators map[string]bool, localIP string, watchdogLimit time.Duration) {
+// removes elevator from 'onlineElevators' if watchdog timeout
+// adds elevator to 'onlineElevators' if watchdog not timeout
+func updateOnlineElevators(ElevatorStatus map[string]*Elevator, onlineElevators map[string]bool, localIP string, watchdogLimit time.Duration) map[string]bool {
 	for k := range ElevatorStatus {
 		if time.Since(ElevatorStatus[k].Time) > watchdogLimit { //watchdog timeout
-			if OnlineElevators[k] == true {
-				delete(OnlineElevators, k)
-				//printSystemControl("Removed elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
-				log.Println("[systemControl] \t All OnlineElevators", OnlineElevators, "Removed ", ElevatorStatus[k].LocalIP)
+			if onlineElevators[k] == true {
+				delete(onlineElevators, k)
+				//printSystemControl("Removed elevator " + ElevatorStatus[k].LocalIP + " in onlineElevators")
+				log.Println("[systemControl] \t All onlineElevators", onlineElevators, "Removed ", ElevatorStatus[k].LocalIP)
 			}
 		} else { // watchdog not timed out
-			if OnlineElevators[k] != true {
-				OnlineElevators[k] = true
-				//printSystemControl("Added elevator " + ElevatorStatus[k].LocalIP + " in OnlineElevators")
-				log.Println("[systemControl] \t All OnlineElevators", OnlineElevators, "Added ", ElevatorStatus[k].LocalIP)
+			if onlineElevators[k] != true {
+				onlineElevators[k] = true
+				//printSystemControl("Added elevator " + ElevatorStatus[k].LocalIP + " in onlineElevators")
+				log.Println("[systemControl] \t All onlineElevators", onlineElevators, "Added ", ElevatorStatus[k].LocalIP)
 			}
 		}
 	}
+	return onlineElevators
 }
 
-func allElevatorsHaveAcked(OnlineElevators map[string]bool, HallOrderMatrix [NumFloors][2]HallOrder, order OrderMessage) bool {
-	for ip, _ := range OnlineElevators {
+func allElevatorsHaveAcked(onlineElevators map[string]bool, HallOrderMatrix [NumFloors][2]HallOrder, order OrderMessage) bool {
+	for ip, _ := range onlineElevators {
 		if _, confirmedBy := HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[ip]; !confirmedBy {
 			return false
 		}
@@ -400,8 +404,8 @@ func allElevatorsHaveAcked(OnlineElevators map[string]bool, HallOrderMatrix [Num
 	return true
 }
 
-func elevatorIsOnline(ip string) bool {
-	if OnlineElevators[ip] == true {
+func elevatorIsOnline(ip string, onlineElevators map[string]bool) bool {
+	if onlineElevators[ip] == true {
 		return true
 	}
 	return false

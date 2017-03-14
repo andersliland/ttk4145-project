@@ -33,6 +33,8 @@ func main() {
 
 	safeKillChannel := make(chan os.Signal, 10)
 
+	var onlineElevators = make(map[string]bool)
+
 	var localIP string
 	var err error
 	localIP, err = network.Init(broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel)
@@ -42,7 +44,17 @@ func main() {
 
 	//log.Println("[main]\t\t New Elevator ready with IP:", localIP)
 	control.Init(localIP)
-	go control.SystemControl(motorChannel, newOrder, timeoutChannel, broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel, orderCompleteChannel, localIP)
+	go control.SystemControl(
+		onlineElevators,
+		motorChannel,
+		newOrder,
+		timeoutChannel,
+		broadcastOrderChannel,
+		receiveOrderChannel,
+		broadcastBackupChannel,
+		receiveBackupChannel,
+		orderCompleteChannel,
+		localIP)
 	go control.MessageLoop(newOrder,
 		buttonChannel,
 		lightChannel,
@@ -53,7 +65,7 @@ func main() {
 		broadcastBackupChannel,
 		receiveBackupChannel,
 		orderCompleteChannel,
-		OnlineElevators,
+		onlineElevators,
 		ElevatorStatus,
 		HallOrderMatrix,
 		localIP)
