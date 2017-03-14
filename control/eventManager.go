@@ -12,8 +12,9 @@ import (
 
 const debugEventManager = false
 
-func eventManager(
+func EventManager(
 	newOrder chan bool,
+	elevatorStatusChannel chan Elevator,
 	broadcastOrderChannel chan<- OrderMessage,
 	broadcastBackupChannel chan<- BackupMessage,
 	orderCompleteChannel chan OrderMessage,
@@ -28,7 +29,7 @@ func eventManager(
 	fmt.Print(ColorWhite)
 	log.Println("[eventManager]\t New elevator "+localIP+" starting at floor "+strconv.Itoa(floor+1), ColorNeutral)
 	time.Sleep(1 * time.Second)
-	syncFloor(floor, localIP, broadcastBackupChannel)
+	syncFloor(floor, localIP, broadcastBackupChannel, elevatorStatusChannel)
 
 	doorTimeout := make(chan bool)
 	doorTimerReset := make(chan bool)
@@ -41,15 +42,15 @@ func eventManager(
 			//log.Println("newOrder state: " + StateEventManager[state])
 			switch state {
 			case Idle:
-				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
+				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel, elevatorStatusChannel)
 				if orders.ShouldStop(floor, direction, localIP) {
 					doorTimerReset <- true
 					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
-					state = syncState(DoorOpen, localIP, broadcastBackupChannel)
+					state = syncState(DoorOpen, localIP, broadcastBackupChannel, elevatorStatusChannel)
 
 				} else {
 					motorChannel <- direction
-					state = syncState(Moving, localIP, broadcastBackupChannel)
+					state = syncState(Moving, localIP, broadcastBackupChannel, elevatorStatusChannel)
 				}
 			case Moving: // Ignore
 			case DoorOpen:
@@ -62,7 +63,7 @@ func eventManager(
 
 		case floor = <-floorReached:
 			//log.Println("floorReached state: " + StateEventManager[state])
-			syncFloor(floor, localIP, broadcastBackupChannel)
+			syncFloor(floor, localIP, broadcastBackupChannel, elevatorStatusChannel)
 			//log.Println("Floor reached: " + strconv.Itoa(floor+1))
 			switch state {
 			case Idle:
@@ -71,7 +72,7 @@ func eventManager(
 					doorTimerReset <- true
 					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 					motorChannel <- Stop
-					state = syncState(DoorOpen, localIP, broadcastBackupChannel)
+					state = syncState(DoorOpen, localIP, broadcastBackupChannel, elevatorStatusChannel)
 				}
 			case DoorOpen: // not applicable
 			default: // Insert error handling
@@ -85,13 +86,13 @@ func eventManager(
 				lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
 				orders.RemoveFloorOrders(floor, direction, localIP, broadcastOrderChannel, orderCompleteChannel)
 				//printEventManager("eventDoorTimeout, Idle: direction: " + MotorStatus[direction+1])
-				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
+				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel, elevatorStatusChannel)
 				//printEventManager("Door closing, new direction is " + MotorStatus[direction+1] + ".  Elevator " + localIP)
 				if direction == Stop {
-					state = syncState(Idle, localIP, broadcastBackupChannel)
+					state = syncState(Idle, localIP, broadcastBackupChannel, elevatorStatusChannel)
 				} else {
 					motorChannel <- direction // Is this necessary?
-					state = syncState(Moving, localIP, broadcastBackupChannel)
+					state = syncState(Moving, localIP, broadcastBackupChannel, elevatorStatusChannel)
 				}
 			default: // Insert error handling here - elevator might possibly need to be restarted ()
 				log.Println("[eventManager]\t Invalid state in doorTimeout")
@@ -114,24 +115,29 @@ func doorTimer(timeout chan<- bool, reset <-chan bool) {
 	}
 }
 
-func syncFloor(floor int, localIP string, broadcastBackupChannel chan<- BackupMessage) {
-	ElevatorStatus[localIP].Floor = floor //TODO: send on channel to main
-	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
+func syncFloor(floor int, localIP string, broadcastBackupChannel chan<- BackupMessage, elevatorStatusChannel chan Elevator) {
+	//ElevatorStatus[localIP].Floor = floor //TODO: send on channel to main
+
 	elevatorStatusChannel <- Elevator{Floor: floor, LocalIP: localIP}
+	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
 	//log.Println("Sendt ElevatorStatus sync message from syncFloor")
 
 }
 
-func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- BackupMessage) int {
-	ElevatorStatus[localIP].Direction = direction //TODO: send on channel to main
+func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- BackupMessage, elevatorStatusChannel chan Elevator) int {
+	//ElevatorStatus[localIP].Direction = direction //TODO: send on channel to main
+
+	elevatorStatusChannel <- Elevator{Direction: direction, LocalIP: localIP}
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
 	//log.Println("Sendt ElevatorStatus sync message from syncDirection")
 	return direction
 
 }
 
-func syncState(state int, localIP string, broadcastBackupChannel chan<- BackupMessage) int {
-	ElevatorStatus[localIP].State = state //TODO: send on channel to main
+func syncState(state int, localIP string, broadcastBackupChannel chan<- BackupMessage, elevatorStatusChannel chan Elevator) int {
+	//ElevatorStatus[localIP].State = state //TODO: send on channel to main
+
+	elevatorStatusChannel <- Elevator{State: state, LocalIP: localIP}
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
 	//log.Println("Sendt ElevatorStatus sync message from syncState")
 	return state

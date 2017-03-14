@@ -35,6 +35,7 @@ func main() {
 	receiveBackupChannel := make(chan BackupMessage, 5)
 
 	orderCompleteChannel := make(chan OrderMessage, 5) // send OrderComplete from RemoveOrders to SystemControl
+	elevatorStatusChannel := make(chan Elevator, 5)
 
 	buttonChannel := make(chan ElevatorButton, 10)
 	lightChannel := make(chan ElevatorLight)
@@ -85,6 +86,8 @@ func main() {
 		HallOrderMatrix,
 		localIP)
 
+	go control.EventManager(newOrder, elevatorStatusChannel, broadcastOrderChannel, broadcastBackupChannel, orderCompleteChannel, floorReached, lightChannel, motorChannel, localIP)
+
 	// init elevator, go to nearest floor below
 	floorReached <- driver.GoToFloorBelow(localIP, motorChannel, PollDelay)
 
@@ -113,6 +116,9 @@ func main() {
 			onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, watchdogLimit)
 			//log.Println("[systemControl] Active Elevators", onlineElevators)
 
+		case status := <-elevatorStatusChannel:
+			log.Println("[main]\t Received elevatorStatusChannel")
+			ElevatorStatus[status.LocalIP] = &status
 		case backup := <-receiveBackupChannel:
 			//log.Printf("[systemControl] receivedBackupChannel with event %v from %v]", EventType[backup.Event], backup.AskerIP)
 			switch backup.Event {

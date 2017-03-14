@@ -32,9 +32,6 @@ func MessageLoop(
 
 	var orderTimeout = OrderTimeout * time.Second
 
-	go eventManager(newOrder, broadcastOrderChannel, broadcastBackupChannel, orderCompleteChannel, floorReached, lightChannel, motorChannel, localIP)
-	time.Sleep(1 * time.Second)
-
 	for {
 		select {
 		case button := <-buttonChannel: // Hardware
