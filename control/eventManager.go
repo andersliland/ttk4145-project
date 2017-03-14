@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"../driver"
 	"../orders"
 	. "../utilities"
 )
@@ -35,8 +34,6 @@ func eventManager(
 			}
 		}
 	}
-
-	floor = driver.GoToFloorBelow(localIP, motorChannel, PollDelay)
 
 	fmt.Print(ColorWhite)
 	log.Println("[eventManager]\t New elevator "+localIP+" starting at floor "+strconv.Itoa(floor+1), ColorNeutral)
