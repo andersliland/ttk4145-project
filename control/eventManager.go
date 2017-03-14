@@ -15,10 +15,11 @@ const debugEventManager = false
 
 func eventManager(
 	newOrder chan bool,
-	broadcastOrderChannel chan OrderMessage,
-	broadcastBackupChannel chan BackupMessage,
-	floorReached chan int,
-	lightChannel chan ElevatorLight,
+	broadcastOrderChannel chan<- OrderMessage,
+	broadcastBackupChannel chan<- BackupMessage,
+	orderCompleteChannel chan OrderMessage,
+	floorReached <-chan int,
+	lightChannel chan<- ElevatorLight,
 	motorChannel chan int, localIP string) {
 
 	var state int = Idle
@@ -98,7 +99,7 @@ func eventManager(
 			case Moving: // not applicable
 			case DoorOpen:
 				lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
-				orders.RemoveFloorOrders(floor, direction, localIP, broadcastOrderChannel)
+				orders.RemoveFloorOrders(floor, direction, localIP, broadcastOrderChannel, orderCompleteChannel)
 				//printEventManager("eventDoorTimeout, Idle: direction: " + MotorStatus[direction+1])
 				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
 				//printEventManager("Door closing, new direction is " + MotorStatus[direction+1] + ".  Elevator " + localIP)

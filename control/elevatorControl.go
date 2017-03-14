@@ -23,6 +23,7 @@ func MessageLoop(
 	receiveOrderChannel chan OrderMessage,
 	broadcastBackupChannel chan BackupMessage,
 	receiveBackupChannel chan BackupMessage,
+	orderCompleteChannel chan OrderMessage,
 	OnlineElevators map[string]bool,
 	ElevatorStatus map[string]*Elevator,
 	HallOrderMatrix [NumFloors][2]HallOrder,
@@ -31,7 +32,7 @@ func MessageLoop(
 	var orderTimeout = OrderTimeout * time.Second
 
 	floorReached := make(chan int)
-	go eventManager(newOrder, broadcastOrderChannel, broadcastBackupChannel, floorReached, lightChannel, motorChannel, localIP)
+	go eventManager(newOrder, broadcastOrderChannel, broadcastBackupChannel, orderCompleteChannel, floorReached, lightChannel, motorChannel, localIP)
 	time.Sleep(1 * time.Second)
 	go setPanelLights(lightChannel, localIP)
 

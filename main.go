@@ -22,6 +22,8 @@ func main() {
 	broadcastBackupChannel := make(chan BackupMessage, 5)
 	receiveBackupChannel := make(chan BackupMessage, 5)
 
+	orderCompleteChannel := make(chan OrderMessage, 5) // send OrderComplete from RemoveOrders to SystemControl
+
 	buttonChannel := make(chan ElevatorButton, 10)
 	lightChannel := make(chan ElevatorLight)
 	motorChannel := make(chan int)
@@ -31,7 +33,6 @@ func main() {
 	timeoutChannel := make(chan ExtendedHallOrder)
 
 	safeKillChannel := make(chan os.Signal, 10)
-	executeOrderChannel := make(chan OrderMessage, 10)
 
 	var localIP string
 	var err error
@@ -42,7 +43,7 @@ func main() {
 
 	//log.Println("[main]\t\t New Elevator ready with IP:", localIP)
 	control.Init(localIP)
-	go control.SystemControl(motorChannel, newOrder, timeoutChannel, broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel, executeOrderChannel, localIP)
+	go control.SystemControl(motorChannel, newOrder, timeoutChannel, broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel, orderCompleteChannel, localIP)
 	go control.MessageLoop(newOrder,
 		buttonChannel,
 		lightChannel,
@@ -52,6 +53,7 @@ func main() {
 		receiveOrderChannel,
 		broadcastBackupChannel,
 		receiveBackupChannel,
+		orderCompleteChannel,
 		OnlineElevators,
 		ElevatorStatus,
 		HallOrderMatrix,
