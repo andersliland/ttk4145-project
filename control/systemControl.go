@@ -201,41 +201,16 @@ func SystemControl(
 
 			case EventAckOrderConfirmed:
 				//printSystemControl("case: EventAckOrderConfirmed")
-
 				if order.OriginIP == localIP {
 					HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
 					if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
 						//printSystemControl("All elevators have ack'ed OrderConfirmed at Floor " + strconv.Itoa(order.Floor+1) + " of  type " + ButtonType[order.ButtonType])
 						HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 						HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
-
-						/*
-							                        timeout := orderTimeout
-													if order.AssignedTo != localIP {
-														timeout = 2 * orderTimeout
-													}
-
-													//log.Println("[systemConrtol]\t OriginIP start execution timer [EventOrderConfirmed] on order "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
-
-													                           HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
-													   							fmt.Print(ColorDarkGrey)
-													   							log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\t on floor "+strconv.Itoa(order.Floor+1)+" could not be completed by "+order.AssignedTo+". OriginIP "+order.OriginIP+" (OriginIP == localIP) ", ColorNeutral)
-													   							timeoutChannel <- ExtendedHallOrder{
-													   								Floor:        order.Floor,
-													   								ButtonType:   order.ButtonType,
-													   								OriginIP:     order.OriginIP,
-													   								TimeoutState: TimeoutOrderExecution,
-													   								Order: HallOrder{
-													   									AssignedTo: order.AssignedTo,
-													   								},
-													   							}
-													   						})
-						*/
 					}
 				}
 
 			case EventOrderCompleted:
-				// This case is only sent from the eventManager after it detects that an order is completed.
 				//printSystemControl("case: EventOrderCompleted at floor " + strconv.Itoa(order.Floor+1) + " for " + ButtonType[order.ButtonType] + " for " + order.AssignedTo)
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
@@ -267,7 +242,7 @@ func SystemControl(
 				}
 
 			case EventAckOrderCompleted: // delete order from matrix and timer functions
-				printSystemControl("case: EventAckOrderCompleted")
+				//printSystemControl("case: EventAckOrderCompleted")
 				HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
 				if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
 					fmt.Printf(ColorBlue)

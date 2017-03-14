@@ -119,7 +119,7 @@ func resetTimerForAllAssignedOrders(orderTimeout time.Duration, ip string) {
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
 			if HallOrderMatrix[f][k].AssignedTo == ip {
 				HallOrderMatrix[f][k].Timer.Reset(orderTimeout)
-				log.Println("[systemControl]\t Reset timer on order " + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
+				//log.Println("[systemControl]\t Reset timer on order " + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
 			}
 		}
 	}

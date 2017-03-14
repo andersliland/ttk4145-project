@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	// . "../simulator/simulatorCore" // uncomment to use simulator
+	. "../simulator/simulatorCore" // uncomment to use simulator
 	. "../utilities"
-	. "../wrapper" // comment out when using simulator
+	// . "../wrapper" // comment out when using simulator
 )
 
 var debugElevator = false
@@ -36,10 +36,10 @@ func Init(buttonChannel chan<- ElevatorButton,
 	pollDelay time.Duration) {
 
 	// SIMULATOR Uncomment below to run simulator
-	//SimulatorInit() // Uncomment to start elevator
+	SimulatorInit() // Uncomment to start elevator
 
 	// Wrapper Uncomment below to use wrapper
-	IoInit()
+	//IoInit()
 
 	resetAllLights()
 	go lightController(lightChannel)

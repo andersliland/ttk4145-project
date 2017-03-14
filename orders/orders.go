@@ -1,6 +1,7 @@
 package orders
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -18,16 +19,18 @@ func AddCabOrder(button ElevatorButton, localIP string) {
 func ShouldStop(floor, direction int, localIP string) bool {
 	// cabOrders are checked first, do not depend on direction
 	if floor == FloorInvalid {
-		printOrders("Invalid floor " + strconv.Itoa(floor+1) + ". The system will terminate.")
+		fmt.Printf(ColorRed)
+		log.Println("Invalid floor "+strconv.Itoa(floor+1)+". The system will terminate.", ColorNeutral)
 		os.Exit(1)
 	}
 
+	// stop at floor if there is a cabOrder there
 	if ElevatorStatus[localIP].CabOrders[floor] == true {
 		printOrders("There is a cabOrder at floor " + strconv.Itoa(floor+1) + " for " + localIP)
 		return true
 	}
 
-	// Check both hallOrders, and for special cases (top floor, bottom floor, no more orders in direction)
+	// Check hallOrders up and down for special cases (top floor, bottom floor, no more orders in direction)
 	switch direction {
 	case Stop:
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
@@ -49,7 +52,8 @@ func ShouldStop(floor, direction int, localIP string) bool {
 		}
 		return floor == 0 || !anyRequestsBelow(floor, localIP)
 	default:
-		// Insert error handling here
+		log.Println("[orders]\t\t Invalid direction in ShouldStop. Ignoring... ")
+		return false
 	}
 	return false
 }
@@ -82,20 +86,19 @@ func ChooseDirection(floor, direction int, localIP string) int {
 			return Stop
 		}
 	default:
-		// Insert error handling here
+		log.Println("[orders]\t\t Invalid direction in ChooseDirection. Ignoring... ")
 		return Stop
 	}
-	// Might be stuck in a loop (between say 2 floors), depends on implementation in eventManager.go
 }
 
-// Does this function also need to send a message on the broadcastOrderChannel to notify that it has removed an order?
 func RemoveFloorOrders(floor, direction int, localIP string, broadcastOrderChannel chan<- OrderMessage) {
 	if ElevatorStatus[localIP].CabOrders[floor] == true {
 		printOrders("Removed CabOrder at floor " + strconv.Itoa(floor+1) + " for " + localIP)
 	}
 	ElevatorStatus[localIP].CabOrders[floor] = false
 	if err := SaveBackup("backupElevator", ElevatorStatus[localIP].CabOrders); err != nil {
-		log.Println("Save Backup failed: ", err)
+		fmt.Printf(ColorRed)
+		log.Println("Write CabOrder backup to file failed: ", err, ColorNeutral)
 	}
 
 	switch direction {
@@ -133,7 +136,8 @@ func RemoveFloorOrders(floor, direction int, localIP string, broadcastOrderChann
 		}
 		printOrders("Removed HallOrder at floor" + strconv.Itoa(floor+1) + " for direction " + MotorStatus[direction+1] + ". Ip" + localIP)
 	default:
-		log.Println("ERROR [order]: Undefined direction for RemoveFloorOrders")
+		fmt.Printf(ColorRed)
+		log.Println("[order]\t\t Undefined direction for RemoveFloorOrders. Ignoring...", ColorNeutral)
 	}
 
 }

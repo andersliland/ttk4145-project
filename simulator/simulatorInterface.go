@@ -1,13 +1,14 @@
 package main
 
 import (
-	. "./simulatorCore"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"strconv"
+
+	. "./simulatorCore"
 )
 
 func listenForUserInput(userInput chan string) {
@@ -42,7 +43,7 @@ func UDPTransmitServer(lconn *net.UDPConn, sendChannel chan string) {
 			fmt.Printf("UDPTransmitServer-Simulator:\tError: Sending\n")
 			panic(err)
 		} else {
-			fmt.Println("[simulatorInterface] write udp message", networkPack)
+			//fmt.Println("[simulatorInterface] write udp message", networkPack)
 
 		}
 
@@ -54,7 +55,7 @@ func main() {
 
 	//Generating recive adress
 	raddr, err := net.ResolveUDPAddr("udp4", "255.255.255.255:"+strconv.Itoa(PortFromInterface))
-		if err != nil {
+	if err != nil {
 		fmt.Println("Can not resolve this adress", PortFromInterface)
 		log.Println(err)
 		panic(err)
