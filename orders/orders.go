@@ -91,7 +91,7 @@ func ChooseDirection(floor, direction int, localIP string) int {
 	}
 }
 
-func RemoveFloorOrders(floor, direction int, localIP string, broadcastOrderChannel chan<- OrderMessage) {
+func RemoveFloorOrders(floor, direction int, localIP string, broadcastOrderChannel chan<- OrderMessage, orderCompleteChannel chan OrderMessage) {
 	if ElevatorStatus[localIP].CabOrders[floor] == true {
 		printOrders("Removed CabOrder at floor " + strconv.Itoa(floor+1) + " for " + localIP)
 	}
@@ -105,7 +105,8 @@ func RemoveFloorOrders(floor, direction int, localIP string, broadcastOrderChann
 	case Stop:
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
 			if HallOrderMatrix[floor][k].AssignedTo == localIP {
-				HallOrderMatrix[floor][k].Status = NotActive // remove order if alone on nettwork
+				orderCompleteChannel <- resolveRemoveOrderMessage(floor, k, localIP) // send to systemControl routine
+				//HallOrderMatrix[floor][k].Status = NotActive                         // remove order if alone on nettwork
 				broadcastOrderChannel <- resolveRemoveOrderMessage(floor, k, localIP)
 				printOrders("Removed HallOrder at floor " + strconv.Itoa(floor+1) + " for direction " + MotorStatus[direction+1] + ". Ip " + localIP)
 
@@ -113,12 +114,14 @@ func RemoveFloorOrders(floor, direction int, localIP string, broadcastOrderChann
 		}
 	case Up:
 		if HallOrderMatrix[floor][ButtonCallUp].AssignedTo == localIP {
-			HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
+			orderCompleteChannel <- resolveRemoveOrderMessage(floor, ButtonCallUp, localIP) // send to systemControl routine
+			//HallOrderMatrix[floor][ButtonCallUp].Status = NotActive
 			broadcastOrderChannel <- resolveRemoveOrderMessage(floor, ButtonCallUp, localIP)
 
 		}
 		if !anyRequestsAbove(floor, localIP) && HallOrderMatrix[floor][ButtonCallDown].AssignedTo == localIP {
-			HallOrderMatrix[floor][ButtonCallDown].Status = NotActive // remove order if alone on nettwork
+			orderCompleteChannel <- resolveRemoveOrderMessage(floor, ButtonCallDown, localIP) // send to systemControl routine
+			//HallOrderMatrix[floor][ButtonCallDown].Status = NotActive                         // remove order if alone on nettwork
 			broadcastOrderChannel <- resolveRemoveOrderMessage(floor, ButtonCallDown, localIP)
 			printOrders("Direction up at floor " + strconv.Itoa(floor+1) + ". No new orders above this floor. Removed down order. Elevator: " + localIP)
 		}
@@ -126,11 +129,13 @@ func RemoveFloorOrders(floor, direction int, localIP string, broadcastOrderChann
 
 	case Down:
 		if HallOrderMatrix[floor][ButtonCallDown].AssignedTo == localIP {
-			HallOrderMatrix[floor][ButtonCallDown].Status = NotActive // remove order if alone on nettwork
+			orderCompleteChannel <- resolveRemoveOrderMessage(floor, ButtonCallDown, localIP) // send to systemControl routine
+			//HallOrderMatrix[floor][ButtonCallDown].Status = NotActive                         // remove order if alone on nettwork
 			broadcastOrderChannel <- resolveRemoveOrderMessage(floor, ButtonCallDown, localIP)
 		}
 		if !anyRequestsBelow(floor, localIP) && HallOrderMatrix[floor][ButtonCallUp].AssignedTo == localIP {
-			HallOrderMatrix[floor][ButtonCallUp].Status = NotActive // remove order if alone on nettwork
+			orderCompleteChannel <- resolveRemoveOrderMessage(floor, ButtonCallUp, localIP) // send to systemControl routine
+			//HallOrderMatrix[floor][ButtonCallUp].Status = NotActive                           // remove order if alone on nettwork
 			broadcastOrderChannel <- resolveRemoveOrderMessage(floor, ButtonCallUp, localIP)
 			printOrders("Direction down at floor " + strconv.Itoa(floor+1) + ". No new orders above this floor. Removed up order. Elevator: " + localIP)
 		}
