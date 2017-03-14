@@ -114,7 +114,7 @@ func main() {
 				if _, ok := onlineElevators[localIP]; !ok {
 					log.Println("[elevatorControl]\t Elevator offline, cannot accept new order")
 				} else {
-					orderAssignedTo, _ := orders.AssignOrderToElevator(button.Floor, button.Kind, onlineElevators, ElevatorStatus)
+					orderAssignedTo, _ := orders.AssignOrderToElevator(button.Floor, button.Kind, onlineElevators, ElevatorStatus, HallOrderMatrix)
 					broadcastOrderChannel <- OrderMessage{
 						Floor:      button.Floor,
 						ButtonType: button.Kind,
@@ -348,7 +348,7 @@ func main() {
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
-				assignedTo, _ := orders.AssignOrderToElevator(order.Floor, order.ButtonType, onlineElevators, ElevatorStatus)
+				assignedTo, _ := orders.AssignOrderToElevator(order.Floor, order.ButtonType, onlineElevators, ElevatorStatus, HallOrderMatrix)
 
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      order.Floor,
@@ -523,7 +523,7 @@ func resetTimerForAllAssignedOrders(orderTimeout time.Duration, ip string) {
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
 			if HallOrderMatrix[f][k].AssignedTo == ip {
 				HallOrderMatrix[f][k].Timer.Reset(orderTimeout)
-				//log.Println("[systemControl]\t Reset timer on order " + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
+				log.Println("[systemControl]\t Reset timer on order " + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
 			}
 		}
 	}

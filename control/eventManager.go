@@ -37,7 +37,7 @@ func EventManager(
 			//log.Println("newOrder state: " + StateEventManager[state])
 			switch state {
 			case Idle:
-				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel, elevatorStatusChannel)
+				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP, ElevatorStatus, HallOrderMatrix), localIP, broadcastBackupChannel, elevatorStatusChannel)
 				if orders.ShouldStop(floor, direction, localIP) {
 					doorTimerReset <- true
 					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
@@ -80,7 +80,7 @@ func EventManager(
 				lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
 				orders.RemoveFloorOrders(floor, direction, localIP, broadcastOrderChannel, orderCompleteChannel)
 				//printEventManager("eventDoorTimeout, Idle: direction: " + MotorStatus[direction+1])
-				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel, elevatorStatusChannel)
+				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP, ElevatorStatus, HallOrderMatrix), localIP, broadcastBackupChannel, elevatorStatusChannel)
 				//printEventManager("Door closing, new direction is " + MotorStatus[direction+1] + ".  Elevator " + localIP)
 				if direction == Stop {
 					state = syncState(Idle, localIP, broadcastBackupChannel, elevatorStatusChannel)

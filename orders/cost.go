@@ -22,7 +22,8 @@ type orderCosts []orderCost
 // Calculate cost for each elevator, add to slice, sort for and return IP of elevator with lowest cost
 func AssignOrderToElevator(Floor int, Kind int,
 	onlineElevators map[string]bool,
-	ElevatorStatus map[string]*Elevator) (ip string, err error) {
+	ElevatorStatus map[string]*Elevator,
+	HallOrderMatrix [NumFloors][2]HallOrder) (ip string, err error) {
 
 	numOnlineElevators := len(onlineElevators)
 	if numOnlineElevators == 0 {
@@ -31,7 +32,7 @@ func AssignOrderToElevator(Floor int, Kind int,
 	cost := orderCosts{} // initialize slice with empty interface
 
 	for ip, _ := range onlineElevators { // key, value
-		floorCount, stopCount := calculateOrderCost(ip, Floor, Kind, ElevatorStatus[ip])
+		floorCount, stopCount := calculateOrderCost(ip, Floor, Kind, ElevatorStatus[ip], ElevatorStatus, HallOrderMatrix)
 		cost_num := floorCount*TimeBetweenFloors + stopCount*DoorOpenTime
 		cost = append(cost, orderCost{cost_num, ip})
 		printCost("Cost of order is " + strconv.Itoa(cost_num) + " for IP: " + ip)
@@ -48,7 +49,9 @@ func AssignOrderToElevator(Floor int, Kind int,
 func calculateOrderCost(ip string,
 	orderFloor int,
 	orderButtonKind int,
-	elevator *Elevator) (floorCount, stopCount int) {
+	elevator *Elevator,
+	ElevatorStatus map[string]*Elevator,
+	HallOrderMatrix [NumFloors][2]HallOrder) (floorCount, stopCount int) {
 
 	direction := elevator.Direction
 	prevFloor := elevator.Floor
@@ -66,11 +69,11 @@ func calculateOrderCost(ip string,
 
 	searchDirection := direction
 	if orderFloor > prevFloor {
-		if !(searchDirection == Down && anyRequestsBelow(prevFloor, ip)) {
+		if !(searchDirection == Down && anyRequestsBelow(prevFloor, ip, ElevatorStatus, HallOrderMatrix)) {
 			searchDirection = Up
 		}
 	} else if orderFloor < prevFloor {
-		if !(searchDirection == Up && anyRequestsAbove(prevFloor, ip)) {
+		if !(searchDirection == Up && anyRequestsAbove(prevFloor, ip, ElevatorStatus, HallOrderMatrix)) {
 			searchDirection = Down
 		}
 	}
@@ -91,9 +94,9 @@ func calculateOrderCost(ip string,
 				printCost("Order continuing same direction as elevator direction")
 				return floorCount, stopCount
 			} else {
-				if searchDirection == Up && !anyRequestsAbove(orderFloor, ip) {
+				if searchDirection == Up && !anyRequestsAbove(orderFloor, ip, ElevatorStatus, HallOrderMatrix) {
 					return floorCount, stopCount
-				} else if searchDirection == Down && !anyRequestsBelow(orderFloor, ip) {
+				} else if searchDirection == Down && !anyRequestsBelow(orderFloor, ip, ElevatorStatus, HallOrderMatrix) {
 					return floorCount, stopCount
 				}
 			}
