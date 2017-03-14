@@ -3,6 +3,7 @@ package control
 import (
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"time"
 
@@ -68,9 +69,9 @@ func MessageLoop(
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
 				log.Println("[elevatorControl]\t Stop button pressed. Elevator will come to a halt.")
 				log.Println("[elevatorControl]\t You need to restart system to init elevator again.")
-				time.Sleep(50 * time.Millisecond)
+				time.Sleep(200 * time.Millisecond)
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
-				//os.Exit(1)
+				os.Exit(1)
 
 			}
 		case floor := <-floorChannel: // Hardware

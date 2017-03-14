@@ -186,7 +186,7 @@ func SystemControl(
 					//printSystemControl("Starting execution timer [EventOrderConfirmed] on order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
 					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
 						fmt.Print(ColorDarkGrey)
-						log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\t on floor "+strconv.Itoa(order.Floor+1)+" could not be completed by "+order.AssignedTo+". OriginIP "+order.OriginIP, ColorNeutral)
+						log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\t on floor "+strconv.Itoa(order.Floor+1)+" could not be completed by "+order.AssignedTo+". OriginIP "+order.OriginIP+" (OriginIP != localIP) ", ColorNeutral)
 						timeoutChannel <- ExtendedHallOrder{
 							Floor:        order.Floor,
 							ButtonType:   order.ButtonType,
@@ -208,24 +208,29 @@ func SystemControl(
 						//printSystemControl("All elevators have ack'ed OrderConfirmed at Floor " + strconv.Itoa(order.Floor+1) + " of  type " + ButtonType[order.ButtonType])
 						HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 						HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
-						timeout := orderTimeout
-						if order.AssignedTo != localIP {
-							timeout = 2 * orderTimeout
-						}
 
-						//log.Println("[systemConrtol]\t OriginIP start execution timer [EventOrderConfirmed] on order "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
-						HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
-							log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\t on floor " + strconv.Itoa(order.Floor+1) + " could not be completed by " + order.AssignedTo + ". OriginIP " + order.OriginIP)
-							timeoutChannel <- ExtendedHallOrder{
-								Floor:        order.Floor,
-								ButtonType:   order.ButtonType,
-								OriginIP:     order.OriginIP,
-								TimeoutState: TimeoutOrderExecution,
-								Order: HallOrder{
-									AssignedTo: order.AssignedTo,
-								},
-							}
-						})
+						/*
+							                        timeout := orderTimeout
+													if order.AssignedTo != localIP {
+														timeout = 2 * orderTimeout
+													}
+
+													//log.Println("[systemConrtol]\t OriginIP start execution timer [EventOrderConfirmed] on order "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
+
+													                           HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
+													   							fmt.Print(ColorDarkGrey)
+													   							log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\t on floor "+strconv.Itoa(order.Floor+1)+" could not be completed by "+order.AssignedTo+". OriginIP "+order.OriginIP+" (OriginIP == localIP) ", ColorNeutral)
+													   							timeoutChannel <- ExtendedHallOrder{
+													   								Floor:        order.Floor,
+													   								ButtonType:   order.ButtonType,
+													   								OriginIP:     order.OriginIP,
+													   								TimeoutState: TimeoutOrderExecution,
+													   								Order: HallOrder{
+													   									AssignedTo: order.AssignedTo,
+													   								},
+													   							}
+													   						})
+						*/
 					}
 				}
 
@@ -322,7 +327,7 @@ func SystemControl(
 				// kill self
 				if t.Order.AssignedTo == localIP {
 					motorChannel <- Stop
-					time.Sleep(100 * time.Millisecond)
+					time.Sleep(200 * time.Millisecond)
 					fmt.Print(ColorRed)
 					log.Println("[systemControl]\t SUICIDE, could not complete order "+ButtonType[t.ButtonType]+" at floor "+strconv.Itoa(t.Floor+1)+". OriginIP: "+t.OriginIP+" AssignedTo: "+t.Order.AssignedTo, ColorNeutral)
 					os.Exit(1)

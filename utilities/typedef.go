@@ -14,7 +14,7 @@ const NumElevators = 3
 const NumButtons = 3
 const NumFloors = 4
 
-const TimeBetweenFloors = 3
+const TimeBetweenFloors = 4
 const DoorOpenTime = 3
 const OrderTimeout = DoorOpenTime + TimeBetweenFloors
 
