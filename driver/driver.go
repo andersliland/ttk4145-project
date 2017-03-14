@@ -33,7 +33,7 @@ func Init(buttonChannel chan<- ElevatorButton,
 	lightChannel <-chan ElevatorLight,
 	motorChannel chan int,
 	floorChannel chan<- int,
-	pollDelay time.Duration) {
+	PollDelay time.Duration) {
 
 	// SIMULATOR Uncomment below to run simulator
 	SimulatorInit() // Uncomment to start elevator
@@ -44,8 +44,8 @@ func Init(buttonChannel chan<- ElevatorButton,
 	resetAllLights()
 	go lightController(lightChannel)
 	go motorController(motorChannel)
-	go floorSensorPoller(floorChannel, pollDelay)
-	go buttonPoller(buttonChannel, pollDelay)
+	go floorSensorPoller(floorChannel, PollDelay)
+	go buttonPoller(buttonChannel, PollDelay)
 }
 
 func resetAllLights() {
@@ -110,7 +110,7 @@ func motorController(motorChannel chan int) {
 	}
 }
 
-func floorSensorPoller(floorChannel chan<- int, pollDelay time.Duration) {
+func floorSensorPoller(floorChannel chan<- int, PollDelay time.Duration) {
 	prevFloor := FloorInvalid
 	for {
 		f := readFloorSensor()
@@ -119,11 +119,11 @@ func floorSensorPoller(floorChannel chan<- int, pollDelay time.Duration) {
 			SetFloorIndicator(f) // Move to fsm
 			floorChannel <- f
 		}
-		time.Sleep(pollDelay)
+		time.Sleep(PollDelay)
 	}
 }
 
-func buttonPoller(buttonChannel chan<- ElevatorButton, pollDelay time.Duration) {
+func buttonPoller(buttonChannel chan<- ElevatorButton, PollDelay time.Duration) {
 	inputMatrix := [NumFloors][NumButtons]bool{}
 	buttonStopActivated := false
 	for {
@@ -142,7 +142,7 @@ func buttonPoller(buttonChannel chan<- ElevatorButton, pollDelay time.Duration) 
 				buttonStopActivated = s
 			}
 		}
-		time.Sleep(pollDelay)
+		time.Sleep(PollDelay)
 	}
 }
 
@@ -178,7 +178,7 @@ func SetFloorIndicator(floor int) {
 	}
 }
 
-func GoToFloorBelow(localIP string, motorChannel chan int, pollDelay time.Duration) int {
+func GoToFloorBelow(localIP string, motorChannel chan int, PollDelay time.Duration) int {
 	if readFloorSensor() == FloorInvalid {
 		printElevator("ReadFloorSensor " + strconv.Itoa(readFloorSensor()))
 		motorChannel <- Down
@@ -187,7 +187,7 @@ func GoToFloorBelow(localIP string, motorChannel chan int, pollDelay time.Durati
 				motorChannel <- Stop
 				return floor
 			} else {
-				time.Sleep(pollDelay)
+				time.Sleep(PollDelay)
 			}
 		}
 	}

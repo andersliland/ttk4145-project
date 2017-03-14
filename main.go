@@ -15,7 +15,6 @@ import (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	const elevatorPollDelay = 50 * time.Millisecond // Move to config?
 
 	broadcastOrderChannel := make(chan OrderMessage, 5)
 	receiveOrderChannel := make(chan OrderMessage, 5)
@@ -39,7 +38,7 @@ func main() {
 	localIP, err = network.Init(broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel)
 	CheckError("ERROR [main]: Could not initiate network", err)
 
-	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, elevatorPollDelay) // driver init
+	driver.Init(buttonChannel, lightChannel, motorChannel, floorChannel, ElevatorPollDelay) // driver init
 
 	//log.Println("[main]\t\t New Elevator ready with IP:", localIP)
 	control.Init(localIP)

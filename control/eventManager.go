@@ -26,9 +26,6 @@ func eventManager(
 	var floor int // to initialize or not to initialize?
 	var direction int
 
-	// if restore order from file do ..., else:
-	const pollDelay = 5 * time.Millisecond
-
 	if err := LoadBackup("backupElevator", &ElevatorStatus[localIP].CabOrders); err == nil {
 		log.Println("[eventManager]\t Loading and executing CabOrder restored from backup")
 		for f := 0; f < NumFloors; f++ {
@@ -39,7 +36,7 @@ func eventManager(
 		}
 	}
 
-	floor = driver.GoToFloorBelow(localIP, motorChannel, pollDelay)
+	floor = driver.GoToFloorBelow(localIP, motorChannel, PollDelay)
 
 	fmt.Print(ColorWhite)
 	log.Println("[eventManager]\t New elevator "+localIP+" starting at floor "+strconv.Itoa(floor+1), ColorNeutral)

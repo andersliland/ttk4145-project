@@ -18,6 +18,9 @@ const TimeBetweenFloors = 4
 const DoorOpenTime = 3
 const OrderTimeout = DoorOpenTime + TimeBetweenFloors
 
+const PollDelay = 5 * time.Millisecond
+const ElevatorPollDelay = 50 * time.Millisecond // Move to config?
+
 var HallOrderMatrix [NumFloors][2]HallOrder
 var ElevatorStatus = make(map[string]*Elevator) // containing last known state
 var OnlineElevators = make(map[string]bool)
