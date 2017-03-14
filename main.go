@@ -37,6 +37,7 @@ func main() {
 
 	orderCompleteChannel := make(chan OrderMessage, 5) // send OrderComplete from RemoveOrders to SystemControl
 	elevatorStatusChannel := make(chan Elevator, 5)
+	hallOrderSyncChannel := make(chan HallOrder, 5)
 
 	buttonChannel := make(chan ElevatorButton, 10)
 	lightChannel := make(chan ElevatorLight)
@@ -49,6 +50,7 @@ func main() {
 	safeKillChannel := make(chan os.Signal, 10)
 	floorReached := make(chan int, 5)
 
+	var HallOrderMatrix [NumFloors][2]HallOrder
 	var onlineElevators = make(map[string]bool)
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -80,11 +82,11 @@ func main() {
 	ElevatorStatus[localIP] = ResolveElevator(Elevator{LocalIP: localIP})
 	onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, watchdogLimit)
 
-	go control.EventManager(newOrder, floor, elevatorStatusChannel, broadcastOrderChannel, broadcastBackupChannel, orderCompleteChannel, floorReached, lightChannel, motorChannel, localIP)
+	go control.EventManager(newOrder, floor, hallOrderSyncChannel, elevatorStatusChannel, broadcastOrderChannel, broadcastBackupChannel, orderCompleteChannel, floorReached, lightChannel, motorChannel, localIP)
 
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go safeKill(safeKillChannel, motorChannel)
-	go setPanelLights(lightChannel, localIP)
+	go setPanelLights(lightChannel, localIP, HallOrderMatrix)
 
 	if err := LoadBackup("backupElevator", &ElevatorStatus[localIP].CabOrders); err == nil {
 		log.Println("[eventManager]\t Loading and executing CabOrder restored from backup")
@@ -129,7 +131,7 @@ func main() {
 				if err := SaveBackup("backupElevator", ElevatorStatus[localIP].CabOrders); err != nil {
 					log.Println("[elevatorControl]\t Save Backup failed: ", err)
 				}
-				resetTimerForAllAssignedOrders(orderTimeout, localIP) // reset timer on Cabbutton spamming
+				resetTimerForAllAssignedOrders(orderTimeout, localIP, HallOrderMatrix) // reset timer on Cabbutton spamming
 				fmt.Printf(ColorGreen)
 				log.Println("[elevatorControl]\t CabOrder "+ButtonType[button.Kind]+"\ton floor "+strconv.Itoa(button.Floor+1), ColorNeutral)
 				newOrder <- true
@@ -148,7 +150,7 @@ func main() {
 			floorReached <- floor
 			fmt.Print(ColorYellow)
 			log.Println("[elevatorControl]\t Elevator "+localIP+" reached floor "+strconv.Itoa(floor+1), ColorNeutral)
-			resetTimerForAllAssignedOrders(orderTimeout, localIP)
+			resetTimerForAllAssignedOrders(orderTimeout, localIP, HallOrderMatrix)
 
 		case status := <-elevatorStatusChannel: //TODO: fill inn
 			//log.Println("[main]\t Received elevatorStatusChannel from " + status.LocalIP)
@@ -231,6 +233,8 @@ func main() {
 				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\ton floor " + strconv.Itoa(order.Floor+1) + " is assigned to " + order.AssignedTo + ColorNeutral)
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = order.AssignedTo
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = Awaiting
+				hallOrderSyncChannel <- HallOrder{AssignedTo: order.AssignedTo, Status: Awaiting} //TODO:
+
 				if order.AssignedTo == localIP {
 					newOrder <- true
 				}
@@ -306,6 +310,8 @@ func main() {
 				// TODO: move to allElevatorsHaveAcked. Orders should not be removed untill all elevators have ack
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
+				hallOrderSyncChannel <- HallOrder{AssignedTo: "", Status: NotActive} //TODO:
+
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer() // stops timer set in EventAckOrderConfirmed
 				//log.Println("[systemControl]\t EventOrderComplete stop timer at order  "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
@@ -348,6 +354,8 @@ func main() {
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
+				hallOrderSyncChannel <- HallOrder{Status: NotActive} //TODO:
+
 				assignedTo, _ := orders.AssignOrderToElevator(order.Floor, order.ButtonType, onlineElevators, ElevatorStatus, HallOrderMatrix)
 
 				broadcastOrderChannel <- OrderMessage{
@@ -372,6 +380,8 @@ func main() {
 			if !elevatorIsOnline(order.AssignedTo, onlineElevators) {
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
+				hallOrderSyncChannel <- HallOrder{AssignedTo: "", Status: NotActive} //TODO
+
 				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\t at floor " + strconv.Itoa(order.Floor+1) + " set to NotActive")
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer() // stops timer set in EventAckOrderConfirmed
 				fmt.Printf(ColorBlue)
@@ -460,7 +470,7 @@ func updateOnlineElevators(ElevatorStatus map[string]*Elevator, onlineElevators 
 	return onlineElevators
 }
 
-func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
+func setPanelLights(lightChannel chan ElevatorLight, localIP string, HallOrderMatrix [NumFloors][2]HallOrder) {
 	var cabPanelLights [NumFloors]bool
 	var hallPanelLights [NumFloors][2]bool
 	for {
@@ -517,7 +527,7 @@ func restartElevator() {
 	}
 }
 
-func resetTimerForAllAssignedOrders(orderTimeout time.Duration, ip string) {
+func resetTimerForAllAssignedOrders(orderTimeout time.Duration, ip string, HallOrderMatrix [NumFloors][2]HallOrder) {
 	// reset timer for all order AssignetTo == localIP
 	for f := 0; f < NumFloors; f++ {
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
