@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"os/exec"
 	"strconv"
 	"time"
@@ -114,16 +115,7 @@ func SystemControl(
 			switch order.Event {
 
 			case EventNewOrder:
-				if order.SenderIP == localIP {
-					//printSystemControl("case: EventAckNewOrder")
-				}
-				fmt.Print(ColorGreen)
-				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\ton floor " + strconv.Itoa(order.Floor+1) + " is assigned to " + order.AssignedTo + ColorNeutral)
-
-				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = order.AssignedTo //assume cost func is correct
-				HallOrderMatrix[order.Floor][order.ButtonType].Status = Awaiting             // set to NotActive
-				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy()            // create new instance of ConfirmedBy map
-
+				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // create new instance of ConfirmedBy map
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      order.Floor,
 					ButtonType: order.ButtonType,
@@ -169,6 +161,11 @@ func SystemControl(
 				}
 
 			case EventOrderConfirmed:
+
+				fmt.Print(ColorGreen)
+				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\ton floor " + strconv.Itoa(order.Floor+1) + " is assigned to " + order.AssignedTo + ColorNeutral)
+				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = order.AssignedTo
+				HallOrderMatrix[order.Floor][order.ButtonType].Status = Awaiting
 				if order.AssignedTo == localIP {
 					newOrder <- true
 				}
@@ -192,7 +189,8 @@ func SystemControl(
 					}
 					//printSystemControl("Starting execution timer [EventOrderConfirmed] on order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
 					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
-						log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\t on floor " + strconv.Itoa(order.Floor) + "could not be completed by " + order.AssignedTo + ". OriginIP " + order.OriginIP)
+						fmt.Print(ColorDarkGrey)
+						log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\t on floor "+strconv.Itoa(order.Floor+1)+" could not be completed by "+order.AssignedTo+". OriginIP "+order.OriginIP, ColorNeutral)
 						timeoutChannel <- ExtendedHallOrder{
 							Floor:        order.Floor,
 							ButtonType:   order.ButtonType,
@@ -221,7 +219,7 @@ func SystemControl(
 
 						//log.Println("[systemConrtol]\t OriginIP start execution timer [EventOrderConfirmed] on order "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
 						HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
-							log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\t on floor " + strconv.Itoa(order.Floor) + "could not be completed by " + order.AssignedTo + ". OriginIP " + order.OriginIP)
+							log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\t on floor " + strconv.Itoa(order.Floor+1) + " could not be completed by " + order.AssignedTo + ". OriginIP " + order.OriginIP)
 							timeoutChannel <- ExtendedHallOrder{
 								Floor:        order.Floor,
 								ButtonType:   order.ButtonType,
@@ -294,7 +292,7 @@ func SystemControl(
 					Event:      EventNewOrder,
 				}
 				fmt.Printf(ColorWhite)
-				log.Println("[systemControl]\t Reassign order from "+order.AssignedTo+" at floor "+strconv.Itoa(order.Floor)+" of type "+ButtonType[order.ButtonType]+"  to "+assignedTo+" with OriginIP "+order.OriginIP, ColorNeutral)
+				log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\ton floor "+strconv.Itoa(order.Floor+1)+" is reassigned from "+order.AssignedTo+" to "+assignedTo+" with OriginIP "+order.OriginIP, ColorNeutral)
 
 			default:
 				log.Println("[systemControl]\t Received an invalid OrderMessage from " + order.SenderIP)
@@ -330,7 +328,8 @@ func SystemControl(
 					motorChannel <- Stop
 					time.Sleep(100 * time.Millisecond)
 					fmt.Print(ColorRed)
-					log.Println("\t\t SUICIDE, could not complete order " + ButtonType[t.ButtonType] + " at floor " + strconv.Itoa(t.Floor+1) + ". OriginIP: " + t.OriginIP + " AssignedTo: " + t.Order.AssignedTo)
+					log.Println("[systemControl]\t SUICIDE, could not complete order "+ButtonType[t.ButtonType]+" at floor "+strconv.Itoa(t.Floor+1)+". OriginIP: "+t.OriginIP+" AssignedTo: "+t.Order.AssignedTo, ColorNeutral)
+					os.Exit(1)
 					//restartElevator() //TODO: implement gracefull restart
 
 				}

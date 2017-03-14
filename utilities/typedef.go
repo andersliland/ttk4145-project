@@ -13,7 +13,7 @@ const debug = false
 const NumElevators = 3
 const NumButtons = 3
 const NumFloors = 4
-const OrderTimeout = 5 //seconds
+const OrderTimeout = 10 //seconds
 
 var HallOrderMatrix [NumFloors][2]HallOrder
 var ElevatorStatus = make(map[string]*Elevator) // containing last known state
@@ -188,12 +188,15 @@ type ElevatorLight struct {
 
 // Console colors
 const (
-	ColorRed     = "\x1b[31;1m"
-	ColorGreen   = "\x1b[32;1m"
-	ColorYellow  = "\x1b[33;1m"
-	ColorBlue    = "\x1b[34;1m"
-	ColorWhite   = "\x1b[37;1m"
-	ColorNeutral = "\x1b[0m"
+	ColorDarkGrey = "\x1b[30;1m"
+	ColorMagenta  = "\x1b[35;1m"
+	ColorCyan     = "\x1b[36;1m"
+	ColorRed      = "\x1b[31;1m"
+	ColorGreen    = "\x1b[32;1m"
+	ColorYellow   = "\x1b[33;1m"
+	ColorBlue     = "\x1b[34;1m"
+	ColorWhite    = "\x1b[37;1m"
+	ColorNeutral  = "\x1b[0m"
 )
 
 func ResolveElevator(e Elevator) *Elevator {

@@ -42,8 +42,6 @@ func MessageLoop(
 					log.Println("[elevatorControl]\t Elevator offline, cannot accept new order")
 				} else {
 					orderAssignedTo, _ := orders.AssignOrderToElevator(button.Floor, button.Kind, OnlineElevators, ElevatorStatus)
-					//log.Println("Order at floor " + strconv.Itoa(button.Floor+1) + " of type " + ButtonType[button.Kind] + " is assigned to " + orderAssignedTo)
-
 					broadcastOrderChannel <- OrderMessage{
 						Floor:      button.Floor,
 						ButtonType: button.Kind,
@@ -52,9 +50,7 @@ func MessageLoop(
 						SenderIP:   localIP,
 						Event:      EventNewOrder,
 					}
-
 				}
-
 			case ButtonCommand:
 				orders.AddCabOrder(button, localIP)
 				if err := SaveBackup("backupElevator", ElevatorStatus[localIP].CabOrders); err != nil {
