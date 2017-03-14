@@ -125,7 +125,7 @@ func main() {
 					}
 				}
 			case ButtonCommand:
-				orders.AddCabOrder(button, localIP)
+				ElevatorStatus[localIP].CabOrders[button.Floor] = true
 				if err := SaveBackup("backupElevator", ElevatorStatus[localIP].CabOrders); err != nil {
 					log.Println("[elevatorControl]\t Save Backup failed: ", err)
 				}
@@ -517,6 +517,18 @@ func restartElevator() {
 	}
 }
 
+func resetTimerForAllAssignedOrders(orderTimeout time.Duration, ip string) {
+	// reset timer for all order AssignetTo == localIP
+	for f := 0; f < NumFloors; f++ {
+		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
+			if HallOrderMatrix[f][k].AssignedTo == ip {
+				HallOrderMatrix[f][k].Timer.Reset(orderTimeout)
+				//log.Println("[systemControl]\t Reset timer on order " + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
+			}
+		}
+	}
+}
+
 func safeKill(safeKillChannel <-chan os.Signal, motorChannel chan int) {
 	<-safeKillChannel
 	motorChannel <- Stop
@@ -528,17 +540,6 @@ func safeKill(safeKillChannel <-chan os.Signal, motorChannel chan int) {
 func printSystemControl(s string) {
 	if debugSystemControl {
 		log.Println("[systemControl]\t", s)
-	}
-}
-func resetTimerForAllAssignedOrders(orderTimeout time.Duration, ip string) {
-	// reset timer for all order AssignetTo == localIP
-	for f := 0; f < NumFloors; f++ {
-		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-			if HallOrderMatrix[f][k].AssignedTo == ip {
-				HallOrderMatrix[f][k].Timer.Reset(orderTimeout)
-				//log.Println("[systemControl]\t Reset timer on order " + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
-			}
-		}
 	}
 }
 

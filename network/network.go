@@ -2,6 +2,7 @@ package network
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 
 	. "../utilities"
@@ -21,8 +22,10 @@ func Init(broadcastOrderChannel <-chan OrderMessage,
 	go receiveMessageHandler(receiveOrderChannel, receiveBackupChannel, UDPReceiveChannel)
 
 	localIP, err = InitUDP(UDPSendChannel, UDPReceiveChannel)
-	CheckError("", err)
-
+	if err != nil {
+		fmt.Print(ColorRed)
+		log.Println("[network]\t Failed to initialise UDP connection ", err, ColorNeutral)
+	}
 	return localIP, nil
 }
 

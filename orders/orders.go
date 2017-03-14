@@ -11,11 +11,6 @@ import (
 
 const debugOrders = false
 
-func AddCabOrder(button ElevatorButton, localIP string) {
-	ElevatorStatus[localIP].CabOrders[button.Floor] = true
-	printOrders("Added CabOrder for " + localIP + " at floor " + strconv.Itoa(button.Floor+1))
-}
-
 func ShouldStop(floor, direction int, localIP string) bool {
 	// cabOrders are checked first, do not depend on direction
 	if floor == FloorInvalid {
