@@ -34,7 +34,7 @@ func eventManager(
 	const pollDelay = 5 * time.Millisecond
 
 	if err := LoadBackup("backupElevator", &ElevatorStatus[localIP].CabOrders); err == nil {
-		log.Println("[eventManager]\t Executing restored orders")
+		log.Println("[eventManager]\t Loading and executing CabOrder restored from backup")
 		for f := 0; f < NumFloors; f++ {
 			if ElevatorStatus[localIP].CabOrders[f] {
 				newOrder <- true
@@ -63,7 +63,6 @@ func eventManager(
 			case Idle:
 				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
 				if orders.ShouldStop(floor, direction, localIP) {
-					printEventManager("Stopped at floor " + strconv.Itoa(floor+1))
 					doorTimerReset <- true
 					lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: true}
 					state = syncState(DoorOpen, localIP, broadcastBackupChannel)
@@ -71,7 +70,6 @@ func eventManager(
 				} else {
 					motorChannel <- direction
 					state = syncState(Moving, localIP, broadcastBackupChannel)
-					//newState <- Moving
 				}
 			case Moving: // Ignore
 			case DoorOpen:
@@ -79,6 +77,7 @@ func eventManager(
 					doorTimerReset <- true
 				}
 			default: // Insert error handling
+				log.Println("[eventManager]\t Invalid state in newOrder")
 			}
 
 		case floor = <-floorReached:
@@ -87,8 +86,6 @@ func eventManager(
 			//log.Println("Floor reached: " + strconv.Itoa(floor+1))
 			switch state {
 			case Idle:
-				printEventManager("Elevator reached floor " + strconv.Itoa(floor+1) + " in state IDLE")
-
 			case Moving:
 				if orders.ShouldStop(floor, direction, localIP) {
 					doorTimerReset <- true
@@ -107,10 +104,9 @@ func eventManager(
 			case DoorOpen:
 				lightChannel <- ElevatorLight{Kind: DoorIndicator, Active: false}
 				orders.RemoveFloorOrders(floor, direction, localIP, broadcastOrderChannel)
-
-				printEventManager("eventDoorTimeout, Idle: direction: " + MotorStatus[direction+1])
+				//printEventManager("eventDoorTimeout, Idle: direction: " + MotorStatus[direction+1])
 				direction = syncDirection(orders.ChooseDirection(floor, direction, localIP), localIP, broadcastBackupChannel)
-				printEventManager("Door closing, new direction is " + MotorStatus[direction+1] + ".  Elevator " + localIP)
+				//printEventManager("Door closing, new direction is " + MotorStatus[direction+1] + ".  Elevator " + localIP)
 				if direction == Stop {
 					state = syncState(Idle, localIP, broadcastBackupChannel)
 				} else {
@@ -118,8 +114,8 @@ func eventManager(
 					state = syncState(Moving, localIP, broadcastBackupChannel)
 				}
 			default: // Insert error handling here - elevator might possibly need to be restarted ()
+				log.Println("[eventManager]\t Invalid state in doorTimeout")
 			}
-
 		}
 	}
 }
@@ -150,7 +146,6 @@ func syncDirection(direction int, localIP string, broadcastBackupChannel chan<- 
 	ElevatorStatus[localIP].Direction = direction
 	broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP}
 	//log.Println("Sendt ElevatorStatus sync message from syncDirection")
-
 	return direction
 
 }

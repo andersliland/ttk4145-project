@@ -56,21 +56,11 @@ func MessageLoop(
 				}
 
 			case ButtonCommand:
-				/*
-					broadcastBackupChannel <- BackupMessage{
-						AskerIP: localIP,
-						Event:   EventElevatorBackup,
-						Cab: CabOrder{
-							Floor: button.Floor,
-						},
-					}
-				*/
 				orders.AddCabOrder(button, localIP)
 				if err := SaveBackup("backupElevator", ElevatorStatus[localIP].CabOrders); err != nil {
-					log.Println("Save Backup failed: ", err)
+					log.Println("[elevatorControl]\t Save Backup failed: ", err)
 				}
 				newOrder <- true
-				//log.Println(ElevatorStatus[localIP])
 
 			case ButtonStop:
 				motorChannel <- Stop
@@ -85,7 +75,7 @@ func MessageLoop(
 		case floor := <-floorChannel: // Hardware
 			floorReached <- floor
 			fmt.Print(ColorYellow)
-			log.Println("Elevator "+localIP+" reached floor "+strconv.Itoa(floor+1), ColorNeutral)
+			log.Println("[elevatorControl]\t Elevator "+localIP+" reached floor "+strconv.Itoa(floor+1), ColorNeutral)
 		}
 	}
 }

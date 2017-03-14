@@ -13,7 +13,7 @@ const debug = false
 const NumElevators = 3
 const NumButtons = 3
 const NumFloors = 4
-const OrderTimeout = 14 //seconds
+const OrderTimeout = 10 //seconds
 
 var HallOrderMatrix [NumFloors][2]HallOrder
 var ElevatorStatus = make(map[string]*Elevator) // containing last known state
@@ -156,17 +156,6 @@ type Elevator struct { // syncronised for all elevators
 	CabOrders       [NumFloors]bool
 	HallOrderMatrix [NumFloors][2]HallOrder
 }
-
-/*
-type ElevatorLocal struct {
-	State           int //Idle, Moving, DoorOpen
-	LastFloor       int // current floor for elevator
-	Direction       int // current direction: Stop, Up, Down
-	CabOrders       [NumFloors]bool
-	HallOrderMatrix [NumFloors][2]HallOrder
-}
-*/
-
 type OrderMessage struct {
 	Time       time.Time
 	Floor      int
@@ -309,7 +298,6 @@ func SaveBackup(filename string, cabOrders [NumFloors]bool) error {
 
 func LoadBackup(filename string, cabOrders *[NumFloors]bool) error {
 	if _, fileNotFound := os.Stat(filename); fileNotFound == nil {
-		log.Println("Backup file found")
 		data, err := ioutil.ReadFile(filename)
 		if err != nil {
 			log.Println("loadFromDisk() error: Failed to read file")
@@ -319,24 +307,7 @@ func LoadBackup(filename string, cabOrders *[NumFloors]bool) error {
 		}
 		return nil
 	} else {
-		log.Println("Backup file not found")
-		return fileNotFound
-	}
-}
-
-func (state *Elevator) LoadFromFile(filename string) error {
-	if _, fileNotFound := os.Stat(filename); fileNotFound == nil {
-		log.Println("Backup file found")
-		data, err := ioutil.ReadFile(filename)
-		if err != nil {
-			log.Println("loadFromDisk() error: Failed to read file")
-		}
-		if err := json.Unmarshal(data, state); err != nil {
-			log.Println("loadFromDisk() error: Failed to unmarshal")
-		}
-		return nil
-	} else {
-		log.Println("Backup file not found")
+		log.Println("\t\t\t Backup file not found")
 		return fileNotFound
 	}
 }
