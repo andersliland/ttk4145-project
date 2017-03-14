@@ -12,9 +12,6 @@ import (
 
 const debugCost = false
 
-const timeBetweenFloor = 2 //seconds //TODO: time and test1
-const timeAtFloor = 3      //seconds //TODO: update at the end
-
 type orderCost struct {
 	Cost int
 	IP   string
@@ -35,7 +32,7 @@ func AssignOrderToElevator(Floor int, Kind int,
 
 	for ip, _ := range OnlineElevators { // key, value
 		floorCount, stopCount := calculateOrderCost(ip, Floor, Kind, ElevatorStatus[ip])
-		cost_num := floorCount*timeBetweenFloor + stopCount*timeAtFloor
+		cost_num := floorCount*TimeBetweenFloors + stopCount*DoorOpenTime
 		cost = append(cost, orderCost{cost_num, ip})
 		printCost("Cost of order is " + strconv.Itoa(cost_num) + " for IP: " + ip)
 		printCost("floorCount: " + strconv.Itoa(floorCount) + " stopCount: " + strconv.Itoa(stopCount))

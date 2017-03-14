@@ -27,6 +27,8 @@ func MessageLoop(
 	HallOrderMatrix [NumFloors][2]HallOrder,
 	localIP string) {
 
+	var orderTimeout = OrderTimeout * time.Second
+
 	floorReached := make(chan int)
 	go eventManager(newOrder, broadcastOrderChannel, broadcastBackupChannel, floorReached, lightChannel, motorChannel, localIP)
 	time.Sleep(1 * time.Second)
@@ -56,6 +58,9 @@ func MessageLoop(
 				if err := SaveBackup("backupElevator", ElevatorStatus[localIP].CabOrders); err != nil {
 					log.Println("[elevatorControl]\t Save Backup failed: ", err)
 				}
+				resetTimerForAllAssignedOrders(orderTimeout, localIP) // reset timer on Cabbutton spamming
+				fmt.Printf(ColorGreen)
+				log.Println("[elevatorControl]\t CabOrder "+ButtonType[button.Kind]+"\ton floor "+strconv.Itoa(button.Floor+1), ColorNeutral)
 				newOrder <- true
 
 			case ButtonStop:
@@ -72,6 +77,7 @@ func MessageLoop(
 			floorReached <- floor
 			fmt.Print(ColorYellow)
 			log.Println("[elevatorControl]\t Elevator "+localIP+" reached floor "+strconv.Itoa(floor+1), ColorNeutral)
+			resetTimerForAllAssignedOrders(orderTimeout, localIP)
 		}
 	}
 }
@@ -103,6 +109,18 @@ func setPanelLights(lightChannel chan ElevatorLight, localIP string) {
 			}
 		}
 		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+func resetTimerForAllAssignedOrders(orderTimeout time.Duration, ip string) {
+	// reset timer for all order AssignetTo == localIP
+	for f := 0; f < NumFloors; f++ {
+		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
+			if HallOrderMatrix[f][k].AssignedTo == ip {
+				HallOrderMatrix[f][k].Timer.Reset(orderTimeout)
+				log.Println("[systemControl]\t Reset timer on order " + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
+			}
+		}
 	}
 }
 

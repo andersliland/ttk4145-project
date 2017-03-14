@@ -31,11 +31,11 @@ func SystemControl(
 	executeOrderChannel chan<- OrderMessage,
 	localIP string) {
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	const watchdogKickTime = 100 * time.Millisecond
 	const watchdogLimit = 3*watchdogKickTime + 10*time.Millisecond
 	const ackTimeLimit = 500 * time.Millisecond
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	var orderTimeout = OrderTimeout*time.Second + time.Duration(r.Intn(2000))*time.Millisecond // random timeout to prevent all elevator from timing out at the same time
 
 	// Timers
@@ -75,41 +75,37 @@ func SystemControl(
 					ElevatorStatus[backup.ResponderIP] = ResolveElevator(backup.State)
 				}
 				updateOnlineElevators(ElevatorStatus, OnlineElevators, localIP, watchdogLimit)
-
-			case EventElevatorBackup:
-
-			case EventRequestBackup:
-				if backup.AskerIP != localIP { // TODO change to !=
-					//printSystemControl("Received an EventRequestBackup from " + backup.AskerIP)
-					if _, ok := ElevatorStatus[backup.AskerIP]; ok {
-						broadcastBackupChannel <- BackupMessage{
-							AskerIP:         backup.AskerIP,
-							ResponderIP:     localIP,
-							Event:           EventBackupReturned,
-							State:           *ElevatorStatus[backup.AskerIP],
-							HallOrderMatrix: HallOrderMatrix,
+				/*
+					case EventElevatorBackup:
+					case EventRequestBackup:
+						if backup.AskerIP != localIP {
+							if _, ok := ElevatorStatus[backup.AskerIP]; ok {
+								broadcastBackupChannel <- BackupMessage{
+									AskerIP:         backup.AskerIP,
+									ResponderIP:     localIP,
+									Event:           EventBackupReturned,
+									State:           *ElevatorStatus[backup.AskerIP],
+									HallOrderMatrix: HallOrderMatrix,
+								}
+								//printSystemControl("Broadcasting elevator state from elevator " + localIP)
+							} else {
+								log.Println("[systemControl]\t No stored state for elevator " + backup.AskerIP)
+							}
 						}
-						//printSystemControl("Broadcasting elevator state from elevator " + localIP)
-					} else {
-						log.Println("[systemControl]\t No stored state for elevator " + backup.AskerIP)
-					}
-				}
 
-				// Restore state of elevator
-			case EventBackupReturned:
-				printSystemControl("Received EventBackupReturned from " + backup.ResponderIP)
-				if backup.AskerIP == localIP {
-					//ElevatorStatus[localIP] ResolveElevator()
-					log.Printf("[systemControl]\t Received EventBackupReturned requested by me")
-
-				} else {
-					log.Printf("[systemControl]\t Received EventBackupReturned NOT requested by me")
-				}
+					case EventBackupReturned:
+						printSystemControl("Received EventBackupReturned from " + backup.ResponderIP)
+						if backup.AskerIP == localIP {
+							//ElevatorStatus[localIP] ResolveElevator()
+							log.Printf("[systemControl]\t Received EventBackupReturned requested by me")
+						} else {
+							log.Printf("[systemControl]\t Received EventBackupReturned NOT requested by me")
+						}
+				*/
 			default:
-				log.Println("[systemControl]\tReceived invalid BackupMessage from", backup.ResponderIP)
+				//log.Println("[systemControl]\tReceived invalid BackupMessage from", backup.ResponderIP)
 			}
 
-		// Order
 		case order := <-receiveOrderChannel:
 			//printSystemControl("Received an " + EventType[order.Event] + " from " + order.SenderIP + " with OriginIP " + order.OriginIP)
 			switch order.Event {
@@ -266,14 +262,14 @@ func SystemControl(
 				}
 
 			case EventAckOrderCompleted: // delete order from matrix and timer functions
-				//printSystemControl("case: EventAckOrderCompleted")
+				printSystemControl("case: EventAckOrderCompleted")
 				HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
 				if allElevatorsHaveAcked(OnlineElevators, HallOrderMatrix, order) {
 					fmt.Printf(ColorBlue)
 					log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\ton floor "+strconv.Itoa(order.Floor+1)+" is completed and ack'ed by all", ColorNeutral)
 					HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 					HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
-					resetTimerForAllAssignedOrders(order.Floor, orderTimeout, order.AssignedTo)
+					//resetTimerForAllAssignedOrders(order.Floor, orderTimeout, order.AssignedTo)
 				}
 
 			case EventReassignOrder:
@@ -387,18 +383,6 @@ func allElevatorsHaveAcked(OnlineElevators map[string]bool, HallOrderMatrix [Num
 		}
 	}
 	return true
-}
-
-func resetTimerForAllAssignedOrders(floor int, orderTimeout time.Duration, ip string) {
-	// reset timer for all order AssignetTo == localIP
-	for f := 0; f < NumFloors; f++ {
-		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-			if HallOrderMatrix[f][k].AssignedTo == ip {
-				HallOrderMatrix[f][k].Timer.Reset(orderTimeout)
-				log.Println("[systemControl]\t Reset timer on order " + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
-			}
-		}
-	}
 }
 
 func restartElevator() {
