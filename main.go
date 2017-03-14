@@ -181,7 +181,10 @@ func main() {
 			//printSystemControl("Received an " + EventType[order.Event] + " from " + order.SenderIP + " with OriginIP " + order.OriginIP)
 			switch order.Event {
 			case EventNewOrder:
+				HallOrderMatrixMutex.Lock()
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // create new instance of ConfirmedBy map
+				HallOrderMatrixMutex.Unlock()
+
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      order.Floor,
 					ButtonType: order.ButtonType,
@@ -209,11 +212,16 @@ func main() {
 				//printSystemControl("case: EventAckNewOrder")
 				// OriginIP is responsible for registering ack from other elevators
 				if order.OriginIP == localIP {
+					HallOrderMatrixMutex.Lock()
 					HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
+					HallOrderMatrixMutex.Unlock()
+
 					if allElevatorsHaveAcked(onlineElevators, HallOrderMatrix, order) {
 						//printSystemControl("All elevators have ack'ed NewOrder at Floor " + strconv.Itoa(order.Floor+1) + " of  type " + ButtonType[order.ButtonType])
+						HallOrderMatrixMutex.Lock()
 						HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()
 						HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy()
+						HallOrderMatrixMutex.Unlock()
 
 						broadcastOrderChannel <- OrderMessage{
 							Floor:      order.Floor,
@@ -229,8 +237,11 @@ func main() {
 			case EventOrderConfirmed:
 				fmt.Print(ColorGreen)
 				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\ton floor " + strconv.Itoa(order.Floor+1) + " is assigned to " + order.AssignedTo + ColorNeutral)
+				HallOrderMatrixMutex.Lock()
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = order.AssignedTo
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = Awaiting
+				HallOrderMatrixMutex.Unlock()
+
 				if order.AssignedTo == localIP {
 					newOrder <- true
 				}
@@ -271,11 +282,16 @@ func main() {
 			case EventAckOrderConfirmed:
 				//printSystemControl("case: EventAckOrderConfirmed")
 				if order.OriginIP == localIP {
+					HallOrderMatrixMutex.Lock()
 					HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
+					HallOrderMatrixMutex.Unlock()
+
 					if allElevatorsHaveAcked(onlineElevators, HallOrderMatrix, order) {
 						//printSystemControl("All elevators have ack'ed OrderConfirmed at Floor " + strconv.Itoa(order.Floor+1) + " of  type " + ButtonType[order.ButtonType])
+						HallOrderMatrixMutex.Lock()
 						HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 						HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
+						HallOrderMatrixMutex.Unlock()
 
 						// Timehout handler on order when there is only one elevator on the network
 						timeout := orderTimeout
@@ -304,11 +320,13 @@ func main() {
 				printSystemControl("case: EventOrderCompleted at floor " + strconv.Itoa(order.Floor+1) + " for " + ButtonType[order.ButtonType] + " for " + order.AssignedTo)
 
 				// TODO: move to allElevatorsHaveAcked. Orders should not be removed untill all elevators have ack
+				HallOrderMatrixMutex.Lock()
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer() // stops timer set in EventAckOrderConfirmed
 				//log.Println("[systemControl]\t EventOrderComplete stop timer at order  "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
+				HallOrderMatrixMutex.Unlock()
 
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      order.Floor,
@@ -335,19 +353,29 @@ func main() {
 
 			case EventAckOrderCompleted: // delete order from matrix and timer functions
 				//printSystemControl("case: EventAckOrderCompleted")
+
+				HallOrderMatrixMutex.Lock()
 				HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
+				HallOrderMatrixMutex.Unlock()
+
 				if allElevatorsHaveAcked(onlineElevators, HallOrderMatrix, order) {
 					fmt.Printf(ColorBlue)
 					log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\ton floor "+strconv.Itoa(order.Floor+1)+" is completed and ack'ed by all", ColorNeutral)
+					HallOrderMatrixMutex.Lock()
 					HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 					HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
+					HallOrderMatrixMutex.Unlock()
+
 				}
 
 			case EventReassignOrder:
 				//printSystemControl("case: EventReassignOrder")
+				HallOrderMatrixMutex.Lock()
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()        // stop ackTimeout timer
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy() // ConfirmedBy map an inner map (declared inside struct, and not initialized)
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
+				HallOrderMatrixMutex.Unlock()
+
 				assignedTo, _ := orders.AssignOrderToElevator(order.Floor, order.ButtonType, onlineElevators, ElevatorStatus, HallOrderMatrix)
 
 				broadcastOrderChannel <- OrderMessage{
@@ -370,10 +398,13 @@ func main() {
 		case order := <-orderCompleteChannel:
 			//printSystemControl("case: orderCompleteChannel at floor " + strconv.Itoa(order.Floor+1) + " for " + ButtonType[order.ButtonType] + " for " + order.AssignedTo)
 			if !elevatorIsOnline(order.AssignedTo, onlineElevators) {
+				HallOrderMatrixMutex.Lock()
+
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
-				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\t at floor " + strconv.Itoa(order.Floor+1) + " set to NotActive")
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer() // stops timer set in EventAckOrderConfirmed
+				HallOrderMatrixMutex.Unlock()
+				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\t at floor " + strconv.Itoa(order.Floor+1) + " set to NotActive")
 				fmt.Printf(ColorBlue)
 				log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\ton floor "+strconv.Itoa(order.Floor+1)+" is completed while elevator is offline", ColorNeutral)
 			}
@@ -522,7 +553,10 @@ func resetTimerForAllAssignedOrders(orderTimeout time.Duration, ip string) {
 	for f := 0; f < NumFloors; f++ {
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
 			if HallOrderMatrix[f][k].AssignedTo == ip {
+				HallOrderMatrixMutex.Lock()
 				HallOrderMatrix[f][k].Timer.Reset(orderTimeout)
+				HallOrderMatrixMutex.Unlock()
+
 				log.Println("[systemControl]\t Reset timer on order " + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
 			}
 		}

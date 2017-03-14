@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -23,6 +24,13 @@ const ElevatorPollDelay = 50 * time.Millisecond // Move to config?
 
 var HallOrderMatrix [NumFloors][2]HallOrder
 var ElevatorStatus = make(map[string]*Elevator) // containing last known state
+
+var HallOrderMatrixMutex = &sync.Mutex{}
+
+HallOrderMatrixMutex.Lock()
+HallOrderMatrixMutex.Unlock()
+
+
 
 var EventType = []string{
 	// BackupMessage Events
