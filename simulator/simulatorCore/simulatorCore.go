@@ -1,5 +1,7 @@
 package simulatorCore
 
+// Simulator created by Erik Liland
+
 import (
 	"encoding/json"
 	"errors"

@@ -83,7 +83,7 @@ func lightController(lightChannel <-chan ElevatorLight) {
 					IoClearBit(LIGHT_DOOR_OPEN)
 				}
 			default:
-				log.Println("ERROR [driver]: Invalid light command")
+				log.Println("[driver]\t\t Invalid light command")
 			}
 		}
 	}
@@ -104,7 +104,7 @@ func motorController(motorChannel chan int) {
 				IoSetBit(MOTORDIR)
 				IoWriteAnalog(MOTOR, motorSpeed)
 			default:
-				log.Println("ERROR [driver]: Invalid motor command")
+				log.Println("[driver]\t\t Invalid motor command")
 			}
 		}
 	}
@@ -116,7 +116,7 @@ func floorSensorPoller(floorChannel chan<- int, PollDelay time.Duration) {
 		f := readFloorSensor()
 		if f != prevFloor && f != FloorInvalid {
 			prevFloor = f
-			SetFloorIndicator(f) // Move to fsm
+			SetFloorIndicator(f)
 			floorChannel <- f
 		}
 		time.Sleep(PollDelay)
@@ -162,7 +162,7 @@ func readFloorSensor() int {
 
 func SetFloorIndicator(floor int) {
 	if floor < 0 || floor >= NumFloors {
-		log.Printf("ERROR [driver]: Floor %d out of range!\n", floor)
+		log.Println("[driver]\t\t Floor " + strconv.Itoa(floor+1) + " out of range!")
 		return
 	}
 

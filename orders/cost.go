@@ -5,7 +5,6 @@ import (
 	"log"
 	"sort"
 	"strconv"
-	"time"
 
 	. "../utilities"
 )
@@ -31,7 +30,7 @@ func AssignOrderToElevator(Floor int, Kind int,
 	}
 	cost := orderCosts{} // initialize slice with empty interface
 
-	for ip, _ := range onlineElevators { // key, value
+	for ip, _ := range onlineElevators {
 		floorCount, stopCount := calculateOrderCost(ip, Floor, Kind, ElevatorStatus[ip], ElevatorStatus, HallOrderMatrix)
 		cost_num := floorCount*TimeBetweenFloors + stopCount*DoorOpenTime
 		cost = append(cost, orderCost{cost_num, ip})
@@ -44,8 +43,8 @@ func AssignOrderToElevator(Floor int, Kind int,
 	return ip, err
 }
 
-// for each floor: loop each button, increment floorNum end of each loop
-// for each button: figure out if there exsist order below, increment button end of each loop
+// for each floor: loop each button, increment floorCount
+// for each button: figure out if there exsist order below or above, increment stopCount
 func calculateOrderCost(ip string,
 	orderFloor int,
 	orderButtonKind int,
@@ -55,12 +54,9 @@ func calculateOrderCost(ip string,
 
 	direction := elevator.Direction
 	prevFloor := elevator.Floor
-	//state := elevator.State // Yet to be set
 
 	floorCount = 0
 	stopCount = 0
-
-	printCost("Elevator direction: " + MotorStatus[direction+1])
 
 	// Elevator is idle at the ordered floor
 	if direction == Stop && prevFloor == orderFloor {
@@ -69,41 +65,34 @@ func calculateOrderCost(ip string,
 
 	searchDirection := direction
 	if orderFloor > prevFloor {
-		if !(searchDirection == Down && anyRequestsBelow(prevFloor, ip, ElevatorStatus, HallOrderMatrix)) {
+		if !(searchDirection == Down && anyRequestsBelow(prevFloor, ip)) {
 			searchDirection = Up
 		}
 	} else if orderFloor < prevFloor {
-		if !(searchDirection == Up && anyRequestsAbove(prevFloor, ip, ElevatorStatus, HallOrderMatrix)) {
+		if !(searchDirection == Up && anyRequestsAbove(prevFloor, ip)) {
 			searchDirection = Down
 		}
 	}
 
-	printCost("Search direction: " + MotorStatus[searchDirection+1])
-	printCost("Elevator state: " + strconv.Itoa(ElevatorStatus[ip].State))
-
 	// increment floor based on direction of order
 	for f := prevFloor + searchDirection; f < NumFloors && f >= Floor1; f += searchDirection {
-		time.Sleep(200 * time.Millisecond) // TODO: remove
 		floorCount++
-		printCost("Current floor in cost loop, f = " + strconv.Itoa(f+1))
 		if f == orderFloor {
 			if f == Floor1 || f == NumFloors-1 {
 				return floorCount, stopCount
 			} else if (direction == Down && orderButtonKind == ButtonCallDown) ||
 				(direction == Up && orderButtonKind == ButtonCallUp) {
-				printCost("Order continuing same direction as elevator direction")
 				return floorCount, stopCount
 			} else {
-				if searchDirection == Up && !anyRequestsAbove(orderFloor, ip, ElevatorStatus, HallOrderMatrix) {
+				if searchDirection == Up && !anyRequestsAbove(orderFloor, ip) {
 					return floorCount, stopCount
-				} else if searchDirection == Down && !anyRequestsBelow(orderFloor, ip, ElevatorStatus, HallOrderMatrix) {
+				} else if searchDirection == Down && !anyRequestsBelow(orderFloor, ip) {
 					return floorCount, stopCount
 				}
 			}
 		}
 
 		for k := ButtonCallUp; k <= ButtonCallDown; k++ {
-			// HallOrderMatrix[f][k].Status is never set to UnderExecution - should be done in systemControl.go
 			if HallOrderMatrix[f][k].AssignedTo == ip && HallOrderMatrix[f][k].Status == UnderExecution {
 				stopCount++
 				break

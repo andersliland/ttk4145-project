@@ -1,5 +1,7 @@
 package main
 
+// Simulator created by Erik Liland
+
 import (
 	"encoding/json"
 	"fmt"

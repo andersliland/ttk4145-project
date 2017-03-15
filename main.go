@@ -36,7 +36,6 @@ func main() {
 	receiveBackupChannel := make(chan BackupMessage, 5)
 
 	orderCompleteChannel := make(chan OrderMessage, 5) // send OrderComplete from RemoveOrders to SystemControl
-	elevatorStatusChannel := make(chan Elevator, 5)
 
 	buttonChannel := make(chan ElevatorButton, 10)
 	lightChannel := make(chan ElevatorLight)
@@ -66,7 +65,6 @@ func main() {
 	// init by going to  nearest floor below and broadcast
 	floor := driver.GoToFloorBelow(localIP, motorChannel, PollDelay)
 	floorReached <- floor
-	//broadcastBackupChannel <- BackupMessage{State: *ElevatorStatus[localIP], Event: EventElevatorBackup, AskerIP: localIP} // sync floor status
 
 	fmt.Print(ColorWhite)
 	log.Println("[eventManager]\t New elevator "+localIP+" starting at floor "+strconv.Itoa(floor+1), ColorNeutral)
@@ -83,7 +81,7 @@ func main() {
 
 	onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, watchdogLimit)
 
-	go control.EventManager(newOrder, floor, elevatorStatusChannel, broadcastOrderChannel, broadcastBackupChannel, orderCompleteChannel, floorReached, lightChannel, motorChannel, localIP)
+	go control.EventManager(newOrder, floor, broadcastOrderChannel, broadcastBackupChannel, orderCompleteChannel, floorReached, lightChannel, motorChannel, localIP)
 
 	signal.Notify(safeKillChannel, os.Interrupt)
 	go safeKill(safeKillChannel, motorChannel)
@@ -156,18 +154,6 @@ func main() {
 			log.Println("[elevatorControl]\t Elevator "+localIP+" reached floor "+strconv.Itoa(floor+1), ColorNeutral)
 			resetTimerForAllAssignedOrders(orderTimeout, localIP)
 
-		case status := <-elevatorStatusChannel: //TODO: fill inn
-			//log.Println("[main]\t Received elevatorStatusChannel from " + status.LocalIP)
-			//log.Println("Before ElevatorStatus[localIP]", ElevatorStatus[status.LocalIP])
-			// TODO: does this overvrite unused valuse
-			ElevatorStatusMutex.Lock()
-			ElevatorStatus[status.LocalIP].Floor = status.Floor
-			ElevatorStatus[status.LocalIP].Direction = status.Direction
-			ElevatorStatus[status.LocalIP].State = status.State
-			ElevatorStatusMutex.Unlock()
-
-			//log.Println("After ElevatorStatus[localIP]", ElevatorStatus[status.LocalIP])
-
 		case backup := <-receiveBackupChannel:
 			//log.Printf("[systemControl] receivedBackupChannel with event %v from %v]", EventType[backup.Event], backup.AskerIP)
 			switch backup.Event {
@@ -185,8 +171,6 @@ func main() {
 
 				}
 				onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, watchdogLimit)
-			case EventElevatorBackup:
-				//log.Println("[systemControl]\t Received EventElevatorBackup from a new elevator with IP " + backup.AskerIP)
 
 			default:
 				log.Println("[systemControl]\tReceived invalid BackupMessage from", backup.ResponderIP)
@@ -224,7 +208,6 @@ func main() {
 					})
 				}
 			case EventAckNewOrder:
-				//printSystemControl("case: EventAckNewOrder")
 				// OriginIP is responsible for registering ack from other elevators
 				if order.OriginIP == localIP {
 					HallOrderMatrixMutex.Lock()

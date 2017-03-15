@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script automaticaly copies project folder to new computer, and does a remote login afterwords
+# This script automaticaly copies project folder to new computer, and run the program
 clear
 user="student"
 echo "Type in the workstation number to start"

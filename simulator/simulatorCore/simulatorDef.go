@@ -1,5 +1,7 @@
 package simulatorCore
 
+// Simulator created by Erik Liland
+
 //const NumFloors = 4
 //const NumButtons = 3
 

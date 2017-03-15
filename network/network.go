@@ -71,35 +71,20 @@ func receiveMessageHandler(
 			if err != nil {
 				log.Println("[network]\t First Unmarshal failed", err)
 			} else {
-				//printNetwork(" New UDP datagram received, first Unmarshal sucess")
-
-				// TODO: revrite two next lines, probably go build in reflect package
+				// Sorting incomming messages by 'Event'
 				m := f.(map[string]interface{})
-				event := int(m["Event"].(float64)) // type assertion, float64 because
-
-				if event <= 3 && event >= 0 {
+				event := int(m["Event"].(float64))
+				if event == 0 {
 					var backupMessage = BackupMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &backupMessage); err == nil { //unmarshal into correct message struct
-						//printNetwork("BackupMessage Unmarshal sucess")
-						if backupMessage.IsValid() {
-							receiveBackupChannel <- backupMessage
-							//printNetwork("Recived an BackupMessage with Event " + EventType[backupMessage.Event])
-						} else {
-							log.Println("[network]\t Rejected an BackupMessage with Event " + EventType[backupMessage.Event])
-						}
+						receiveBackupChannel <- backupMessage
 					} else {
 						log.Print("[network] BackupMessage Unmarshal failed", err)
 					}
-				} else if event >= 4 && event <= 12 {
+				} else if event >= 1 && event <= 7 {
 					var orderMessage = OrderMessage{}
 					if err := json.Unmarshal(msg.Data[:msg.Length], &orderMessage); err == nil { //unmarshal into correct message struct
-						printNetwork("[network] OrderMessage Unmarshal sucess")
-						if orderMessage.IsValid() {
-							receiveOrderChannel <- orderMessage
-							printNetwork("Recived an OrderMessage with Event " + EventType[orderMessage.Event])
-						} else {
-							log.Println("[network]\t Rejected an OrderMessage with Event " + EventType[orderMessage.Event])
-						}
+						receiveOrderChannel <- orderMessage
 					} else {
 						log.Print("[network]\t OrderMessage Unmarshal failed")
 					}
