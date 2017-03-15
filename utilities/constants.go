@@ -10,7 +10,12 @@ const TimeBetweenFloors = 5
 const DoorOpenTime = 3
 const OrderTimeout = DoorOpenTime + TimeBetweenFloors
 
+const WatchdogKickTime = 100 * time.Millisecond
+const WatchdogLimit = 3*WatchdogKickTime + 10*time.Millisecond
+const AckTimeLimit = 500 * time.Millisecond
+
 const PollDelay = 5 * time.Millisecond
+const PanelLightPollDelay = 20 * time.Millisecond
 const ElevatorPollDelay = 50 * time.Millisecond
 
 var EventType = []string{
