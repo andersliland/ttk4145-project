@@ -18,17 +18,15 @@ import (
 	. "./utilities"
 )
 
-const debugSystemControl = true
+const debugSystemControl = false
 const debugElevatorControl = false
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-
 	broadcastOrderChannel := make(chan OrderMessage, 5)
 	receiveOrderChannel := make(chan OrderMessage, 5)
 	broadcastBackupChannel := make(chan BackupMessage, 5)
 	receiveBackupChannel := make(chan BackupMessage, 5)
-
 	orderCompleteChannel := make(chan OrderMessage, 5) // send OrderComplete from RemoveOrders to SystemControl
 
 	buttonChannel := make(chan ElevatorButton, 10)
@@ -62,13 +60,7 @@ func main() {
 	floor := driver.GoToFloorBelow(localIP, motorChannel, PollDelay)
 	floorReached <- floor
 	fmt.Print(ColorWhite)
-	log.Println("[eventManager]\t New elevator "+localIP+" starting at floor "+strconv.Itoa(floor+1), ColorNeutral)
-
-	// Timers
-	watchdogTimer := time.NewTicker(WatchdogLimit)
-	defer watchdogTimer.Stop()
-	WatchdogKickTimer := time.NewTicker(WatchdogKickTime)
-	defer WatchdogKickTimer.Stop()
+	log.Println("[main]\t\t New elevator "+localIP+" starting at floor "+strconv.Itoa(floor+1), ColorNeutral)
 
 	ElevatorStatusMutex.Lock()
 	ElevatorStatus[localIP] = ResolveElevator(Elevator{LocalIP: localIP})
@@ -82,7 +74,7 @@ func main() {
 	go setPanelLights(lightChannel, localIP)
 
 	if err := LoadBackup("backupElevator", &ElevatorStatus[localIP].CabOrders); err == nil {
-		log.Println("[eventManager]\t Loading and executing CabOrder restored from backup")
+		log.Println("[main]\t\t Loading and executing CabOrder restored from backup")
 		for f := 0; f < NumFloors; f++ {
 			if ElevatorStatus[localIP].CabOrders[f] {
 				newOrder <- true
@@ -90,6 +82,11 @@ func main() {
 			}
 		}
 	}
+
+	watchdogTimer := time.NewTicker(WatchdogLimit)
+	defer watchdogTimer.Stop()
+	WatchdogKickTimer := time.NewTicker(WatchdogKickTime)
+	defer WatchdogKickTimer.Stop()
 
 	for {
 		select {
@@ -104,7 +101,7 @@ func main() {
 			switch button.Kind {
 			case ButtonCallUp, ButtonCallDown:
 				if _, ok := onlineElevators[localIP]; !ok {
-					log.Println("[elevatorControl]\t Elevator offline, cannot accept new order")
+					log.Println("[main]\t\t Elevator offline, cannot accept new order")
 				} else {
 					orderAssignedTo, _ := orders.AssignOrderToElevator(button.Floor, button.Kind, onlineElevators, ElevatorStatus, HallOrderMatrix)
 					broadcastOrderChannel <- OrderMessage{
@@ -122,18 +119,18 @@ func main() {
 				ElevatorStatusMutex.Unlock()
 
 				if err := SaveBackup("backupElevator", ElevatorStatus[localIP].CabOrders); err != nil {
-					log.Println("[elevatorControl]\t Save Backup failed: ", err)
+					log.Println("[main]\t\t Save Backup failed: ", err)
 				}
 				resetTimerForAllAssignedOrders(orderTimeout, localIP) // reset timer on Cabbutton spamming
 				fmt.Printf(ColorGreen)
-				log.Println("[elevatorControl]\t CabOrder "+ButtonType[button.Kind]+"\ton floor "+strconv.Itoa(button.Floor+1), ColorNeutral)
+				log.Println("[main]\t\t CabOrder "+ButtonType[button.Kind]+"\ton floor "+strconv.Itoa(button.Floor+1), ColorNeutral)
 				newOrder <- true
 
 			case ButtonStop:
 				motorChannel <- Stop
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
-				log.Println("[elevatorControl]\t Stop button pressed. Elevator will come to a halt.")
-				log.Println("[elevatorControl]\t You need to restart system to init elevator again.")
+				log.Println("[main]\t\t Stop button pressed. Elevator will come to a halt.")
+				log.Println("[main]\t\t You need to restart system to init elevator again.")
 				time.Sleep(200 * time.Millisecond)
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
 				os.Exit(1)
@@ -142,11 +139,11 @@ func main() {
 		case floor := <-floorChannel:
 			floorReached <- floor
 			fmt.Print(ColorYellow)
-			log.Println("[elevatorControl]\t Elevator "+localIP+" reached floor "+strconv.Itoa(floor+1), ColorNeutral)
+			log.Println("[main]\t\t Elevator "+localIP+" reached floor "+strconv.Itoa(floor+1), ColorNeutral)
 			resetTimerForAllAssignedOrders(orderTimeout, localIP)
 
 		case backup := <-receiveBackupChannel:
-			//log.Printf("[systemControl] receivedBackupChannel with event %v from %v]", EventType[backup.Event], backup.AskerIP)
+			//log.Printf("[main]\t receivedBackupChannel with event %v from %v]", EventType[backup.Event], backup.AskerIP)
 			switch backup.Event {
 			case EventElevatorOnline:
 				if _, ok := ElevatorStatus[backup.ResponderIP]; ok {
@@ -155,7 +152,7 @@ func main() {
 					ElevatorStatusMutex.Unlock()
 
 				} else {
-					log.Println("[systemControl]\t Received EventElevatorOnline from a new elevator with IP " + backup.ResponderIP)
+					log.Println("[main]\t\t Received EventElevatorOnline from a new elevator with IP " + backup.ResponderIP)
 					ElevatorStatusMutex.Lock()
 					ElevatorStatus[backup.ResponderIP] = ResolveElevator(backup.State)
 					ElevatorStatusMutex.Unlock()
@@ -164,7 +161,7 @@ func main() {
 				onlineElevators = updateOnlineElevators(ElevatorStatus, onlineElevators, localIP, WatchdogLimit)
 
 			default:
-				log.Println("[systemControl]\tReceived invalid BackupMessage from", backup.ResponderIP)
+				log.Println("[main]\t\tReceived invalid BackupMessage from", backup.ResponderIP)
 			}
 
 		case order := <-receiveOrderChannel:
@@ -187,7 +184,7 @@ func main() {
 				if order.OriginIP == localIP {
 					//printSystemControl("Starting ack timer on new order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
 					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(AckTimeLimit, func() {
-						log.Println("[systemControl]\t ACK-TIMEOUT\t newOrder at floor " + strconv.Itoa(order.Floor+1) + " for " + ButtonType[order.ButtonType] + " not ACK'ed by all ")
+						log.Println("[main]\t\t ACK-TIMEOUT\t newOrder at floor " + strconv.Itoa(order.Floor+1) + " for " + ButtonType[order.ButtonType] + " not ACK'ed by all ")
 						timeoutChannel <- ExtendedHallOrder{
 							Floor:        order.Floor,
 							ButtonType:   order.ButtonType,
@@ -225,7 +222,7 @@ func main() {
 
 			case EventOrderConfirmed:
 				fmt.Print(ColorGreen)
-				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\ton floor " + strconv.Itoa(order.Floor+1) + " is assigned to " + order.AssignedTo + ColorNeutral)
+				log.Println("[main]\t\t Order " + ButtonType[order.ButtonType] + "\ton floor " + strconv.Itoa(order.Floor+1) + " is assigned to " + order.AssignedTo + ColorNeutral)
 				HallOrderMatrixMutex.Lock()
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = order.AssignedTo
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = Awaiting
@@ -255,7 +252,7 @@ func main() {
 					//printSystemControl("Starting execution timer [EventOrderConfirmed] on order " + ButtonType[order.ButtonType] + " on floor " + strconv.Itoa(order.Floor+1))
 					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
 						fmt.Print(ColorDarkGrey)
-						log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\t on floor "+strconv.Itoa(order.Floor+1)+" could not be completed by "+order.AssignedTo+". OriginIP "+order.OriginIP+" (OriginIP != localIP) ", ColorNeutral)
+						log.Println("[main]\t\t Order "+ButtonType[order.ButtonType]+"\t on floor "+strconv.Itoa(order.Floor+1)+" could not be completed by "+order.AssignedTo+". OriginIP "+order.OriginIP+" (OriginIP != localIP) ", ColorNeutral)
 						timeoutChannel <- ExtendedHallOrder{
 							Floor:        order.Floor,
 							ButtonType:   order.ButtonType,
@@ -290,7 +287,7 @@ func main() {
 						//log.Println("[systemConrtol]\t OriginIP start execution timer [EventOrderConfirmed] on order "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
 						HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(timeout, func() {
 							fmt.Print(ColorDarkGrey)
-							log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\t on floor "+strconv.Itoa(order.Floor+1)+" could not be completed by "+order.AssignedTo+". OriginIP "+order.OriginIP+" (OriginIP == localIP) ", ColorNeutral)
+							log.Println("[main]\t\t Order "+ButtonType[order.ButtonType]+"\t on floor "+strconv.Itoa(order.Floor+1)+" could not be completed by "+order.AssignedTo+". OriginIP "+order.OriginIP+" (OriginIP == localIP) ", ColorNeutral)
 							timeoutChannel <- ExtendedHallOrder{
 								Floor:        order.Floor,
 								ButtonType:   order.ButtonType,
@@ -313,7 +310,7 @@ func main() {
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()
-				//log.Println("[systemControl]\t EventOrderComplete stop timer at order  "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
+				//log.Println("[main]\t\t EventOrderComplete stop timer at order  "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy()
 				HallOrderMatrixMutex.Unlock()
 
@@ -328,7 +325,7 @@ func main() {
 
 				if order.AssignedTo == localIP {
 					HallOrderMatrix[order.Floor][order.ButtonType].Timer = time.AfterFunc(AckTimeLimit, func() {
-						log.Println("[systemControl]\t ACK-TIMEOUT\t orderCompleted at floor " + strconv.Itoa(order.Floor+1) + " for " + ButtonType[order.ButtonType] + " not ACK'ed by all ")
+						log.Println("[main]\t\t ACK-TIMEOUT\t orderCompleted at floor " + strconv.Itoa(order.Floor+1) + " for " + ButtonType[order.ButtonType] + " not ACK'ed by all ")
 						broadcastOrderChannel <- OrderMessage{
 							Floor:      order.Floor,
 							ButtonType: order.ButtonType,
@@ -349,7 +346,7 @@ func main() {
 
 				if allElevatorsHaveAcked(onlineElevators, HallOrderMatrix, order) {
 					fmt.Printf(ColorBlue)
-					log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\ton floor "+strconv.Itoa(order.Floor+1)+" is completed and ack'ed by all", ColorNeutral)
+					log.Println("[main]\t\t Order "+ButtonType[order.ButtonType]+"\ton floor "+strconv.Itoa(order.Floor+1)+" is completed and ack'ed by all", ColorNeutral)
 					HallOrderMatrixMutex.Lock()
 					HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()
 					HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy()
@@ -375,10 +372,10 @@ func main() {
 					Event:      EventNewOrder,
 				}
 				fmt.Printf(ColorWhite)
-				log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\ton floor "+strconv.Itoa(order.Floor+1)+" is reassigned from "+order.AssignedTo+" to "+assignedTo+" with OriginIP "+order.OriginIP, ColorNeutral)
+				log.Println("[main]\t\t Order "+ButtonType[order.ButtonType]+"\ton floor "+strconv.Itoa(order.Floor+1)+" is reassigned from "+order.AssignedTo+" to "+assignedTo+" with OriginIP "+order.OriginIP, ColorNeutral)
 
 			default:
-				log.Println("[systemControl]\t Received an invalid OrderMessage from " + order.SenderIP)
+				log.Println("[main]\t\t Received an invalid OrderMessage from " + order.SenderIP)
 
 			}
 
@@ -391,14 +388,14 @@ func main() {
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer() // stops timer set in EventAckOrderConfirmed
 				HallOrderMatrixMutex.Unlock()
 
-				log.Println("[systemControl]\t Order " + ButtonType[order.ButtonType] + "\t at floor " + strconv.Itoa(order.Floor+1) + " set to NotActive")
+				log.Println("[main]\t\t Order " + ButtonType[order.ButtonType] + "\t at floor " + strconv.Itoa(order.Floor+1) + " set to NotActive")
 				fmt.Printf(ColorBlue)
-				log.Println("[systemControl]\t Order "+ButtonType[order.ButtonType]+"\ton floor "+strconv.Itoa(order.Floor+1)+" is completed while elevator is offline", ColorNeutral)
+				log.Println("[main]\t\t Order "+ButtonType[order.ButtonType]+"\ton floor "+strconv.Itoa(order.Floor+1)+" is completed while elevator is offline", ColorNeutral)
 			}
 		case t := <-timeoutChannel:
 			switch t.TimeoutState {
 			case TimeoutAckNewOrder:
-				log.Println("[systemControl]\t Not all elevators ACKed newOrder at floor " + strconv.Itoa(t.Floor+1) + " for " + ButtonType[t.ButtonType] + ". Resending...")
+				log.Println("[main]\t\t Not all elevators ACKed newOrder at floor " + strconv.Itoa(t.Floor+1) + " for " + ButtonType[t.ButtonType] + ". Resending...")
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      t.Floor,
 					ButtonType: t.ButtonType,
@@ -409,7 +406,7 @@ func main() {
 				}
 
 			case TimeoutAckOrderConfirmed:
-				log.Println("[systemControl]\t Not all elevators ACKed orderConfirmed at floor " + strconv.Itoa(t.Floor+1) + " for " + ButtonType[t.ButtonType] + ". Resending...")
+				log.Println("[main]\t\t Not all elevators ACKed orderConfirmed at floor " + strconv.Itoa(t.Floor+1) + " for " + ButtonType[t.ButtonType] + ". Resending...")
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      t.Floor,
 					ButtonType: t.ButtonType,
@@ -425,7 +422,7 @@ func main() {
 					motorChannel <- Stop
 					time.Sleep(200 * time.Millisecond)
 					fmt.Print(ColorRed)
-					log.Println("[systemControl]\t SUICIDE, could not complete order "+ButtonType[t.ButtonType]+" at floor "+strconv.Itoa(t.Floor+1)+". OriginIP: "+t.OriginIP+" AssignedTo: "+t.Order.AssignedTo, ColorNeutral)
+					log.Println("[main]\t\t SUICIDE, could not complete order "+ButtonType[t.ButtonType]+" at floor "+strconv.Itoa(t.Floor+1)+". OriginIP: "+t.OriginIP+" AssignedTo: "+t.Order.AssignedTo, ColorNeutral)
 					//os.Exit(1)
 					restartElevator() //TODO: implement gracefull restart
 
@@ -449,13 +446,13 @@ func updateOnlineElevators(ElevatorStatus map[string]*Elevator, onlineElevators 
 			if onlineElevators[k] == true {
 				delete(onlineElevators, k)
 				//printSystemControl("Removed elevator " + ElevatorStatus[k].LocalIP + " in onlineElevators")
-				log.Println("[systemControl] \t All onlineElevators", onlineElevators, "Removed ", ElevatorStatus[k].LocalIP)
+				log.Println("[main]\t \t All onlineElevators", onlineElevators, "Removed ", ElevatorStatus[k].LocalIP)
 			}
 		} else { // add elevator to 'onlineElevators' if watchdog not timeout
 			if onlineElevators[k] != true {
 				onlineElevators[k] = true
 				//printSystemControl("Added elevator " + ElevatorStatus[k].LocalIP + " in onlineElevators")
-				log.Println("[systemControl] \t All onlineElevators", onlineElevators, "Added ", ElevatorStatus[k].LocalIP)
+				log.Println("[main]\t \t All onlineElevators", onlineElevators, "Added ", ElevatorStatus[k].LocalIP)
 			}
 		}
 	}
@@ -523,7 +520,7 @@ func resetTimerForAllAssignedOrders(orderTimeout time.Duration, ip string) {
 				HallOrderMatrixMutex.Lock()
 				HallOrderMatrix[f][k].Timer.Reset(orderTimeout)
 				HallOrderMatrixMutex.Unlock()
-				log.Println("[systemControl]\t Reset timer on order " + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
+				//log.Println("[main]\t\t Reset timer on order " + ButtonType[k] + " at floor " + strconv.Itoa(f+1))
 			}
 		}
 	}
@@ -541,12 +538,12 @@ func safeKill(safeKillChannel <-chan os.Signal, motorChannel chan int) {
 
 func printSystemControl(s string) {
 	if debugSystemControl {
-		log.Println("[systemControl]\t", s)
+		log.Println("[main]\t\t", s)
 	}
 }
 
 func printElevatorControl(s string) {
 	if debugElevatorControl {
-		log.Println("[elevatorControl]\t", s)
+		log.Println("[main]\t\t", s)
 	}
 }
