@@ -93,8 +93,6 @@ func (e *Elevator) UpdateElevatorStatus(backup BackupMessage) {
 	e.State = backup.State.State
 	e.Floor = backup.State.Floor
 	e.Direction = backup.State.Direction
-	//e.CabOrders[backup.State.Floor] = //how to sync CabOrders
-	// NEED TO SYNC HallOrderMatrix?
 }
 
 // ----Type: HallOrder ----

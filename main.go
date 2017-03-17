@@ -22,6 +22,7 @@ const debugSystemControl = false
 const debugElevatorControl = false
 
 func main() {
+	var err error
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	broadcastOrderChannel := make(chan OrderMessage, 5)
 	receiveOrderChannel := make(chan OrderMessage, 5)
@@ -47,7 +48,6 @@ func main() {
 	var orderTimeout = OrderTimeout*time.Second + time.Duration(r.Intn(2000))*time.Millisecond
 
 	var localIP string
-	var err error
 	localIP, err = network.Init(broadcastOrderChannel, receiveOrderChannel, broadcastBackupChannel, receiveBackupChannel)
 	if err != nil {
 		fmt.Print(ColorRed)
@@ -129,8 +129,9 @@ func main() {
 			case ButtonStop:
 				motorChannel <- Stop
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: true}
+				fmt.Print(ColorRed)
 				log.Println("[main]\t\t Stop button pressed. Elevator will come to a halt.")
-				log.Println("[main]\t\t You need to restart system to init elevator again.")
+				log.Println("[main]\t\t You need to restart system to init elevator again.", ColorNeutral)
 				time.Sleep(200 * time.Millisecond)
 				lightChannel <- ElevatorLight{Kind: ButtonStop, Active: false}
 				os.Exit(1)
@@ -305,12 +306,10 @@ func main() {
 			case EventOrderCompleted:
 				printSystemControl("case: EventOrderCompleted at floor " + strconv.Itoa(order.Floor+1) + " for " + ButtonType[order.ButtonType] + " for " + order.AssignedTo)
 
-				// TODO: move to allElevatorsHaveAcked. Orders should not be removed untill all elevators have ack
 				HallOrderMatrixMutex.Lock()
 				HallOrderMatrix[order.Floor][order.ButtonType].AssignedTo = ""
 				HallOrderMatrix[order.Floor][order.ButtonType].Status = NotActive
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer()
-				//log.Println("[main]\t\t EventOrderComplete stop timer at order  "+ButtonType[order.ButtonType]+" on floor "+strconv.Itoa(order.Floor+1)+" Timer: ", HallOrderMatrix[order.Floor][order.ButtonType].Timer)
 				HallOrderMatrix[order.Floor][order.ButtonType].ClearConfirmedBy()
 				HallOrderMatrixMutex.Unlock()
 
@@ -339,7 +338,6 @@ func main() {
 
 			case EventAckOrderCompleted:
 				//printSystemControl("case: EventAckOrderCompleted")
-
 				HallOrderMatrixMutex.Lock()
 				HallOrderMatrix[order.Floor][order.ButtonType].ConfirmedBy[order.SenderIP] = true
 				HallOrderMatrixMutex.Unlock()
@@ -388,7 +386,7 @@ func main() {
 				HallOrderMatrix[order.Floor][order.ButtonType].StopTimer() // stops timer set in EventAckOrderConfirmed
 				HallOrderMatrixMutex.Unlock()
 
-				log.Println("[main]\t\t Order " + ButtonType[order.ButtonType] + "\t at floor " + strconv.Itoa(order.Floor+1) + " set to NotActive")
+				//log.Println("[main]\t\t Order " + ButtonType[order.ButtonType] + "\t at floor " + strconv.Itoa(order.Floor+1) + " set to NotActive")
 				fmt.Printf(ColorBlue)
 				log.Println("[main]\t\t Order "+ButtonType[order.ButtonType]+"\ton floor "+strconv.Itoa(order.Floor+1)+" is completed while elevator is offline", ColorNeutral)
 			}
@@ -423,9 +421,8 @@ func main() {
 					time.Sleep(200 * time.Millisecond)
 					fmt.Print(ColorRed)
 					log.Println("[main]\t\t SUICIDE, could not complete order "+ButtonType[t.ButtonType]+" at floor "+strconv.Itoa(t.Floor+1)+". OriginIP: "+t.OriginIP+" AssignedTo: "+t.Order.AssignedTo, ColorNeutral)
-					//os.Exit(1)
-					restartElevator() //TODO: implement gracefull restart
-
+					os.Exit(1)
+					//restartElevator() //TODO: implement gracefull restart
 				}
 				broadcastOrderChannel <- OrderMessage{
 					Floor:      t.Floor,
@@ -532,8 +529,8 @@ func safeKill(safeKillChannel <-chan os.Signal, motorChannel chan int) {
 	time.Sleep(100 * time.Millisecond) // wait for motor stop too be processed
 	fmt.Print(ColorWhite)
 	log.Println("[main]\t User terminated program - MOTOR STOPPED", ColorNeutral)
-	//os.Exit(1)
-	restartElevator()
+	os.Exit(1)
+	//restartElevator()
 }
 
 func printSystemControl(s string) {
